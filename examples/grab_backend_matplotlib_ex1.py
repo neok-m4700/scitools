@@ -24,7 +24,7 @@ def _pyplot_patch_alpha(alpha=0.2):
         if not isinstance(child, pyplot.matplotlib.patches.Polygon):
             continue
         if __debug__:
-            print 'Old alpha value:', getp(child, 'alpha'), 'new:', alpha
+            print('Old alpha value:', getp(child, 'alpha'), 'new:', alpha)
         setp(child, 'alpha', alpha)
 
 if __name__ == '__main__':
@@ -59,5 +59,5 @@ if __name__ == '__main__':
         # Don't use normal savefig after an update in backend
         pyplot.savefig('tmp_transparent_fill.png') 
 
-    raw_input('Press Return key to quit: ')
+    input('Press Return key to quit: ')
     

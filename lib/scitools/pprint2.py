@@ -77,11 +77,12 @@ Global data:
 
 """
 
+
 import sys as _sys
 
-from StringIO import StringIO as _StringIO
+from io import StringIO as _StringIO
 
-__all__ = ["pprint","pformat","isreadable","isrecursive","saferepr",
+__all__ = ["pprint", "pformat", "isreadable", "isrecursive", "saferepr",
            "PrettyPrinter"]
 
 float_format = '%g'
@@ -99,23 +100,29 @@ def pprint(object, stream=None, indent=1, width=80, depth=None):
         stream=stream, indent=indent, width=width, depth=depth)
     printer.pprint(object)
 
+
 def pformat(object, indent=1, width=80, depth=None):
     """Format a Python object into a pretty-printed representation."""
     return PrettyPrinter(indent=indent, width=width, depth=depth).pformat(object)
+
 
 def saferepr(object):
     """Version of repr() which can handle recursive data structures."""
     return _safe_repr(object, {}, None, 0)[0]
 
+
 def isreadable(object):
     """Determine if saferepr(object) is readable by eval()."""
     return _safe_repr(object, {}, None, 0)[1]
+
 
 def isrecursive(object):
     """Determine if object requires a recursive representation."""
     return _safe_repr(object, {}, None, 0)[2]
 
+
 class PrettyPrinter:
+
     def __init__(self, indent=1, width=80, depth=None, stream=None):
         """Handle pretty printing operations onto a stream using a set of
         configured parameters.
@@ -186,20 +193,20 @@ class PrettyPrinter:
                 if length:
                     context[objid] = 1
                     indent = indent + self._indent_per_level
-                    items  = list(object.items())
+                    items = list(object.items())
                     items.sort()
                     key, ent = items[0]
                     rep = self._repr(key, context, level)
                     write(rep)
                     write(': ')
                     self._format(ent, stream, indent + _len(rep) + 2,
-                                  allowance + 1, context, level)
+                                 allowance + 1, context, level)
                     if length > 1:
                         for key, ent in items[1:]:
                             rep = self._repr(key, context, level)
-                            write(',\n%s%s: ' % (' '*indent, rep))
+                            write(',\n%s%s: ' % (' ' * indent, rep))
                             self._format(ent, stream, indent + _len(rep) + 2,
-                                          allowance + 1, context, level)
+                                         allowance + 1, context, level)
                     indent = indent - self._indent_per_level
                     del context[objid]
                 write('}')
@@ -223,9 +230,9 @@ class PrettyPrinter:
                                  context, level)
                     if length > 1:
                         for ent in object[1:]:
-                            write(',\n' + ' '*indent)
+                            write(',\n' + ' ' * indent)
                             self._format(ent, stream, indent,
-                                          allowance + 1, context, level)
+                                         allowance + 1, context, level)
                     indent = indent - self._indent_per_level
                     del context[objid]
                 if issubclass(typ, tuple) and length == 1:
@@ -358,8 +365,8 @@ def _perfcheck(object=None):
     t2 = time.time()
     p.pformat(object)
     t3 = time.time()
-    print "_safe_repr:", t2 - t1
-    print "pformat:", t3 - t2
+    print("_safe_repr:", t2 - t1)
+    print("pformat:", t3 - t2)
 
 if __name__ == "__main__":
     _perfcheck()

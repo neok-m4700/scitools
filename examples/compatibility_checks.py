@@ -3,28 +3,28 @@ from scitools.errorcheck import *
 q1 = linspace(0, 1, 5)
 try:
     right_length(q1, 2)
-except Exception, e:
-    print e.__class__.__name__, e
+except Exception as e:
+    print(e.__class__.__name__, e)
 try:
     right_size1(q1, (2,2))
-except Exception, e:
-    print e.__class__.__name__, e
+except Exception as e:
+    print(e.__class__.__name__, e)
 try:    
     q2 = linspace(0, 1, 6)
-except Exception, e:
-    print e.__class__.__name__, e
+except Exception as e:
+    print(e.__class__.__name__, e)
 try:
     right_size2(q1, q2)
-except Exception, e:
-    print e.__class__.__name__, e
+except Exception as e:
+    print(e.__class__.__name__, e)
 try:
     right_type(q2, list)
-except Exception, e:
-    print e.__class__.__name__, e
+except Exception as e:
+    print(e.__class__.__name__, e)
 try:
     wrong_type(q1)
-except Exception, e:
-    print e.__class__.__name__, e
+except Exception as e:
+    print(e.__class__.__name__, e)
 
 """
 ValueError file "compatibility_checks.py", line 5, main program

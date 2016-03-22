@@ -18,4 +18,4 @@ plot(t, y1, 'r-', t, y2, 'bo',
      savefig='plot2f.png',
      grid=True)
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

@@ -15,4 +15,4 @@ plot(t, y1, 'r-', legend='t**2*exp(-t**2)')
 text(1.5, 0.3, 'A text')
 savefig('tmp1.eps')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

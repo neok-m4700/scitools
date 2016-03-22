@@ -65,4 +65,4 @@ shading('interp')
 
 show()
 
-raw_input("Press Return key to quit: ")
+input("Press Return key to quit: ")

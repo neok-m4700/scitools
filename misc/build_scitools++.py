@@ -96,10 +96,10 @@ def copy_installed_modules():
     The set-up now is that scitools++ should just be in PYTHONPATH and
     then everything is correctly installed.
     """
-    print '********* copy installed modules to scitools++ **************'
+    print('********* copy installed modules to scitools++ **************')
     path = join(sys.prefix, 'lib', 'python' + sys.version[:3], 'site-packages')
     files = MODULES  # see top of this file
-    print files
+    print(files)
     
     files = [join(path, file) for file in files]
     pmw = join(py_package_src, 'Pmw_1_3', 'Pmw')
@@ -107,16 +107,16 @@ def copy_installed_modules():
     # copy files to libdir:
     # (shutil.copytree does not work properly for this type of copy)
     cmd = 'cp -r ' + ' '.join(files) + ' ' + libdir
-    print cmd
+    print(cmd)
     system(cmd)
 
 def copy_installed_scripts():
     """
     Copy installed executable scripts to the scitools++/bin directory.
     """
-    print '********* copy installed executable scripts **************'
+    print('********* copy installed executable scripts **************')
     scripts = SCRIPTS  # see top of this file
-    print scripts
+    print(scripts)
     for script in scripts:
         system("cp `which %s` %s" % (script, bindir))
 
@@ -133,8 +133,8 @@ def main():
     copy_installed_scripts()
     shutil.copy('scitools++_setup.py', join(newdir, 'setup.py'))
     clean(newdir, ['*.pyc', '*~', '*.pyo', '*.p.py', '_update.py', '.svn'])
-    print '\nThe scitools++ umbrella was successfully made'
-    print 'Go to the build/ directory and tarpack scitools++'
+    print('\nThe scitools++ umbrella was successfully made')
+    print('Go to the build/ directory and tarpack scitools++')
 
 if __name__ == '__main__':
     main()

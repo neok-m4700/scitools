@@ -21,7 +21,7 @@ plot(t, y2, 'bo', xlabel='t', ylabel='y')
 
 # pause so the user can really see that we add features
 # to the plot below:
-raw_input('Press Return to continue: ')
+input('Press Return to continue: ')
 
 figure(1)  # go back to first figure
 title('One curve')
@@ -44,4 +44,4 @@ title('A figure with two plots')
 #savefig('tmp2_3.eps')  # illegal in multiplot mode
 show()
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

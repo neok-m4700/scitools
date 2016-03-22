@@ -22,4 +22,4 @@ title('Plotting two curves in the same plot')
 savefig('plot2c.eps')
 savefig('plot2c.png')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

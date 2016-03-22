@@ -23,27 +23,27 @@ def get_status_output_errors(cmd, input=None, cwd=None, env=None):
 
 def message(msg, diag_file=None, stdout=True):
     if stdout:
-        print msg,
+        print(msg, end=' ')
         sys.stdout.flush()
     if isinstance(diag_file, file) and not diag_file.closed:
         diag_file.write(msg)
 
 def wait(str=None, prompt='Press return to show results...\n'):
     if str is not None:
-        print str
-    raw_input(prompt)
+        print(str)
+    input(prompt)
 
 def wait(seconds=1):
     time.sleep(seconds)
 
 def test_scitools():
     import scitools
-    print "SciTools is installed in", os.path.dirname(scitools.__file__)
-    print "SciTools version", scitools.__version__
+    print("SciTools is installed in", os.path.dirname(scitools.__file__))
+    print("SciTools version", scitools.__version__)
     
     from scitools.configdata import config_parser_frontend
     config_data, files = config_parser_frontend('scitools', os.curdir)
-    print "Values from scitools.cfg:"
+    print("Values from scitools.cfg:")
     pprint.pprint(config_data)
     pprint.pprint(files)
 
@@ -53,33 +53,33 @@ def test_numpy():
 
 def test_numeric():
     import Numeric
-    print "Numeric is installed in", os.path.dirname(Numeric.__file__)
-    print "Numeric version", Numeric.__version__
+    print("Numeric is installed in", os.path.dirname(Numeric.__file__))
+    print("Numeric version", Numeric.__version__)
 
 def test_numarray():
     import numarray
-    print "numarray is installed in", os.path.dirname(numarray.__file__)
-    print "numarray version", numarray.__version__
+    print("numarray is installed in", os.path.dirname(numarray.__file__))
+    print("numarray version", numarray.__version__)
 
 def test_scipy():
     import scipy
-    print "SciPy is installed in", os.path.dirname(scipy.__file__)
-    print "SciPy version", scipy.version.version
+    print("SciPy is installed in", os.path.dirname(scipy.__file__))
+    print("SciPy version", scipy.version.version)
     #scipy.test()
 
 def test_blt():
     import Pmw
-    import Tkinter
+    import tkinter
 
-    print "Pmw is installed in", os.path.dirname(Pmw.Blt.__file__)
-    print "Pmw version", Pmw.version()
-    print "Tkinter is installed in", os.path.dirname(Tkinter.__file__)
-    print "Tkinter version", Tkinter.__version__
+    print("Pmw is installed in", os.path.dirname(Pmw.Blt.__file__))
+    print("Pmw version", Pmw.version())
+    print("Tkinter is installed in", os.path.dirname(tkinter.__file__))
+    print("Tkinter version", tkinter.__version__)
 
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
     master.withdraw()
 
-    root = Tkinter.Toplevel(master)
+    root = tkinter.Toplevel(master)
     root.title("Hello BLT!")
     root.geometry('320x240')
     
@@ -88,7 +88,7 @@ def test_blt():
     root.protocol("WM_DELETE_WINDOW", close_window)
     root.bind("<KeyPress-q>", close_window)
     
-    frame = Tkinter.Frame(root)
+    frame = tkinter.Frame(root)
     frame.pack(side='top', fill='both', expand=1)
 
     g = Pmw.Blt.Graph(frame)
@@ -104,15 +104,15 @@ def test_blt():
 
 def test_dx():
     import DX
-    import Tkinter
+    import tkinter
     import tempfile
 
     DXMACROS = '/usr/share/dx/samples/macros'
     DXMACROS = os.environ.get('DXMACROS', DXMACROS)
 
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
     master.withdraw()
-    root = Tkinter.Toplevel(master)
+    root = tkinter.Toplevel(master)
     root.title("Hello OpenDX!")
     def close_window(event=None):
         root.withdraw()
@@ -120,7 +120,7 @@ def test_dx():
     root.bind("<KeyPress-q>", close_window)
     root.geometry('320x240')
     root.withdraw()
-    frame = Tkinter.Frame(root, relief='sunken', bd=2)
+    frame = tkinter.Frame(root, relief='sunken', bd=2)
     frame.pack(side='top', fill='both', expand=1)
 
     # start DX:
@@ -146,16 +146,16 @@ def test_gnuplot():
     if failure:
         pass  # gnuplot command probably missing, will fail later
 
-    print "Gnuplot.py is installed in", os.path.dirname(Gnuplot.__file__)
-    print "Gnuplot.py version", Gnuplot.__version__
-    print "Gnuplot version", out
+    print("Gnuplot.py is installed in", os.path.dirname(Gnuplot.__file__))
+    print("Gnuplot.py version", Gnuplot.__version__)
+    print("Gnuplot version", out)
 
-    print "Values for some Gnuplot.py options:"
-    for opt, value in Gnuplot.GnuplotOpts.__dict__.items():
+    print("Values for some Gnuplot.py options:")
+    for opt, value in list(Gnuplot.GnuplotOpts.__dict__.items()):
         if opt == '__doc__':
             continue
-        print "%s: %s" % (opt, value)
-    print
+        print("%s: %s" % (opt, value))
+    print()
 
     g = Gnuplot.Gnuplot(debug=1)
     g('set title "Hello Gnuplot!"')
@@ -177,9 +177,9 @@ def test_matplotlib():
     from matplotlib.font_manager import fontManager, FontProperties
     import pylab
 
-    print "matplotlib is installed in", os.path.dirname(matplotlib.__file__)
-    print "matplotlib version", matplotlib.__version__
-    print "matplotlib.rcParams:"
+    print("matplotlib is installed in", os.path.dirname(matplotlib.__file__))
+    print("matplotlib version", matplotlib.__version__)
+    print("matplotlib.rcParams:")
     pprint.pprint(matplotlib.rcParams)
 
     x = [0, 1, 2, 3, 4]
@@ -196,21 +196,21 @@ def test_mlabwrap():
     try:
         from scikits import mlabwrap
         from scikits.mlabwrap import mlab
-    except ImportError, msg:
-        print "Unable to find module scikits or scikits.mlabwrap"
-        print "Error:\n", msg
+    except ImportError as msg:
+        print("Unable to find module scikits or scikits.mlabwrap")
+        print("Error:\n", msg)
         try:
             import mlabwrap
             from mlabwrap import mlab
-        except ImportError, msg:
+        except ImportError as msg:
             # mlabwrap is not available
-            print "Unable to find module mlabwrap"
-            print "Error:\n", msg
+            print("Unable to find module mlabwrap")
+            print("Error:\n", msg)
             sys.exit(1)
 
-    print "mlabwrap is installed in", os.path.dirname(mlabwrap.__file__)
-    print "mlabwrap version", "unknown"
-    print "MLABRAW_CMD_STR:", os.getenv("MLABRAW_CMD_STR")
+    print("mlabwrap is installed in", os.path.dirname(mlabwrap.__file__))
+    print("mlabwrap version", "unknown")
+    print("MLABRAW_CMD_STR:", os.getenv("MLABRAW_CMD_STR"))
 
     x = [0, 1, 2, 3, 4]
     y = [0, 1, 4, 9, 16]
@@ -231,8 +231,8 @@ def test_visit():
         visit.AddArgument(arg)
     visit.Launch()
 
-    print "visit is installed in", os.path.dirname(visit.__file__)
-    print "visit version", visit.Version()
+    print("visit is installed in", os.path.dirname(visit.__file__))
+    print("visit version", visit.Version())
 
     visit.ResetView()
     v3D = visit.GetView3D()
@@ -272,14 +272,14 @@ def test_visit():
 
 def test_vtk():
     import vtk
-    import Tkinter
+    import tkinter
     try:
         from vtkTkRenderWidget import vktTkRenderWidget
     except:
         from vtk.tk.vtkTkRenderWidget import vtkTkRenderWidget
 
-    print "vtk is installed in", os.path.dirname(vtk.__file__)
-    print "vtk version", vtk.vtkVersion().GetVTKVersion()
+    print("vtk is installed in", os.path.dirname(vtk.__file__))
+    print("vtk version", vtk.vtkVersion().GetVTKVersion())
 
     # Create a sphere source, mapper, and actor
     sphere = vtk.vtkSphereSource()
@@ -312,14 +312,14 @@ def test_vtk():
     tprop.SetColor(0, 0, 1)
 
     # Create the Renderer, RenderWindow, RenderWindowInteractor
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
     master.withdraw()
-    root = Tkinter.Toplevel(master)
+    root = tkinter.Toplevel(master)
     root.title("Hello VTK!")
     def close(event=None):
         root.withdraw()
     root.bind("<KeyPress-q>", close)
-    frame = Tkinter.Frame(root, relief='sunken', bd=2)
+    frame = tkinter.Frame(root, relief='sunken', bd=2)
     frame.pack(side='top', fill='both', expand=1)
     tkw = vtkTkRenderWidget(frame, width=320, height=240)
     tkw.pack(expand='true', fill='both')
@@ -346,8 +346,8 @@ def test_pyx():
     import math
     import pyx
 
-    print "PyX is installed in", os.path.dirname(pyx.__file__)
-    print "PyX version", pyx.__version__
+    print("PyX is installed in", os.path.dirname(pyx.__file__))
+    print("PyX version", pyx.__version__)
 
     g = pyx.canvas.canvas()
     g.items = []
@@ -381,16 +381,16 @@ def test_pyx():
 def test_grace(): 
     try:
         import grace_np
-    except ImportError, msg:
-        print "Unable to find module grace_np"
-        print "Error:\n", msg
+    except ImportError as msg:
+        print("Unable to find module grace_np")
+        print("Error:\n", msg)
         try:
             import pygrace
             from pygrace import grace_np
         except ImportError:
             # grace_np is not available
-            print "Unable to find module grace_np"
-            print "Error:\n", msg
+            print("Unable to find module grace_np")
+            print("Error:\n", msg)
             sys.exit(1)
 
     g = grace_np.GraceProcess()
@@ -422,8 +422,8 @@ def test_veusz():
     import veusz
     import veusz.utils
 
-    print "Veusz is installed in", os.path.dirname(veusz.__file__)
-    print "Veusz version", veusz.utils.version()
+    print("Veusz is installed in", os.path.dirname(veusz.__file__))
+    print("Veusz version", veusz.utils.version())
 
     import veusz.embed
     g = veusz.embed.Embedded()
@@ -506,13 +506,13 @@ def test_latex():
     status, outout, errout = get_status_output_errors('latex ' + latexfile)
     for filename in glob.glob(latexfile + '.*'):
         os.remove(filename)
-    print 'status:', status, isinstance(status, int)
+    print('status:', status, isinstance(status, int))
     if status != 0:
         raise Exception('status=%d, latex does not work: ' % status + outout)
           
 def run():
     if not os.path.isfile('diagnostic.py'):
-        print 'diagonstic.py must be run from the directory where it is located!'
+        print('diagonstic.py must be run from the directory where it is located!')
         sys.exit(1)
 
     diag_fname = 'scitools_diagnostic.log'

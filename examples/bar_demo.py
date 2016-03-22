@@ -5,8 +5,8 @@ from numpy.random import rand, seed
 seed(12)  # fix to ensure same results each time this program is run
 
 # simple example:
-data = rand(4,3)
-print data
+data = rand(4, 3)
+print(data)
 bar(data)
 title('Bars from a matrix: 4 groups of 3 bars each')
 # alternative:
@@ -21,12 +21,12 @@ bar(data,
 
 # example with a vector:
 figure()
-x = linspace(-3,3,15)
+x = linspace(-3, 3, 15)
 y = exp(-x**2)
 if backend in ['gnuplot', 'matplotlib']:
     w = 7   # increase width of bars
 else:
-    w = 0.8 # default
+    w = 0.8  # default
 bar(y, width=w)
 title('Bars at 15 points for the exp(-x**2) functions')
 
@@ -34,7 +34,7 @@ title('Bars at 15 points for the exp(-x**2) functions')
 figure()
 data = {'method1': {'thing1': 3, 'thing2': 2, 'thing3': 4},
         'method2': {'thing1': 4, 'thing2': 4.5, 'thing3': 2},
-        'method3': {'thing1': 1, 'thing2': 4, 'thing3': 2},}
+        'method3': {'thing1': 1, 'thing2': 4, 'thing3': 2}, }
 bar(data,
     rotated_barticks=True,
     savefig='tmp_bar1a.eps', color=True,
@@ -44,12 +44,12 @@ bar(data,
 
 # red bars with borders turned off:
 figure()
-bar(rand(5,4), 'r', shading='interp',
+bar(rand(5, 4), 'r', shading='interp',
     title='Red bars with borders turned off')
 
 # specify face and edge color:
 figure()
-bar(rand(3,3), facecolor='b', edgecolor='r',
+bar(rand(3, 3), facecolor='b', edgecolor='r',
     title='Bars with specified face and edge colors')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

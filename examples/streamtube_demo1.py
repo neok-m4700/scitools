@@ -34,7 +34,7 @@ streamtube(x,y,z,u,v,w,sx,sy,sz,
            axis='tight',
            shading='interp')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')
 
 #savefig('tmp_streamtube1.eps')
 #savefig('tmp_streamtube1.png')

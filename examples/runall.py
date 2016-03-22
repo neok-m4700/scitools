@@ -13,7 +13,7 @@ except IndexError:
     pass
 
 for filename in sorted(demos):
-    answer = raw_input(filename + '? ')
+    answer = input(filename + '? ')
     if answer.lower() == 'n':
         continue
     if 'matlab' in filename and not backend.startswith('matlab'):

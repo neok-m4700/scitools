@@ -36,7 +36,6 @@ TODO:
 
 """
 
-from __future__ import division
 
 from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
@@ -45,10 +44,11 @@ from scitools.numpyutils import floor, linspace, array
 
 check_if_module_exists('Pmw', msg='You need to install the Pmw package.', abort=False)
 import Pmw
-import Tkinter
+import tkinter
 
 
 class BltBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -59,8 +59,7 @@ class BltBackend(BaseClass):
         # Set docstrings of all functions to the docstrings of BaseClass
         # The exception is if something is very different
 
-
-        self._master = Tkinter.Tk()
+        self._master = tkinter.Tk()
         self._master.withdraw()
         self.figure(self.getp('curfig'))
 
@@ -74,13 +73,13 @@ class BltBackend(BaseClass):
             '*': 'scross',   # asterisk --> small cross
             's': 'square',   # square
             'd': 'diamond',  # diamond
-            '^': 'triangle', # triangle (up)
-            'v': 'triangle', # triangle (down) --> up
-            '<': 'triangle', # triangle (left) --> up
-            '>': 'triangle', # triangle (right) --> up
+            '^': 'triangle',  # triangle (up)
+            'v': 'triangle',  # triangle (down) --> up
+            '<': 'triangle',  # triangle (left) --> up
+            '>': 'triangle',  # triangle (right) --> up
             'p': 'diamond',  # pentagram --> diamond
             'h': 'diamond',  # hexagram --> diamond
-            }
+        }
 
         self._colors = {
             '': None,       # no color
@@ -88,19 +87,19 @@ class BltBackend(BaseClass):
             'g': 'green',   # green
             'b': 'blue',    # blue
             'c': 'cyan',    # cyan
-            'm': 'magenta', # magenta
+            'm': 'magenta',  # magenta
             'y': 'yellow',  # yellow
             'k': 'black',   # black
             'w': 'white',   # white
-            }
+        }
 
         self._line_styles = {
             '': None,        # no line
             '-': '',         # solid line
-            ':': [1,5],      # dotted line
-            '-.': [5,5,1,5], # dash-dot line
-            '--': [5,5],     # dashed line
-            }
+            ':': [1, 5],      # dotted line
+            '-.': [5, 5, 1, 5],  # dash-dot line
+            '--': [5, 5],     # dashed line
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -112,17 +111,17 @@ class BltBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
-            print "Setting backend standard variables"
+            print("Setting backend standard variables")
             for disp in 'self._markers self._colors self._line_styles'.split():
-                print disp, eval(disp)
+                print(disp, eval(disp))
 
     def _set_scale(self, ax):
         """Set linear or logarithmic (base 10) axis scale."""
         if DEBUG:
-            print "Setting scales"
+            print("Setting scales")
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -144,7 +143,7 @@ class BltBackend(BaseClass):
     def _set_labels(self, ax):
         """Add text labels for x-, y-, and z-axis."""
         if DEBUG:
-            print "Setting labels"
+            print("Setting labels")
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
@@ -163,14 +162,14 @@ class BltBackend(BaseClass):
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
         if DEBUG:
-            print "Setting title"
+            print("Setting title")
         title = ax.getp('title')
         self._g.configure(title=title)
 
     def _set_limits(self, ax):
         """Set axis limits in x, y, and z direction."""
         if DEBUG:
-            print "Setting axis limits"
+            print("Setting axis limits")
         mode = ax.getp('mode')
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
@@ -286,7 +285,7 @@ class BltBackend(BaseClass):
     def _set_box(self, ax):
         """Turn box around axes boundary on or off."""
         if DEBUG:
-            print "Setting box"
+            print("Setting box")
         if ax.getp('box'):
             # display box
             pass
@@ -297,7 +296,7 @@ class BltBackend(BaseClass):
     def _set_grid(self, ax):
         """Turn grid lines on or off."""
         if DEBUG:
-            print "Setting grid"
+            print("Setting grid")
         if ax.getp('grid'):
             # turn grid lines on
             self._g.grid_on()
@@ -308,7 +307,7 @@ class BltBackend(BaseClass):
     def _set_hidden_line_removal(self, ax):
         """Turn on/off hidden line removal for meshes."""
         if DEBUG:
-            print "Setting hidden line removal"
+            print("Setting hidden line removal")
         if ax.getp('hidden'):
             # turn hidden line removal on
             pass
@@ -319,7 +318,7 @@ class BltBackend(BaseClass):
     def _set_colorbar(self, ax):
         """Add a colorbar to the axis."""
         if DEBUG:
-            print "Setting colorbar"
+            print("Setting colorbar")
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             # turn on colorbar
@@ -333,12 +332,12 @@ class BltBackend(BaseClass):
     def _set_caxis(self, ax):
         """Set the color axis scale."""
         if DEBUG:
-            print "Setting caxis"
+            print("Setting caxis")
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             pass
         else:
@@ -348,14 +347,14 @@ class BltBackend(BaseClass):
     def _set_colormap(self, ax):
         """Set the colormap."""
         if DEBUG:
-            print "Setting colormap"
+            print("Setting colormap")
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
 
     def _set_view(self, ax):
         """Set viewpoint specification."""
         if DEBUG:
-            print "Setting view"
+            print("Setting view")
         cam = ax.getp('camera')
         view = cam.getp('view')
         if view == 2:
@@ -386,7 +385,7 @@ class BltBackend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print "Setting axis properties"
+            print("Setting axis properties")
         self._set_title(ax)
         self._set_scale(ax)
         self._set_limits(ax)
@@ -407,9 +406,9 @@ class BltBackend(BaseClass):
         else:
             # turn off all axis labeling, tickmarks, and background
             self._g.axis_configure(['x', 'y'], hide=True)
-        #self._g.configure(plotbackground="white")
-        #self._g.axis_configure(color='black')  # color on axis and tick labels
-        #self._g.axis_configure(titlecolor='black')
+        # self._g.configure(plotbackground="white")
+        # self._g.axis_configure(color='black')  # color on axis and tick labels
+        # self._g.axis_configure(titlecolor='black')
 
     def _get_linespecs(self, item):
         """
@@ -425,7 +424,7 @@ class BltBackend(BaseClass):
     def _add_line(self, item):
         """Add a 2D or 3D curve to the scene."""
         if DEBUG:
-            print "Adding a line"
+            print("Adding a line")
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
@@ -445,7 +444,7 @@ class BltBackend(BaseClass):
             kwargs['fill'] = ''  # transparent in the interior of the marker
             if style is not None:
                 if isinstance(style, list):
-                    style = tuple([s*width for s in style])
+                    style = tuple([s * width for s in style])
                 kwargs['dashes'] = style
             else:
                 kwargs['linewidth'] = 0.0
@@ -454,7 +453,7 @@ class BltBackend(BaseClass):
             if style is None:
                 style = ''  # solid line
             elif isinstance(style, list):
-                style = tuple([s*width for s in style])
+                style = tuple([s * width for s in style])
             kwargs['dashes'] = style
         if z is not None:
             # zdata is given, add a 3D curve:
@@ -468,26 +467,26 @@ class BltBackend(BaseClass):
 
     def _add_bars(self, name, item, shading='faceted'):
         if DEBUG:
-            print "Adding a bar graph"
+            print("Adding a bar graph")
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
         # get line specifiactions:
         marker, color, style, width = self._get_linespecs(item)
 
-        if rank(y) == 1:
-            y = reshape(y,(len(y),1))
+        if y.ndim == 1:
+            y = reshape(y, (len(y), 1))
         nx, ny = shape(y)
 
         barticks = item.getp('barticks')
         if barticks is None:
             barticks = list(range(nx))
-        xtics = ', '.join(['"%s" %d' % (m,i) \
-                           for i,m in enumerate(barticks)])
+        xtics = ', '.join(['"%s" %d' % (m, i)
+                           for i, m in enumerate(barticks)])
         if item.getp('rotated_barticks'):
             pass
 
-        barwidth = item.getp('barwidth')/10
+        barwidth = item.getp('barwidth') / 10
         edgecolor = item.getp('edgecolor')
         if not edgecolor:
             edgecolor = 'black'  # use black for now
@@ -505,23 +504,23 @@ class BltBackend(BaseClass):
             facecolor = color
         facecolor = self._colors.get(facecolor, 'blue')  # use blue as default
 
-        step = item.getp('barstepsize')/10
+        step = item.getp('barstepsize') / 10
 
-        center = floor(ny/2)
-        start = -step*center
-        stop = step*center
-        if not ny%2:
-            start += step/2
-            stop -= step/2
-        a = linspace(start,stop,ny)
+        center = floor(ny / 2)
+        start = -step * center
+        stop = step * center
+        if not ny % 2:
+            start += step / 2
+            stop -= step / 2
+        a = linspace(start, stop, ny)
 
         self._g.configure(barmode="overlap")
 
         data = []
         for j in range(ny):
-            y_ = y[:,j]
-            x_ = array(range(nx)) + a[j]
-            curvename = '%s_bar%s' % (name,j)
+            y_ = y[:, j]
+            x_ = array(list(range(nx))) + a[j]
+            curvename = '%s_bar%s' % (name, j)
             if not item.getp('linecolor') and not item.getp('facecolor'):
                 color = 'black'
             else:
@@ -534,7 +533,7 @@ class BltBackend(BaseClass):
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
-            print "Adding a surface"
+            print("Adding a surface")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
@@ -559,7 +558,7 @@ class BltBackend(BaseClass):
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print "Adding contours"
+            print("Adding contours")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
@@ -570,7 +569,7 @@ class BltBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
 
         location = item.getp('clocation')
@@ -591,10 +590,10 @@ class BltBackend(BaseClass):
 
     def _add_vectors(self, item):
         if DEBUG:
-            print "Adding vectors"
+            print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
@@ -607,7 +606,7 @@ class BltBackend(BaseClass):
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -620,7 +619,7 @@ class BltBackend(BaseClass):
 
     def _add_streams(self, item):
         if DEBUG:
-            print "Adding streams"
+            print("Adding streams")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # vector components:
@@ -630,7 +629,7 @@ class BltBackend(BaseClass):
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -648,7 +647,7 @@ class BltBackend(BaseClass):
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print "Adding a isosurface"
+            print("Adding a isosurface")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -657,13 +656,13 @@ class BltBackend(BaseClass):
 
     def _add_slices(self, item):
         if DEBUG:
-            print "Adding slices in a volume"
+            print("Adding slices in a volume")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -673,13 +672,13 @@ class BltBackend(BaseClass):
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print "Adding contours in slice planes"
+            print("Adding contours in slice planes")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -690,20 +689,20 @@ class BltBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
     def _set_figure_size(self, fig):
         if DEBUG:
-            print "Setting figure size"
+            print("Setting figure size")
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
-            fig._root.geometry("%dx%d" % (int(width),int(height)))
+            fig._root.geometry("%dx%d" % (int(width), int(height)))
         else:
             # use the default width and height in plotting package
-            #self._master.geometry("640x480")
+            # self._master.geometry("640x480")
             pass
 
     def figure(self, *args, **kwargs):
@@ -718,10 +717,11 @@ class BltBackend(BaseClass):
             # create plotting package figure and save figure instance
             # as fig._g
             if DEBUG:
-                print "creating figure %s in backend" % name
+                print("creating figure %s in backend" % name)
 
-            fig._root = Tkinter.Toplevel(self._master)
+            fig._root = tkinter.Toplevel(self._master)
             fig._root.title(name)
+
             def _close_fig(event=None):
                 self.clf()
                 fig._root.withdraw()
@@ -730,11 +730,11 @@ class BltBackend(BaseClass):
             fig._root.geometry('640x480')
             fig._root.bind("<KeyPress-q>", _close_fig)
             fig._root.withdraw()
-            mframe = Tkinter.Frame(fig._root, relief='sunken', bd=2)
+            mframe = tkinter.Frame(fig._root, relief='sunken', bd=2)
             mframe.pack(side='top', fill='both', expand=1)
-            wframe = Tkinter.Frame(mframe)
+            wframe = tkinter.Frame(mframe)
             wframe.pack(side='left', fill='both', expand=1)
-            frame = Tkinter.Frame(wframe)
+            frame = tkinter.Frame(wframe)
             frame.pack(side='top', fill='both', expand=1)
             fig._g = Pmw.Blt.Graph(frame)
             fig._g.pack(expand=1, fill='both')
@@ -746,7 +746,7 @@ class BltBackend(BaseClass):
         """Replot all axes and all plotitems in the backend."""
         # NOTE: only the current figure (gcf) is redrawn.
         if DEBUG:
-            print "Doing replot in backend"
+            print("Doing replot in backend")
 
         fig = self.gcf()
         # reset the plotting package instance in fig._g now if needed
@@ -757,17 +757,17 @@ class BltBackend(BaseClass):
         self._set_figure_size(fig)
 
         nrows, ncolumns = fig.getp('axshape')
-        for axnr, ax in fig.getp('axes').items():
+        for axnr, ax in list(fig.getp('axes').items()):
             if nrows != 1 or ncolumns != 1:
                 # create axes in tiled position
                 # this is subplot(nrows,ncolumns,axnr)
                 pass
             plotitems = ax.getp('plotitems')
-            plotitems.sort(self._cmpPlotProperties)
+            plotitems.sort(key=self._cmpPlotProperties)
             i = 1
             for item in plotitems:
                 name = 'item' + str(i)
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     kwargs = self._add_line(item)
                     g = self._g.line_create(name, **kwargs)
@@ -801,9 +801,9 @@ class BltBackend(BaseClass):
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
-                print "\nDumping plot data to screen\n"
+                print("\nDumping plot data to screen\n")
                 debug(self)
-            fig._root.deiconify() # raise window
+            fig._root.deiconify()  # raise window
             fig._root.update()
 
     def hardcopy(self, filename, **kwargs):
@@ -831,7 +831,7 @@ class BltBackend(BaseClass):
             self._replot()
 
         if DEBUG:
-            print "Hardcopy to %s" % filename
+            print("Hardcopy to %s" % filename)
 
         orientation = kwargs.get('orientation', False)
         if orientation == 'portrait':
@@ -860,26 +860,25 @@ class BltBackend(BaseClass):
         """Close figure window with number 'num'."""
         if num in self._figs:
             curfig = self._attrs['curfig']
-            self.figure(num) # set figure with 'num' as current figure
+            self.figure(num)  # set figure with 'num' as current figure
             self.clf()
             del self._figs[num]
-            self.figure(curfig) # put back the current figure
+            self.figure(curfig)  # put back the current figure
         else:
-            print 'no such figure with number', num
+            print('no such figure with number', num)
 
     def closefigs(self):
         """Close all figure windows."""
-        keys = self._figs.keys()
+        keys = list(self._figs.keys())
         for key in keys:
             closefig(key)
         BaseClass.closefigs(self)
         self.figure(self._attrs['curfig'])
 
     # implement colormap functions here
-    #def jet(self, m=None):
+    # def jet(self, m=None):
     #    """Variant of hsv."""
     #    pass
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

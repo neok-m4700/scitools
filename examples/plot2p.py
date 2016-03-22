@@ -30,4 +30,4 @@ savefig('plot3.eps')
 savefig('plot3.png')
 show()
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

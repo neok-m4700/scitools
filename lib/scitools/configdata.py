@@ -7,6 +7,7 @@ command-line and through environment variables in addition to the
 configuration file.
 
 """
+
 __author__ = 'Hans Petter Langtangen <hpl@simula.no>'
 
 _configfile_description = """\
@@ -106,11 +107,13 @@ directory will override any user or any other system settings.
 __doc__ += _configfile_description
 
 
-import os, sys
+import os
+import sys
 
-VALUE=0; STR2TYPE=1; READONLY=2  # logical names for list indices
+VALUE = 0; STR2TYPE = 1; READONLY = 2  # logical names for list indices
 
 __all__ = ['tobool', 'config_parser_frontend', 'values_only', 'dict2xml']
+
 
 def tobool(value):
     """
@@ -118,9 +121,9 @@ def tobool(value):
     'off', or any integer) to a bool object. The string values are
     treated in a case-insensitive way.
     """
-    trues  = "1", "yes", "Yes", "YES", "true",  "True",  "on",  1
-    falses = "0", "no",  "No",  "NO",  "false", "False", "off", 0
-    value = value.lower() # case-insensitive check
+    trues = "1", "yes", "Yes", "YES", "true", "True", "on", 1
+    falses = "0", "no", "No", "NO", "false", "False", "off", 0
+    value = value.lower()  # case-insensitive check
 
     if value in trues:
         value = True
@@ -132,17 +135,19 @@ def tobool(value):
         raise ValueError('the value %s cannot be converted to bool' % value)
     return value
 
+
 def _option_interpolation_error(files, section, option, value,
                                 str2type, read_only):
     if read_only:
         r = 'r'
     else:
         r = ''
-    raise ValueError('configuration file error in %s\n'\
-                     'section [%s], option "%s": do not use %s<%s>\n'\
-                     'specifications in options that are to be '\
-                     'substituted in other options: %s' % \
+    raise ValueError('configuration file error in %s\n'
+                     'section [%s], option "%s": do not use %s<%s>\n'
+                     'specifications in options that are to be '
+                     'substituted in other options: %s' %
                      (files, section, option, r, str2type, value))
+
 
 def load_config_file(name,
                      default_file_location=None,
@@ -186,8 +191,8 @@ def load_config_file(name,
     @return: a SafeConfigParser object and a list of filenames of the
     files that were read to set parameters in the SafeConfigParser object.
     """
-    import ConfigParser
-    config = ConfigParser.SafeConfigParser(default_dict4intpl)
+    import configparser
+    config = configparser.SafeConfigParser(default_dict4intpl)
     if case_sensitive_options:
         config.optionxform = str
 
@@ -201,14 +206,14 @@ def load_config_file(name,
     if os.path.isfile(default_config_file):
         config.readfp(open(default_config_file, 'r'))
         read_files.append(default_config_file)
-    #else:
+    # else:
     #    print 'No data in', default_config_file
     dirs = other_locations
-    candidate_files = [os.path.join(loc, '.%s%s' % (name, extension)) \
+    candidate_files = [os.path.join(loc, '.%s%s' % (name, extension))
                        for loc in dirs] + \
-                       [os.path.expanduser('~/.%s%s' % (name, extension))] + \
-                       [os.path.join(os.curdir, '.%s%s' % (name, extension))]
-    #print candidate_files
+        [os.path.expanduser('~/.%s%s' % (name, extension))] + \
+        [os.path.join(os.curdir, '.%s%s' % (name, extension))]
+    # print candidate_files
     files = config.read(candidate_files)
     read_files = read_files + files
     return config, read_files
@@ -259,12 +264,12 @@ the same directory as the calling module in the package).
 
     # load configuration file:
     config, files = \
-            load_config_file(basename,
-                             default_file_location=default_file_location,
-                             extension=extension,
-                             other_locations=other_locations,
-                             case_sensitive_options=True,
-                             default_dict4intpl=default_dict4intpl)
+        load_config_file(basename,
+                         default_file_location=default_file_location,
+                         extension=extension,
+                         other_locations=other_locations,
+                         case_sensitive_options=True,
+                         default_dict4intpl=default_dict4intpl)
 
     # dictionary with [section][option] keys and values as a
     # list [value, str2type, readonly]
@@ -293,14 +298,14 @@ the same directory as the calling module in the package).
             continue
         data[section] = {}
         for option in config.options(section):
-            value = config.get(section, option)
+            value = config.get(section, option).split(';', 1)[0].strip()
             # check if value has the syntax "<str2type> expression"
             str2type = None
             if value.startswith('<'):
                 read_only = False
                 gt = value.find('>')
                 str2type = value[1:gt]
-                value = value[gt+1:].strip()
+                value = value[gt + 1:].strip()
                 # variable interpolation are destroyed by <str> specs;
                 # could process all values without %(...)s first and
                 # then remove all <type> specifications to make
@@ -312,7 +317,7 @@ the same directory as the calling module in the package).
                 read_only = True
                 gt = value.find('>')
                 str2type = value[2:gt]
-                value = value[gt+1:].strip()
+                value = value[gt + 1:].strip()
                 # set this option in the config file so that
                 # variable interpolation may work:
                 config.set(section, option, value)
@@ -330,11 +335,11 @@ the same directory as the calling module in the package).
                 elif str2type == 'str':
                     data[section][option] = [str(value), str, read_only]
                 elif str2type == 'eval':
-                    data[section][option] = \
-                                   [eval(value, globals_), eval, read_only]
+                    data[section][option] = [eval(value, globals_), eval, read_only]
             else:
                 # no type specification, value becomes a string:
                 data[section][option] = [value, str, False]
+
 
             # override file value by environment variable or
             # command-line argument?
@@ -346,25 +351,21 @@ the same directory as the calling module in the package).
                 # override by environment variable:
                 if envir_var_name in os.environ:
                     data[section][option][VALUE] = \
-                    data[section][option][STR2TYPE](os.environ[envir_var_name])
+                        data[section][option][STR2TYPE](os.environ[envir_var_name])
             if cml_arg:
                 cml_option = '--' + envir_var_name
                 if cml_option in sys.argv:
                     try:
                         i = sys.argv.index(cml_option)
-                        v = sys.argv[i+1]
+                        v = sys.argv[i + 1]
                         # remove config option and value from sys.argv:
                         del sys.argv[i]  # option
                         del sys.argv[i]  # value
                     except IndexError:
-                        print """
-%s command-line option must be followed by a value!
-""" % cml_option
+                        print("""%s command-line option must be followed by a value!""" % cml_option)
                         sys.exit(1)
 
-                    data[section][option][VALUE] = \
-                           data[section][option][STR2TYPE](v)
-
+                    data[section][option][VALUE] = data[section][option][STR2TYPE](v)
     return data, files
 
 config_parser_frontend.__doc__ = _configfile_description
@@ -390,7 +391,9 @@ def dict2xml(data, syntax='gnosis',
     """
     if syntax == 'gnosis':
         from gnosis.xml.pickle import XML_Pickler
+
         class ClassWrapper(XML_Pickler):
+
             def __init__(self, data):
                 self.data = data
 
@@ -402,19 +405,20 @@ def dict2xml(data, syntax='gnosis',
         s = '<data dictionary>\n'
         indent = 4
         for section in data:
-            current_indent = ' '*indent
+            current_indent = ' ' * indent
             s += '%s<%s>%s</%s>\n' % \
                  (current_indent, section_name, section, section_name)
             for option in data[section]:
                 value, str2type, read_only = data[section][option]
-                current_indent = ' '*indent*2
+                current_indent = ' ' * indent * 2
                 s += '%s<%s>%s</%s>\n' % \
                      (current_indent, option_name, option, option_name)
-                current_indent = ' '*indent*3
+                current_indent = ' ' * indent * 3
                 s += '%s<value type="%s" readonly="%s">%s</value>\n' % \
-                (current_indent, get_type(value), read_only, value)
+                    (current_indent, get_type(value), read_only, value)
         s += '</data dictionary>\n'
         return s
+
 
 def values_only(data):
     """
@@ -428,6 +432,7 @@ def values_only(data):
         for option in rdata[section]:
             rdata[section][option] = rdata[section][option][0]
     return rdata
+
 
 def _test():
     configdata = """
@@ -470,8 +475,8 @@ data glob = <str> *_simulation_results.*
     pprint.pprint(data)
     data_values = values_only(data)
     pprint.pprint(data_values)
-    print dict2xml(data)
-    print dict2xml(data, syntax='plain')
+    print(dict2xml(data))
+    print(dict2xml(data, syntax='plain'))
 
 if __name__ == '__main__':
     _test()

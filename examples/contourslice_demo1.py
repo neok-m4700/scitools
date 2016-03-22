@@ -36,4 +36,4 @@ h = contourslice(x,y,z,v,seq(1,9),[],[0],linspace(-8,2,10),
 #savefig('tmp_contourslice1b.png')
 
 #sleep(3)
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

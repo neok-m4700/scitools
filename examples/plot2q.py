@@ -19,4 +19,4 @@ title('A Gaussian Bell Function')
 savefig('plot4.png')
 savefig('plot4.eps')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

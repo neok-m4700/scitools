@@ -11,7 +11,7 @@ from scitools.std import *
 vec1 = matrix([1, 2], dtype=float).transpose()
 theta = pi/3  # rotation angle
 transformation = matrix([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
-print transformation
+print(transformation)
 vec2 = transformation*vec1
 
 # Use quiver to plot vector fields on a 1x1 grid with the field

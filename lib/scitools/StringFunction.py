@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Make a string with a mathematical expression behave as a Python function."""
-from __future__ import division
+
 
 # Default import of mathematical functions (in case the user
 # supplies expressions with math functions and does not provide
@@ -33,7 +33,9 @@ exec(s)
 
 import re
 
+
 class StringFunction:
+
     """
     Representation of a string formula as a function of one or
     more variables, optionally with parameters.
@@ -158,6 +160,7 @@ class StringFunction:
     You can see the lambda function as a string by accessing the
     _lambda attribute.
     """
+
     def __init__(self, expression, **kwargs):
         self._f = str(expression)  # ensure a string
 
@@ -167,7 +170,7 @@ class StringFunction:
         # a module function specification is on the form
         # [A-Za-z_][A-Za-z0-9_.]x where x+1 is the len(expression)
         # but there MUST be a dot in there
-        pattern = r'[A-Za-z_][A-Za-z0-9_.]{%d}' % (len(expression)-1)
+        pattern = r'[A-Za-z_][A-Za-z0-9_.]{%d}' % (len(expression) - 1)
         if "." in expression:
             if re.search(pattern, expression):
                 parts = expression.split('.')
@@ -180,7 +183,7 @@ class StringFunction:
             # note that tuple(string) gives a tuple of the characters
             # so we need to be careful (if the indep. var has more than
             # one character)
-            name = kwargs['independent_variable'] # 'x', 't', 'dudt' etc.
+            name = kwargs['independent_variable']  # 'x', 't', 'dudt' etc.
             if not isinstance(name, str):
                 raise ValueError(
                     'name "%s" of independent variable is illegal' % name)
@@ -189,7 +192,7 @@ class StringFunction:
             names = kwargs.get('independent_variables', ('x',))
             if isinstance(names, str):
                 names = (names,)
-            elif not isinstance(names, (list,tuple)):
+            elif not isinstance(names, (list, tuple)):
                 raise ValueError(
                     'independent variables=%s is invalid' % names)
             self._var = tuple(names)
@@ -204,18 +207,24 @@ class StringFunction:
             self._globals = globals()
 
         self._prms = kwargs.copy()
-	try:    del self._prms['independent_variable']
-        except: pass
-        try:    del self._prms['independent_variables']
-        except: pass
-        try:    del self._prms['globals']
-        except: pass
+        try:
+            del self._prms['independent_variable']
+        except:
+            pass
+        try:
+            del self._prms['independent_variables']
+        except:
+            pass
+        try:
+            del self._prms['globals']
+        except:
+            pass
         try:
             # may fail if not all parameters are defined yet
             self._build_lambda()
         except NameError as e:
-            #print e
-            pass # ok at this stage: parameters might be missing
+            # print e
+            pass  # ok at this stage: parameters might be missing
 
     def _build_lambda(self):
         """
@@ -229,7 +238,7 @@ class StringFunction:
 
         # add parameters as keyword arguments:
         if self._prms:
-            kwargs = ', '.join(['%s=%s' % (k, self._prms[k]) \
+            kwargs = ', '.join(['%s=%s' % (k, self._prms[k])
                                 for k in self._prms])
             s += ', ' + kwargs
         else:
@@ -251,34 +260,33 @@ class StringFunction:
             # to just let self_function_in_module point to the imported
             # function
 
-        self._lambda = s # store lambda function code; just for convenience
+        self._lambda = s  # store lambda function code; just for convenience
 
         try:
             if self._function_in_module is None:
                 try:
                     self.__call__ = eval(s, self._globals)
                 except Exception as e:
-                    print """
+                    print("""
 Making StringFunction with formula %s failed!
-Tried to build a lambda function:\n %s""" % (self._f, s)
+Tried to build a lambda function:\n %s""" % (self._f, s))
                     raise e
 
-                ## the following makes all instances have the same function :-(
+                # the following makes all instances have the same function :-(
                 ##StringFunction.__call__ = eval(s, self._globals)
             else:
                 # didn't work with self._globals...and we don't need it...????
                 self.__call__ = eval(s, globals(), locals())
                 #self.__call__ = eval(s)
-                #print 'call is', self.__call__
+                # print 'call is', self.__call__
 
         except NameError as e:
             prm = str(e).split()[1]
-            raise NameError('name "%s" is not defined - if it is '\
-                  'a parameter,\nset it in the constructor or the '\
-                  'set_parameters method, or provide\nglobals=globals() '\
-                  'in the constructor if "%s" is a global name in the '\
-                  'calling code.' % (prm, prm))
-
+            raise NameError('name "%s" is not defined - if it is '
+                            'a parameter,\nset it in the constructor or the '
+                            'set_parameters method, or provide\nglobals=globals() '
+                            'in the constructor if "%s" is a global name in the '
+                            'calling code.' % (prm, prm))
 
     def set_parameters(self, **kwargs):
         """Set keyword parameters in the function."""
@@ -307,8 +315,8 @@ Tried to build a lambda function:\n %s""" % (self._f, s)
         except TypeError as e:
             if str(e).find('only rank-0 arrays can be converted to Python scalars') != -1:
 
-                print '\nThe call resulted in the exception TypeError:'
-                print e
+                print('\nThe call resulted in the exception TypeError:')
+                print(e)
 
                 # *args contains NumPy arrays and the operations in
                 # the string formula are not compatible
@@ -322,21 +330,21 @@ Tried to build a lambda function:\n %s""" % (self._f, s)
                             not_NumPy = True
                         break
                 if math_funcs and not_NumPy:
-                    print '\nThis message is caused by using scalar math\n'\
-                          'functions (like %s) with array arguments.\n'\
-                          'Make some\nfrom numarray import *\n'\
-                          'or similar in the calling code and '\
-                          'supply the globals=globals() constructor\n'\
-                          'argument when creating the StringFunction instance.'\
-                          % f
+                    print('\nThis message is caused by using scalar math\n'
+                          'functions (like %s) with array arguments.\n'
+                          'Make some\nfrom numarray import *\n'
+                          'or similar in the calling code and '
+                          'supply the globals=globals() constructor\n'
+                          'argument when creating the StringFunction instance.'
+                          % f)
                 else:
-                    print 'Internal error - this should not happen...'
+                    print('Internal error - this should not happen...')
             else:
-                print e
+                print(e)
         except NameError as e:
-            print e
+            print(e)
         else:
-            print 'This call worked perfectly!'
+            print('This call worked perfectly!')
 
     def __str__(self):
         """
@@ -362,8 +370,8 @@ Tried to build a lambda function:\n %s""" % (self._f, s)
 
     def __repr__(self):
         """Return the code required to reconstruct this instance."""
-        kwargs = ', '.join(['%s=%s' % (key, repr(value)) \
-                            for key, value in self._prms.items()])
+        kwargs = ', '.join(['%s=%s' % (key, repr(value))
+                            for key, value in list(self._prms.items())])
         return """StringFunction(%s, independent_variables=%s, %s)""" % \
                (repr(self._f), repr(self._var), kwargs)
 
@@ -381,16 +389,15 @@ Tried to build a lambda function:\n %s""" % (self._f, s)
         if ni == 1:
             return 1
         # function of more than one variable may be a vector field:
-        args = tuple([0]*ni)  # try (0,0,...) as indep. variables
+        args = tuple([0] * ni)  # try (0,0,...) as indep. variables
         try:
             v = self(args)
             return ni
         except:
             # try another argument (in case (0,0,...) caused wrong calculations:
-            args = tuple([1.105]*ni)
+            args = tuple([1.105] * ni)
             v = self(args)
             return ni
-
 
     def Cpp_code(self, function_name='somefunc'):
         """
@@ -406,9 +413,9 @@ Tried to build a lambda function:\n %s""" % (self._f, s)
         self._pow_check()
         if self._prms:
             decl = ' '.join(['double %s;' % name for name in self._prms])
-            prms = ', '.join(['double %s_=%s' % (name, self._prms[name]) \
-                    for name in self._prms])
-            setp = ' '.join(['%s = %s_;' % (name, name) \
+            prms = ', '.join(['double %s_=%s' % (name, self._prms[name])
+                              for name in self._prms])
+            setp = ' '.join(['%s = %s_;' % (name, name)
                              for name in self._prms])
             # function object:
             s = """
@@ -441,16 +448,16 @@ double %(function_name)s (%(varlist)s)
         expr = self._f
         real = 'real*8'
         varlist = ', '.join(self._var)
-        varlist_decl = '\n'.join(['      %s %s' % (real, name) \
+        varlist_decl = '\n'.join(['      %s %s' % (real, name)
                                   for name in self._var])
-        decl = '\n'.join(['      %s %s' % (real,name) for name in self._prms])
+        decl = '\n'.join(['      %s %s' % (real, name) for name in self._prms])
         import re
         if re.search(r'pow\s*\(', expr):
             # try to replace pow(x,a) by x**a
             expr = re.sub(r'pow\(([^,]+),([^)]+)\)', '((\g<1>)**(\g<2>))',
                           expr)
         # set parameter values:
-        setp = '\n'.join(['      %s = %s' % (name, self._prms[name]) \
+        setp = '\n'.join(['      %s = %s' % (name, self._prms[name])
                           for name in self._prms])
         s = """
       %(real)s function %(function_name)s(%(varlist)s)
@@ -518,8 +525,8 @@ C     note: it cannot be int
             # declare variables for parameters:
             decl = ' '.join(['double %s;' % name for name in self._prms])
             # set parameter values:
-            prms = ' '.join(['%s = %s;' % (name, self._prms[name]) \
-                            for name in self._prms])
+            prms = ' '.join(['%s = %s;' % (name, self._prms[name])
+                             for name in self._prms])
             s += '  %s\n  %s\n' % (decl, prms)
         # evaluate math expression:
         s += '  return ' + expr + ';\n}\n'
@@ -532,33 +539,37 @@ C     note: it cannot be int
         """
         if self._f.find('**') != -1:
             raise SyntaxError(
-                  'use pow(a,b) instead of a**b in the expression'\
-                  '\n%s\n(since you demand translation to C/C++)' % self._f)
+                'use pow(a,b) instead of a**b in the expression'
+                '\n%s\n(since you demand translation to C/C++)' % self._f)
+
 
 def _doctest():
-    import doctest, StringFunction
+    import doctest
+    import StringFunction
     return doctest.testmod(StringFunction)
+
 
 def _demo():
     f = StringFunction('a+b*sin(x)', a=1, b=4)
-    print f(2)
+    print(f(2))
     f.set_parameters(a=-1, b=pi)
-    print f(1)
-    print 'internals:', str(f), repr(f), f._lambda, f._prms
+    print(f(1))
+    print('internals:', str(f), repr(f), f._lambda, f._prms)
     f = StringFunction('amp*sin(a*t)*exp(-6.211*x)',
-                       independent_variables=('x','t'))
+                       independent_variables=('x', 't'))
     f.set_parameters(amp=0.1, a=1)
-    print f(0,pi/2.0,a=2)
-    print 'internals:', str(f), repr(f), f._lambda, f._prms
-    print f.C_code()
-    print f.Cpp_code()
-    print f.F77_code()
+    print(f(0, pi / 2.0, a=2))
+    print('internals:', str(f), repr(f), f._lambda, f._prms)
+    print(f.C_code())
+    print(f.Cpp_code())
+    print(f.F77_code())
 
 
 # simplified "pedagogical" versions from the
 # "Python for Computational Science" book:
 
 class StringFunction_v1:
+
     def __init__(self, expression):
         self._f = expression
 
@@ -566,7 +577,10 @@ class StringFunction_v1:
         return eval(self._f)  # evaluate function expression
 
 # compile eval expression:
+
+
 class StringFunction_v2:
+
     def __init__(self, expression):
         self._f_compiled = compile(expression, '<string>', 'eval')
 
@@ -574,7 +588,10 @@ class StringFunction_v2:
         return eval(self._f_compiled)
 
 # allow parameters and an arbitrary name of the independent variable:
+
+
 class StringFunction_v3:
+
     def __init__(self, expression,
                  independent_variable='x',
                  set_parameters=''):
@@ -590,22 +607,27 @@ class StringFunction_v3:
         # assign value to independent variable:
         exec('%s = %g' % (self._var, x))
         # execute some user code (defining parameters etc.):
-        if self._code:  exec(self._code)
+        if self._code:
+            exec(self._code)
         return eval(self._f_compiled)
 
 # let parameters be keyword arguments:
+
+
 class StringFunction_v4:
+
     def __init__(self, expression, **kwargs):
         self._f = expression
-        self._var = kwargs.get('independent_variable', 'x') # 'x', 't' etc.
+        self._var = kwargs.get('independent_variable', 'x')  # 'x', 't' etc.
         self._globals = kwargs.get('globals', globals())
         self.__name__ = self._f  # class name = function expression
         self._f_compiled = compile(self._f, '<string>', 'eval')
         self._prms = kwargs.copy()
-	try:
+        try:
             del self._prms['independent_variable']
             del self._prms['globals']
-        except: pass
+        except:
+            pass
 
     def set_parameters(self, **kwargs):
         self._prms.update(kwargs)
@@ -623,10 +645,10 @@ class StringFunction_v4:
             return True
         except NameError as e:
             prm = str(e).split()[2]
-            raise NameError('Parameter "%s" is not defined,\nneither in '\
-                  'the constructor nor set_parameters.\n'\
-                  'Update the constructor call or call set_parameters'\
-                  '(%s=...)' % (prm, prm))
+            raise NameError('Parameter "%s" is not defined,\nneither in '
+                            'the constructor nor set_parameters.\n'
+                            'Update the constructor call or call set_parameters'
+                            '(%s=...)' % (prm, prm))
         else:
             return True  # accept other errors
 
@@ -656,21 +678,26 @@ class StringFunction_v4:
             del self._prms[self._var]
         except:
             pass
-        kwargs = ', '.join(['%s=%s' % (key, repr(value)) \
-                            for key, value in self._prms.items()])
+        kwargs = ', '.join(['%s=%s' % (key, repr(value))
+                            for key, value in list(self._prms.items())])
         return """StringFunction1(%s, independent_variable=%s, %s)""" % \
                (repr(self._f), repr(self._var), kwargs)
 
+
 class StringFunction_v5(StringFunction_v4):
+
     """
     Extension of class StringFunction_v4 to an arbitrary
     number of independent variables.
     """
+
     def __init__(self, expression, **kwargs):
         StringFunction_v4.__init__(self, expression, **kwargs)
         self._var = tuple(kwargs.get('independent_variables', 'x'))
-        try:    del self._prms['independent_variables']
-        except: pass
+        try:
+            del self._prms['independent_variables']
+        except:
+            pass
 
     def __call__(self, *args):
         # add independent variables to self._prms:
@@ -688,7 +715,6 @@ class StringFunction_v5(StringFunction_v4):
             pass
         return StringFunction1.__str__(self)
 
-
     def __repr__(self):
         # first remove indep. variables possibly inserted in self._prms
         # by the self.__call__ method:
@@ -697,19 +723,19 @@ class StringFunction_v5(StringFunction_v4):
                 del self._prms[v]
         except:
             pass
-        kwargs = ', '.join(['%s=%s' % (key, repr(value)) \
-                            for key, value in self._prms.items()])
+        kwargs = ', '.join(['%s=%s' % (key, repr(value))
+                            for key, value in list(self._prms.items())])
         return """StringFunction(%s, independent_variables=%s, %s)""" % \
                (repr(self._f), repr(self._var), kwargs)
 
 
-
 def _efficiency():
-    print '\nPerform some efficiency tests (this might take some time...):'
+    print('\nPerform some efficiency tests (this might take some time...):')
     formula = 'sin(x) + x**3 + 2*x'
     formula_wprm = formula + ' + A*B'
+
     def s0(x):
-        return sin(x) + x**3 + 2*x
+        return sin(x) + x**3 + 2 * x
     s1 = StringFunction_v1(formula)
     s2 = StringFunction_v2(formula)  # compiled
     s3 = StringFunction_v3(formula_wprm, set_parameters='A=0; B=0')
@@ -722,7 +748,7 @@ def _efficiency():
     x = 0.9
     # verification first:
     values = [s(x) for s in (s0, s1, s2, s3, s4, s5, s6, s7)]
-    print 'values of %s for x=%s: %s' % (formula, x, values)
+    print('values of %s for x=%s: %s' % (formula, x, values))
 
     n = 400000
     from scitools.misc import timer
@@ -738,8 +764,8 @@ def _efficiency():
         t = timer(s, args=(x,), repetitions=100000,
                   comment=name)
         e.add(name, t)
-    print e
-    print 'End of efficiency tests\n'
+    print(e)
+    print('End of efficiency tests\n')
 
 if __name__ == '__main__':
     _doctest()

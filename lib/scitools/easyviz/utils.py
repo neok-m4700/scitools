@@ -1,3 +1,4 @@
+
 from scitools.numpyutils import zeros, ones, exp, reshape, ravel, \
      ndgrid, seq, linspace, arctan2, sqrt, shape, log, sin, cos
 
@@ -11,7 +12,7 @@ def available_backends():
         files.remove('__init__.py')
     backends = [f for f in files if f.endswith('_.py')]
     available = []
-    print '\nChecking if you have all the Easyviz backends...'
+    print('\nChecking if you have all the Easyviz backends...')
     for b in backends:
         module = 'scitools.easyviz.' + b[:-3]
         try:

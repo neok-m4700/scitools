@@ -17,4 +17,4 @@ slice_(x,y,z,v,xslice,yslice,zslice,grid='off')
 #savefig('tmp_slice1.eps')
 #savefig('tmp_slice1.png')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

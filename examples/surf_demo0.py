@@ -9,6 +9,6 @@ for n, t in enumerate(linspace(0, 4, 21)):
          zlim=[0,1], caxis=[0, 1])
 
 # Note: this demo is very slow in matplotlib (3D)
-raw_input()
+input()
 
 

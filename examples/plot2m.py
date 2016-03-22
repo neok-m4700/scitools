@@ -14,7 +14,7 @@ y2 = f2(t)
 plot(t, y1, 'r-', legend='t**2*exp(-t**2)',
      title='Testing legend with double mult for power')
 savefig('tmp1.eps')
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')
 import sys; sys.exit(0)
 savefig('tmp1.eps')
 savefig('tmp1.png')
@@ -41,4 +41,4 @@ plot(t, y1, 'r-.',
 savefig('tmp4.eps')
 savefig('tmp4.png')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

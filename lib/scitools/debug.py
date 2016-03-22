@@ -20,6 +20,8 @@ modules can monitor their debugging by setting debug.DEBUG = 0
 or debug.DEBUG = 1 (note that a single such setting has a "global" effect;
 it turns off debugging everywhere).
 """
+from __future__ import print_function
+
 import os, sys, string, re, inspect
 
 __all__ = ['watch', 'trace', 'dump', 'debugregex']
@@ -157,13 +159,13 @@ def dump(obj, hide_nonpublic=True):
     listed, and finally a line listing all functions/methods
     is printed.
     """
-    print '\n', '*'*60, '\n'
+    print('\n', '*'*60, '\n')
     try:  # dump class name if it exists
-        print 'object of class', obj.__class__.__name__
+        print('object of class', obj.__class__.__name__)
     except:
         pass
     try:
-        print 'object with name %s' % obj.__name__
+        print('object with name %s' % obj.__name__)
     except:
         pass
     methods = [];  attrs = []
@@ -187,11 +189,11 @@ def dump(obj, hide_nonpublic=True):
                 else:
                     s += '  (' + errorcheck.get_type(attr) + ')'
                     attrs.append(s)  # variable=value
-            except Exception, msg:
+            except Exception as msg:
                 pass
-    print '******** data attributes:\n', '\n'.join(attrs)
-    print '\n******** methods:\n', '\n'.join(methods)
-    print '*'*60, '\n\n\n',
+    print('******** data attributes:\n', '\n'.join(attrs))
+    print('\n******** methods:\n', '\n'.join(methods))
+    print('*'*60, '\n\n\n', end=' ')
 
 
 def debugregex(pattern, string):

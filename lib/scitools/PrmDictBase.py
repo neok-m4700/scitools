@@ -2,13 +2,14 @@
 """
 Module for managing parameters.
 """
+
 import re, os, sys
 import collections
 import numbers
 
 def message(m):
     if os.environ.get('DEBUG', '0') == '1':
-        print m
+        print(m)
 
 
 class PrmDictBase(object):
@@ -147,9 +148,9 @@ Here is an example::
                 k = list(d.keys())
                 k.sort(lambda a,b: cmp(a.lower(),b.lower()))
                 prm_names += k
-        print 'registered parameters:\n'
+        print('registered parameters:\n')
         for i in prm_names:
-            print i
+            print(i)
         # alternative (sort all in one bunch):
         # names = []
         # for d in self._prm_list:
@@ -163,7 +164,7 @@ Here is an example::
             keys = list(d.keys())
             keys.sort(lambda a,b: cmp(a.lower(),b.lower()))
             for prm in keys:
-                print '%s = %s' % (prm, d[prm])
+                print('%s = %s' % (prm, d[prm]))
 
     def set(self, **kwargs):
         """Set kwargs data in parameter dictionaries."""
@@ -181,8 +182,8 @@ Here is an example::
                     if self.set_in_dict(prm, kwargs[prm], d):
                         _set = True
                         break
-                except TypeError, msg:
-                    print msg
+                except TypeError as msg:
+                    print(msg)
                     #break
                     sys.exit(1)  # type error is fatal
 
@@ -227,7 +228,7 @@ Here is an example::
                                         (prm, value, prm, self._type_check[prm],
                                          type(value)))
 
-                elif callable(self._type_check[prm]):
+                elif isinstance(self._type_check[prm], collections.Callable):
                     can_set = self._type_check[prm](value)
                 else:
                     raise TypeError('self._type_check["%s"] has an '\
@@ -264,7 +265,7 @@ Here is an example::
                       'lambda self: self.%s["%s"], %s)' % \
                       (self.__class__.__name__, prm, ds, prm,
                        ' doc="read-only property"')
-                print cmd
+                print(cmd)
                 exec(cmd, global_namespace, locals())
 
     def dicts2namespace(self, namespace, dicts, overwrite=True):
@@ -286,7 +287,7 @@ Here is an example::
             else:
                 for key in d:
                     if key in namespace and not overwrite:
-                        print 'cannot overwrite %s' % key
+                        print('cannot overwrite %s' % key)
                     else:
                         namespace[key] = d[key]
 

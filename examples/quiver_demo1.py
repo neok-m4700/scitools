@@ -39,4 +39,4 @@ show()
 #savefig('quiver1c.eps', color=True)
 #savefig('quiver1c.png', color=True)
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

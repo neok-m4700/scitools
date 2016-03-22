@@ -71,7 +71,7 @@ if __name__ == '__main__':
     savefig('tmp_normal_frame.png')
 
     if backend != 'matplotlib':
-        print 'Cannot demonstrate matplotlib specialities when backend (%s) is not matplotlib!' % (backend)
+        print('Cannot demonstrate matplotlib specialities when backend (%s) is not matplotlib!' % (backend))
     else:
         pyplot = get_backend()
 
@@ -101,5 +101,5 @@ if __name__ == '__main__':
                    horizontalalignment='right',
                    transform=pyplot.gca().transAxes)  # figure coordinates
             
-    raw_input('Press Return key to quit: ')
+    input('Press Return key to quit: ')
     

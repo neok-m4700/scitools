@@ -6,7 +6,7 @@ amplitude = 1 + sin(2*pi*0.05*x)
 y = amplitude*sin(2*pi*x)
 
 r = (y.max() - y.min())/x[-1]
-print 'ratio:', r
+print('ratio:', r)
 
 subplot(2, 1, 1)
 plot(x, y,
@@ -31,4 +31,4 @@ plot(x, y,
      )
 
 show()
-raw_input()
+input()

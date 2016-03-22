@@ -5,6 +5,7 @@ experiments.
 
 
 class EfficiencyTable:
+
     """
     Manage the CPU times of efficiency experiments and make
     tabular reports with sorted results.
@@ -16,6 +17,7 @@ class EfficiencyTable:
     >>> print e  # prints a sorted table with scaled CPU times
     >>> e += e2  # add experiments from EfficiencyTable e2 to e
     """
+
     def __init__(self, description, normalization_time=None):
         """
         @param description: a string acting as headline for this test.
@@ -80,14 +82,13 @@ class EfficiencyTable:
             # given normalization time, and if so, use the corresponding
             # description, otherwise use a dummy description:
             for description in self.experiments:
-                if abs(self.experiments[description][experiment_idx] - \
+                if abs(self.experiments[description][experiment_idx] -
                        self._normalization_time) < 1.0E-10:
                     return self._normalization_time, description
             # no experiment coincides with the given normalization time
             description = 'some external experiment'
             self.experiments[description] = [self._normalization_time]
             return self._normalization_time, description
-
 
         # no given normalization time, find best performance:
         # (only search among positive CPU times for an experiment with
@@ -128,21 +129,22 @@ class EfficiencyTable:
         # inv_dict computation does not work if the CPU times are very
         # small (0.00 is the key of many), so we need to add a small
         # random number to very small CPU times
-        import random, math
+        import random
+        import math
         inv_dict = {}  # inverse of self.experiments
         for k in self.experiments:
             CPU_time = self.experiments[k][0]
             if math.fabs(CPU_time) < 1.0E-7:
-                CPU_time += 1.0E-14*random.random()
+                CPU_time += 1.0E-14 * random.random()
             if CPU_time in inv_dict:
                 # this destroys the one-to-one mapping, perturb CPU_time:
-                CPU_time *= 1.0 + 1.0E-3*random.random()
+                CPU_time *= 1.0 + 1.0E-3 * random.random()
             self.experiments[k][0] = CPU_time
             inv_dict[CPU_time] = k
         # sort CPU-times:
         cpu_times0 = list(inv_dict.keys())
         cpu_times0.sort()
-        s = '\n\n' + '*'*80 + '\n' + self.description + '\n' + '*'*80 + '\n'
+        s = '\n\n' + '*' * 80 + '\n' + self.description + '\n' + '*' * 80 + '\n'
         self.best, self.best_key = self._reference_CPU_time(0)
         s += 'reference CPU time based on the experiment\n   "%s"\nwith '\
              'CPU time:\n  %s\n\n' % \
@@ -156,7 +158,7 @@ class EfficiencyTable:
             for cpu_time, ref_time in \
                     zip(self.experiments[description],
                         self.experiments[self.best_key]):
-                nc = cpu_time/ref_time
+                nc = cpu_time / ref_time
                 if abs(nc) > 9999.0:
                     s += '%10.1e' % nc
                 else:
@@ -164,13 +166,14 @@ class EfficiencyTable:
             s += '\n'
         return s
 
+
 def plot(filename):
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
     for i in range(len(lines)):
         if lines[i].find('CPU times') >= 0:
-            start = i+3
+            start = i + 3
             break
     counter = 1
     curves = {}
@@ -188,22 +191,21 @@ def plot(filename):
         for i in range(len(curves[name])):
             v = curves[name][i]
             if v > 0.0:
-                f.write('%2d  %g\n' % (i+1, v))
+                f.write('%2d  %g\n' % (i + 1, v))
         f.close()
         counter += 1
         labels.write('%2d: %s\n' % (counter, name))
     labels.close()
     # generate Gnuplot script:
-    plotfiles = ['"tmp_plot_%02d" title "%d" with lines' % (i,i) \
-                 for i in range(1,len(lines[start:])+1)]
+    plotfiles = ['"tmp_plot_%02d" title "%d" with lines' % (i, i)
+                 for i in range(1, len(lines[start:]) + 1)]
     cmd = 'plot ' + ', '.join(plotfiles)
     f = open('tmp_plot.gnuplot', 'w')
     f.write("""
 set xrange [0:%d]
 %s
-""" % (len(curves[name])+1, cmd))
+""" % (len(curves[name]) + 1, cmd))
     f.close()
-
 
 
 def _test(n):
@@ -221,7 +223,7 @@ def _test(n):
                       setup='from scitools.numpyutils import iseq;' +
                       'n=%d' % n).timeit(5)
     e.add('for i in iseq(stop=n-1): pass', t3)
-    print e
+    print(e)
 
 if __name__ == '__main__':
     import sys

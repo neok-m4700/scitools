@@ -47,11 +47,11 @@ if '--easyviz_backend' in sys.argv:
             sys.argv[i+1]
         del sys.argv[i:i+2]
     except IndexError:
-        print '--easyviz_backend must be followed by a name like '\
-            '\ngnuplot, matplotlib, etc.'
+        print('--easyviz_backend must be followed by a name like '\
+            '\ngnuplot, matplotlib, etc.')
         sys.exit(1)
-print 'default scitools.easyviz backend becomes', default_easyviz_backend
-print '(could be set by the --easyviz_backend option to setup.py)\n'
+print('default scitools.easyviz backend becomes', default_easyviz_backend)
+print('(could be set by the --easyviz_backend option to setup.py)\n')
 # write new config file and change backend line
 os.rename(config_file, config_file + '.old~~')
 infile = open(config_file + '.old~~', 'r')

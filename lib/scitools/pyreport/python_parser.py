@@ -3,9 +3,11 @@ Python synthax higlighting
 
 Borrowed from http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52298
 """
+from __future__ import print_function
+
 
 # Original copyright : 2001 by Juergen Hermann <jh@web.de>
-import cgi, cStringIO, keyword, token, tokenize
+import cgi, io, keyword, token, tokenize
 
 class PythonParser:
     """ Send colored python source.
@@ -32,7 +34,7 @@ class PythonParser:
     def __call__(self, raw):
         """ Parse and send the colored source.
         """
-        self.out = cStringIO.StringIO()
+        self.out = io.StringIO()
         self.raw = raw.expandtabs().strip()
         # store line offsets in self.lines
         self.lines = [0, 0]
@@ -45,7 +47,7 @@ class PythonParser:
         #
         # parse the source and write it
         self.pos = 0
-        text = cStringIO.StringIO(self.raw)
+        text = io.StringIO(self.raw)
         self.out.write("<table width=100% cellpadding=0 cellspacing=0 " +
                      """onclick="toggle_hidden('pysrc%d','toggle%d');"><tr>
                         <td rowspan="3"> """ % (self.pysrcid, self.pysrcid) )
@@ -55,11 +57,11 @@ class PythonParser:
 
         try:
             tokenize.tokenize(text.readline, self.format)
-        except tokenize.TokenError, ex:
+        except tokenize.TokenError as ex:
             msg = ex[0]
             line = ex[1][0]
-            print >> self.out, ("<h3>ERROR: %s</h3>%s" %
-                (msg, self.raw[self.lines[line]:]))
+            print(("<h3>ERROR: %s</h3>%s" %
+                (msg, self.raw[self.lines[line]:])), file=self.out)
         self.out.write('</div>')
         self.out.write('''
                        </td> 
@@ -80,9 +82,11 @@ class PythonParser:
         self.pysrcid += 1
         return self.out.getvalue()
 
-    def format(self, toktype, toktext, (srow, scol), (erow, ecol), line):
+    def format(self, toktype, toktext, start, end, line):
         """ Token handler.
         """
+        srow, scol = start
+        erow, ecol = end
         
         # calculate new positions
         oldpos = self.pos

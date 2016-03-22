@@ -19,4 +19,4 @@ dp = 40
 p = p0 - dp/(1 + (x**2 + y**2)/R**2)
 surf(x, y, p, colorbar='on')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

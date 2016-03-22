@@ -11,9 +11,15 @@ python setup.py install --prefix=$PREFIX --easyviz_backend gnuplot
 python setup.py install --prefix=$PREFIX --easyviz_backend matplotlib
 """
 
-import os, sys, socket, re, glob, platform
 
-scripts = [os.path.join("bin", "scitools"),]
+import os
+import sys
+import socket
+import re
+import glob
+import platform
+
+scripts = [os.path.join("bin", "scitools"), ]
 
 if platform.system() == "Windows" or "bdist_wininst" in sys.argv:
     # In the Windows command prompt we can't execute Python scripts
@@ -40,7 +46,7 @@ except ImportError:
         # Neither Gnuplot nor Matplotlib is installed. Matplotlib is still set
         # as default backend for Easyviz.
         default_easyviz_backend = 'matplotlib'
-        print 'NOTE: matplotlib is not installed on this system, but scitools.easyviz\nwill still use matplotlib as the default plotting engine!'
+        print('NOTE: matplotlib is not installed on this system, but scitools.easyviz\nwill still use matplotlib as the default plotting engine!')
 
 # Modify config file so that it sets the wanted backend for easyviz
 config_file = os.path.join('lib', 'scitools', 'scitools.cfg')
@@ -48,14 +54,14 @@ if '--easyviz_backend' in sys.argv:
     try:
         i = sys.argv.index('--easyviz_backend')
         default_easyviz_backend = \
-            sys.argv[i+1]
-        del sys.argv[i:i+2]
+            sys.argv[i + 1]
+        del sys.argv[i:i + 2]
     except IndexError:
-        print '--easyviz_backend must be followed by a name like '\
-            '\ngnuplot, matplotlib, etc.'
+        print('--easyviz_backend must be followed by a name like '
+              '\ngnuplot, matplotlib, etc.')
         sys.exit(1)
-print 'default scitools.easyviz backend becomes', default_easyviz_backend
-print '(could be set by the --easyviz_backend option to setup.py)\n'
+print('default scitools.easyviz backend becomes', default_easyviz_backend)
+print('(could be set by the --easyviz_backend option to setup.py)\n')
 # Write new config file and change backend line
 os.rename(config_file, config_file + '.old~~')
 infile = open(config_file + '.old~~', 'r')
@@ -64,14 +70,14 @@ for line in infile:
     if line.lstrip().startswith('['):
         section = line.lower().strip()[1:-1]
     if line.lstrip().startswith('backend') and section == 'easyviz':
-        outfile.write('backend     = %s  ; default backend\n' % \
+        outfile.write('backend     = %s  ; default backend\n' %
                       default_easyviz_backend)
     else:
         outfile.write(line)
-infile.close();  outfile.close()
+infile.close(); outfile.close()
 os.remove(config_file + '.old~~')
 
-if  __file__ == 'setupegg.py':
+if __file__ == 'setupegg.py':
     # http://peak.telecommunity.com/DevCenter/setuptools
     from setuptools import setup, Extension
 else:
@@ -82,26 +88,25 @@ else:
 sys.path.insert(0, os.path.join('lib')); import scitools
 
 setup(
-    version = str(scitools.version),
-    author = ', '.join(scitools.author),
-    author_email = "<hpl@simula.no>",
-    description = scitools.__doc__,
-    license = "BSD",
-    name = "SciTools",
-    url = "http://scitools.googlecode.com",
-    package_dir = {'': 'lib'},
+    version=str(scitools.version),
+    author=', '.join(scitools.author),
+    author_email="<hpl@simula.no>",
+    description=scitools.__doc__,
+    license="BSD",
+    name="SciTools",
+    url="http://scitools.googlecode.com",
+    package_dir={'': 'lib'},
     # Must specify package directories and not individual module files
     # (py_modules) since package_data= only works with packages=
-    packages = ["scitools",
-                os.path.join("scitools", "easyviz"),
-                os.path.join("scitools", "pyreport"),
-		],
-    package_data = {'': ['scitools.cfg']},
-    scripts = scripts,
+    packages=["scitools",
+              os.path.join("scitools", "easyviz"),
+              os.path.join("scitools", "pyreport"),
+              ],
+    package_data={'': ['scitools.cfg']},
+    scripts=scripts,
     data_files=[(os.path.join("share", "man", "man1"),
-                 [os.path.join("doc", "man", "man1", "scitools.1.gz"),])],
-    )
+                 [os.path.join("doc", "man", "man1", "scitools.1.gz"), ])],
+)
 
 if os.path.isfile(config_file + '.cop'):
     os.rename(config_file + '.cop', config_file)
-

@@ -24,8 +24,8 @@ ylabel('Message length --->')
 title('Minimum Message Length')
 show()
 
-print "Let us now tune the plot by grabbing the backend."
-raw_input('Press Return key to continue:')
+print("Let us now tune the plot by grabbing the backend.")
+input('Press Return key to continue:')
 
 # Grab the backend and fine tune the plot:
 if backend == 'matplotlib':
@@ -110,8 +110,8 @@ elif backend == 'pyx':
 elif backend == 'blt':
     pass
 
-print "Now we store a savefig of the tuned plot."
-raw_input('Press Return key to continue:')
+print("Now we store a savefig of the tuned plot.")
+input('Press Return key to continue:')
 
 #savefig('grab_backend1.eps')  # Will destroy all changes!
 #savefig('grab_backend1.png')  # Will destroy all changes!

@@ -14,4 +14,4 @@ axis([0, 3, -0.05, 0.6])   # t in [0,3], y in [-0.05,0.6]
 title('My First Easyviz Demo')
 savefig('plot1b.eps')        # save figure to file (PostScript)
 savefig('plot1b.png')        # save figure to file (PNG)
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

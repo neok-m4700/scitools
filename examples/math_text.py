@@ -44,12 +44,12 @@ def do_plot(latex='no'):
              ylabel=r'theta',
              savefig='tmp_' + backend + '_' + latex + '.eps')
 
-print backend
+print(backend)
 for latex in 'no', 'with $', 'without $':
     figure()
-    print 'latex: %s' % latex
+    print('latex: %s' % latex)
     do_plot(latex)
-raw_input('Press Return: ')
+input('Press Return: ')
 
 """
 Summary:

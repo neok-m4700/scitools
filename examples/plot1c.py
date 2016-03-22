@@ -16,4 +16,4 @@ plot(t, y, 'r-',
 
 savefig('plot1c.eps')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

@@ -36,9 +36,9 @@ for m in modules:
 """ % (m, m))
     f.close()
 
-print 'List of modules for generate.sh:'
-print r"""scitools subst ':maxdepth: 2' ":maxdepth: 2\n\n""",
+print('List of modules for generate.sh:')
+print(r"""scitools subst ':maxdepth: 2' ":maxdepth: 2\n\n""", end=' ')
 for m in modules:
-    print '  ' + m.split('.')[-1] + r'\n',
-print '" index.txt'
+    print('  ' + m.split('.')[-1] + r'\n', end=' ')
+print('" index.txt')
 

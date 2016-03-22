@@ -26,8 +26,8 @@ elif backend == 'pyx':
     # default figure size (i.e., [width,height]) is [15,9.27].
     pos = [9.6, 3.5, 4, 4]    # [xpos,ypos,width,height]
 else:
-    print "The '%s' backend has currently no support for placement of " \
-          "arbitrary axes." % backend
+    print("The '%s' backend has currently no support for placement of " \
+          "arbitrary axes." % backend)
     pos = None
 
 if pos is not None:
@@ -43,4 +43,3 @@ if backend == 'matlab2':
 elif backend == 'veusz':
     save('tmp_test_axes.vsz')
 
-raw_input('Press Return key to quit:')

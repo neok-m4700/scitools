@@ -6,7 +6,7 @@ from scitools.std import *
 
 x = linspace(-2,2,5)
 plot(x,x**2,'b-s',title='Simple plot')
-print get_script()
+print(get_script())
 
 # As we can see, the result is no output. This is because the _replot method
 # has not been called yet. However, we don't need to call this method
@@ -14,7 +14,7 @@ print get_script()
 # calls _replot). Here we use show:
 
 show()
-print get_script()
+print(get_script())
 
 # We can now store these commands in a Matlab script by calling the save_m
 # function:

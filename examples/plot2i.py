@@ -30,6 +30,6 @@ if backend == 'gnuplot':
     g.refresh()
     g.savefig('plot2h.png')  # make new savefig (do not use savefig/savefig)
 
-fig = gcf(); print fig.dump()
+fig = gcf(); print(fig.dump())
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

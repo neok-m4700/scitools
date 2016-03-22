@@ -2,20 +2,25 @@
 Module with functions and classes used in the GUI chapters of
 the book "Python Scripting for Computational Science".
 """
+
 # NOTE: This file merges the previous modules
 # CanvasCoords, FunctionSelector, DrawFunction, FuncDependenceViz,
 # ParameterInterface
 #
 
-import Tkinter, os
+import tkinter
+import os
 from scitools.misc import import_module
 Pmw = import_module('Pmw')
 
+
 class DrawFunction:
+
     """
     Interactive drawing of y=f(x) functions.
     The drawing takes place in a Pmw.Blt.Graph widget.
     """
+
     def __init__(self, xcoor, parent,
                  ymin=0.0, ymax=1.0,
                  width=500, height=200,
@@ -39,26 +44,28 @@ class DrawFunction:
         can also be set as keyword arguments in the configure method.
         """
         self.master = parent
-        self.top = Tkinter.Frame(self.master)
+        self.top = tkinter.Frame(self.master)
         # packed in self.pack(); the user can then place this
         # DrawFunction wherever it is desired in a big GUI
 
-        frame1 = Tkinter.Frame(self.top);  frame1.pack(side='top')
+        frame1 = tkinter.Frame(self.top); frame1.pack(side='top')
         if yrange_widgets:
-            column1 = Tkinter.Frame(frame1)
+            column1 = tkinter.Frame(frame1)
             column1.pack(side='left')
-            if ylabel:  yl = ylabel
-            else:       yl = 'y'
+            if ylabel:
+                yl = ylabel
+            else:
+                yl = 'y'
             self.ymin_widget = Pmw.EntryField(column1,
-                labelpos='n', label_text=yl+' min',
-                entry_width=6, command=self.__ymin)
-            self.ymin_widget.pack(side='top',padx=2,pady=2)
+                                              labelpos='n', label_text=yl + ' min',
+                                              entry_width=6, command=self.__ymin)
+            self.ymin_widget.pack(side='top', padx=2, pady=2)
 
             self.ymax_widget = Pmw.EntryField(column1,
-                labelpos='n', label_text=yl+' max',
-                entry_width=6, command=self.__ymax)
-            self.ymax_widget.pack(side='top',padx=2,pady=2)
-            Pmw.alignlabels([self.ymin_widget,self.ymax_widget])
+                                              labelpos='n', label_text=yl + ' max',
+                                              entry_width=6, command=self.__ymax)
+            self.ymax_widget.pack(side='top', padx=2, pady=2)
+            Pmw.alignlabels([self.ymin_widget, self.ymax_widget])
 
         self.g = Pmw.Blt.Graph(frame1,
                                width=width, height=height)
@@ -73,17 +80,17 @@ class DrawFunction:
                        xlabel=xlabel, ylabel=ylabel)
 
         self.g.grid_on()
-        self.g.bind('<ButtonPress>',   self.mouse_down)
+        self.g.bind('<ButtonPress>', self.mouse_down)
         self.g.bind('<ButtonRelease>', self.mouse_up)
 
-        row1 = Tkinter.Frame(self.top)
+        row1 = tkinter.Frame(self.top)
         row1.pack(side='top')
-        Tkinter.Button(row1, text='Interpolate to grid',
-            width=20, command=self.interpolate).pack(side='left',padx=2)
-        Tkinter.Button(row1, text='Erase drawing',
-            width=20, command=self.erase).pack(side='left',padx=2)
+        tkinter.Button(row1, text='Interpolate to grid',
+                       width=20, command=self.interpolate).pack(side='left', padx=2)
+        tkinter.Button(row1, text='Erase drawing',
+                       width=20, command=self.erase).pack(side='left', padx=2)
 
-        self.erase() # some init
+        self.erase()  # some init
 
     def pack(self, **kwargs):
         self.top.pack(kwargs, expand=1, fill='both')
@@ -184,10 +191,12 @@ class DrawFunction:
     def interpolate(self):
         # first build a new list with the approved (x,y) pairs:
         # if the drawn curve is too short, stretch the end points:
-        if self.x[0] > self.xmin:   self.x[0] = self.xmin
-        if self.x[-1] < self.xmax:  self.x[-1] = self.xmax
+        if self.x[0] > self.xmin:
+            self.x[0] = self.xmin
+        if self.x[-1] < self.xmax:
+            self.x[-1] = self.xmax
 
-        x = [];  y = []; current_xmax = -9.9E+20
+        x = []; y = []; current_xmax = -9.9E+20
         for i in range(len(self.x)):
             # skip points outside [xmin,xmax]:
             if self.x[i] >= self.xmin and self.x[i] <= self.xmax:
@@ -195,8 +204,8 @@ class DrawFunction:
                     x.append(self.x[i]); y.append(self.y[i])
                     current_xmax = self.x[i]
         # ensure that the end points are included:
-        if x[0]  > self.xmin:
-            x.insert(0,self.xmin); y.insert(0,y[0])
+        if x[0] > self.xmin:
+            x.insert(0, self.xmin); y.insert(0, y[0])
         if x[-1] < self.xmax:
             x.append(self.xmax); y.append(y[-1])
 
@@ -243,19 +252,20 @@ def points2grid(x, y, xcoor):
         xi = xcoor[i]
         # find j such that xi is between x[j-1] and x[j]
         j = L  # we know that xcoor[i-1]>L so x[i]>L
-        while j < m-1 and x[j] <= xi:
+        while j < m - 1 and x[j] <= xi:
             j += 1
         if j < m:
-            L = j-1; R = j
-            #print "i=%d xi=%g; in between x[%d]=%g and x[%d]=%g" % (i,xi,L,x[L],R,x[R])
+            L = j - 1; R = j
+            # print "i=%d xi=%g; in between x[%d]=%g and x[%d]=%g" % (i,xi,L,x[L],R,x[R])
             # linear interpolation:
-            f[i] = y[L] + (y[R]-y[L])/(x[R]-x[L])*(xi-x[L])
+            f[i] = y[L] + (y[R] - y[L]) / (x[R] - x[L]) * (xi - x[L])
         else:
             raise ValueError("bug")
     return f
 
 
 class DrawFunctionDialog:
+
     def __init__(self, xcoor, parent=None):
         """Dialog box with DrawFunction widget"""
         self.d = Pmw.Dialog(parent,
@@ -264,7 +274,7 @@ class DrawFunctionDialog:
                             command=self.action)
 
         self.d_gui = DrawFunction(xcoor, self.d.interior())
-        self.d_gui.pack(padx=10,pady=10)
+        self.d_gui.pack(padx=10, pady=10)
 
     def action(self, result):
         if result == 'Approved':
@@ -276,7 +286,7 @@ class DrawFunctionDialog:
 
 
 def _test_DrawFunction():
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     Pmw.initialise(root)
     import scitools.misc; scitools.misc.fontscheme6(root)
     root.title('DrawFunction demo')
@@ -289,13 +299,16 @@ def _test_DrawFunction():
     root.mainloop()
 
 
-def roundInt(a): return int(a+0.5)
+def roundInt(a): return int(a + 0.5)
+
 
 class CanvasCoords:
+
     """
     Utilities for transforming between canvas coordinates and
     physical (real) coordinates.
     """
+
     def __init__(self):
         # 400x400 pixels is default:
         self.canvas_x = self.canvas_y = 400
@@ -303,10 +316,10 @@ class CanvasCoords:
         self.x_origin = 0; self.y_origin = self.canvas_y
         # x and y measured in pixels:
         self.x_range = self.canvas_x
-        self.xy_scale = self.canvas_x/self.x_range
+        self.xy_scale = self.canvas_x / self.x_range
 
     def set_coordinate_system(self, canvas_width, canvas_height,
-                              x_origin, y_origin, x_range = 1.0):
+                              x_origin, y_origin, x_range=1.0):
         """
         Define parameters in the physical coordinate system
         (origin, width) expressed in canvas coordinates.
@@ -321,82 +334,82 @@ class CanvasCoords:
 
         # x range (canvas_x in physical coords):
         self.x_range = x_range
-        self.xy_scale = self.canvas_x/self.x_range
+        self.xy_scale = self.canvas_x / self.x_range
 
     def print_coordinate_system(self):
-        print "canvas = (%d,%d)" % (self.canvas_x, self.canvas_y)
-        print "canvas origin = (%d,%d)" % (self.x_origin, self.y_origin)
-        print "range of physical x coordinate =", self.x_range
-        print "xy_scale (from physical to canvas): ", self.xy_scale
+        print("canvas = (%d,%d)" % (self.canvas_x, self.canvas_y))
+        print("canvas origin = (%d,%d)" % (self.x_origin, self.y_origin))
+        print("range of physical x coordinate =", self.x_range)
+        print("xy_scale (from physical to canvas): ", self.xy_scale)
 
     # --- transformations between physical and canvas coordinates: ---
 
     def physical2canvas(self, x, y):
         """Transform physical (x,y) to canvas 2-tuple."""
-        return (roundInt(self.x_origin + x*self.xy_scale),
-                roundInt(self.y_origin - y*self.xy_scale))
+        return (roundInt(self.x_origin + x * self.xy_scale),
+                roundInt(self.y_origin - y * self.xy_scale))
 
-    def cx(self,x):
+    def cx(self, x):
         """Transform physical x to canvas x."""
-        return roundInt(self.x_origin + x*self.xy_scale)
+        return roundInt(self.x_origin + x * self.xy_scale)
 
-    def cy(self,y):
+    def cy(self, y):
         """Transform physical y to canvas y."""
-        return roundInt(self.y_origin - y*self.xy_scale)
+        return roundInt(self.y_origin - y * self.xy_scale)
 
     def physical2canvas4(self, coords):
         """
         Transform physical 4-tuple (x1,x2,y1,y2) to
         canvas 4-tuple.
         """
-        return (roundInt(self.x_origin + coords[0]*self.xy_scale),
-                roundInt(self.y_origin - coords[1]*self.xy_scale),
-                roundInt(self.x_origin + coords[2]*self.xy_scale),
-                roundInt(self.y_origin - coords[3]*self.xy_scale))
+        return (roundInt(self.x_origin + coords[0] * self.xy_scale),
+                roundInt(self.y_origin - coords[1] * self.xy_scale),
+                roundInt(self.x_origin + coords[2] * self.xy_scale),
+                roundInt(self.y_origin - coords[3] * self.xy_scale))
 
     def canvas2physical(self, x, y):
         """Inverse of physical2canvas."""
-        return (float((x - self.x_origin)/self.xy_scale),
-                float((self.y_origin - y)/self.xy_scale))
+        return (float((x - self.x_origin) / self.xy_scale),
+                float((self.y_origin - y) / self.xy_scale))
 
     def canvas2physical4(self, coords):
         """Inverse of physical2canvas4."""
-        return (float((coords[0] - self.x_origin)/self.xy_scale),
-                float((self.y_origin - coords[1])/self.xy_scale),
-                float((coords[2] - self.x_origin)/self.xy_scale),
-                float((self.y_origin - coords[3])/self.xy_scale))
+        return (float((coords[0] - self.x_origin) / self.xy_scale),
+                float((self.y_origin - coords[1]) / self.xy_scale),
+                float((coords[2] - self.x_origin) / self.xy_scale),
+                float((self.y_origin - coords[3]) / self.xy_scale))
 
     def scale(self, dx):
         """
         Transform a length in canvas coordinates
         to a length in physical coordinates.
         """
-        return self.xy_scale*dx
+        return self.xy_scale * dx
 
     # short forms:
-    c2p  = canvas2physical
+    c2p = canvas2physical
     c2p4 = canvas2physical4
-    p2c  = physical2canvas
+    p2c = physical2canvas
     p2c4 = physical2canvas4
 
+
 def _CanvasCoords_test():
-    root = Tkinter.Tk()
-    c = Tkinter.Canvas(root,width=400, height=400)
+    root = tkinter.Tk()
+    c = tkinter.Canvas(root, width=400, height=400)
     c.pack()
     # let physical (x,y) be at (200,200) and let the x range be 2:
-    C.set_coordinate_system(400,400, 200,200, 2.0)
+    C.set_coordinate_system(400, 400, 200, 200, 2.0)
     cc = C.p2c4((0.2, 0.2, 0.6, 0.6))
-    c.create_oval(cc[0],cc[1],cc[2],cc[3],fill='red',outline='blue')
-    c1, c2 = C.physical2canvas(0.2,0.2)
+    c.create_oval(cc[0], cc[1], cc[2], cc[3], fill='red', outline='blue')
+    c1, c2 = C.physical2canvas(0.2, 0.2)
     c.create_text(c1, c2, text='(0.2,0.2)')
-    c1, c2 = C.physical2canvas(0.6,0.6)
+    c1, c2 = C.physical2canvas(0.6, 0.6)
     c.create_text(c1, c2, text='(0.6,0.6)')
     c.create_line(C.cx(0.2), C.cy(0.2),
                   C.cx(0.6), C.cy(0.2),
                   C.cx(0.6), C.cy(0.6),
                   C.cx(0.2), C.cy(0.6),
                   C.cx(0.2), C.cy(0.2))
-
 
 
 """
@@ -412,8 +425,11 @@ except ImportError:
 
 from scitools.misc import str2bool, str2obj
 
+
 class InputPrm:
+
     """Class for holding data about a parameter."""
+
     def __init__(self, name=None, default=0.0, str2type=None,
                  help=None, unit=None, cmlarg=None, prmclass=None):
         """
@@ -466,7 +482,7 @@ class InputPrm:
                 pass  # must have float or int when units are present
             else:
                 raise ValueError(
-                    'str2type must be float or int, not %s' % \
+                    'str2type must be float or int, not %s' %
                     str(self.str2type))
 
         self.set(default)  # set parameter value
@@ -505,7 +521,7 @@ class InputPrm:
         Note that __str__ is used by __repr__ so strings must
         be enclosed in quotes.
         """
-        return repr(self._v) # ensure quotes in strings
+        return repr(self._v)  # ensure quotes in strings
 
     def _handle_unit(self, v):
         """
@@ -516,15 +532,15 @@ class InputPrm:
             v = str(v)  # convert to 'value unit' string
         if isinstance(v, str) and isinstance(self.unit, str) and \
            (self.str2type is float or self.str2type is int):
-            if ' ' in v: # 'value unit' string?
+            if ' ' in v:  # 'value unit' string?
                 try:
                     self.pq = PQ.PhysicalQuantity(v)
                 except:
-                    raise ValueError('%s should be %s; illegal syntax' % \
+                    raise ValueError('%s should be %s; illegal syntax' %
                                      (v, self.str2type.__name__))
                 if not self.pq.isCompatible(self.unit):
                     raise ValueError(
-                        'illegal unit (%s); %s is registered with unit %s' % \
+                        'illegal unit (%s); %s is registered with unit %s' %
                         (v, self.name, self.unit))
                 self.pq.convertToUnit(self.unit)
                 v = self.str2type(str(self.pq).split()[0])
@@ -538,8 +554,8 @@ class InputPrm:
                 try:
                     PQ.PhysicalQuantity(v)
                     raise ValueError(
-                        'parameter %s given with dimension: %s, but '\
-                        'dimension is not registered' % (self.name,v))
+                        'parameter %s given with dimension: %s, but '
+                        'dimension is not registered' % (self.name, v))
                 except:
                     pass
             return self.str2type(v)
@@ -551,7 +567,7 @@ class InputPrm:
             except:
                 return PQ.PhysicalQuantity(self.get_wunit())
         else:
-            raise AttributeError('parameter %s has no registered unit' % \
+            raise AttributeError('parameter %s has no registered unit' %
                                  self.name)
 
     def _scan(self, s):
@@ -575,13 +591,13 @@ def commandline2dict(argv, parameters):
     p = scitools.misc.cmldict(sys.argv[1:], cmlargs=None, validity=0)
     # p[key] holds all command-line args, we are only interested
     # in those keys corresponding to parameters.keys()
-    for key in p.keys():
+    for key in list(p.keys()):
         if key in list(parameters.keys()):
             parameters[key].set(p[key])
 
 
-
 class InputPrmGUI(InputPrm):
+
     """Represent an input parameter by a widget."""
 
     GUI_toolkit = 'Tkinter/Pmw'
@@ -612,7 +628,7 @@ class InputPrmGUI(InputPrm):
             self.make_GUI_variable_Tk(str2type, unit, name)
         else:
             raise ValueError(
-                'The desired GUI toolkit %s is not supported' % \
+                'The desired GUI toolkit %s is not supported' %
                 InputPrmGUI.GUI_toolkit)
         # How to implement support for other toolkits:
         # self._v must point to an object with a get and set method
@@ -623,11 +639,11 @@ class InputPrmGUI(InputPrm):
         # class GUIVariable:
         #     def __init__(self): pass
         #     def attach(self, widget):
-        #         self.widget = widget # can be done in make_widget_*
+        # self.widget = widget # can be done in make_widget_*
         #     def get(self):
-        #         self.widget.get()  # for example
+        # self.widget.get()  # for example
         #     def set(self, value):
-        #         self.widget.set(value) # for example
+        # self.widget.set(value) # for example
 
         InputPrm.__init__(self, name, default,
                           str2type, help, unit, cmlarg)
@@ -644,8 +660,8 @@ class InputPrmGUI(InputPrm):
             # bool value, leads us here - which is okay - all other
             # widgets become entries
 
-    def get_widget_type(self):  return self._widget_type
-    widget_type = property(fget=get_widget_type) # read-only
+    def get_widget_type(self): return self._widget_type
+    widget_type = property(fget=get_widget_type)  # read-only
 
     def make_GUI_variable_Tk(self, str2type, unit, name):
         """
@@ -653,25 +669,25 @@ class InputPrmGUI(InputPrm):
         setting and getting the value in/from a GUI.
         """
         if unit is not None:
-            self._v = Tkinter.StringVar()  # value with unit
+            self._v = tkinter.StringVar()  # value with unit
         else:
             if str2type == float:
-                self._v = Tkinter.DoubleVar()
-                self._validate = {'validator' : 'real'}
+                self._v = tkinter.DoubleVar()
+                self._validate = {'validator': 'real'}
             elif str2type == str:
-                self._v = Tkinter.StringVar()
+                self._v = tkinter.StringVar()
             elif str2type == int:
-                self._v = Tkinter.IntVar()
-                self._validate = {'validator' : 'int'}
+                self._v = tkinter.IntVar()
+                self._validate = {'validator': 'int'}
             elif str2type == str2bool:
-                self._v = Tkinter.StringVar()
+                self._v = tkinter.StringVar()
             elif str2type == complex:
-                self._v = Tkinter.StringVar()
+                self._v = tkinter.StringVar()
             elif str2type == str2obj:
-                self._v = Tkinter.StringVar()
+                self._v = tkinter.StringVar()
             else:
                 raise ValueError(
-                    'str2type %s for parameter %s is not supported' % \
+                    'str2type %s for parameter %s is not supported' %
                     (str2type, name))
 
     def make_widget(self):
@@ -679,16 +695,16 @@ class InputPrmGUI(InputPrm):
             self.make_widget_Tk()
         else:
             raise ValueError(
-                'The desired GUI toolkit %s is not supported' % \
+                'The desired GUI toolkit %s is not supported' %
                 InputPrmGUI.GUI_toolkit)
 
     def make_widget_Tk(self):
         """Make Tk widget according to self._widget_type."""
         if self.name is None:
-            raise TypeError("name attribute must be set before "\
+            raise TypeError("name attribute must be set before "
                             "widget can be created")
         if self.parent is None:
-            raise TypeError("parent attribute must be set before "\
+            raise TypeError("parent attribute must be set before "
                             "widget can be created")
         # consistency/type check of values, if it is supplied:
         if self._values is not None:
@@ -706,47 +722,47 @@ class InputPrmGUI(InputPrm):
                 self._validate['min'] = self._values[0]
                 self._validate['max'] = self._values[1]
             self.widget = Pmw.EntryField(self.parent,
-                            labelpos='w',
-                            label_text=label,
-                            validate=self._validate,
-                            entry_width=15,
-                            entry_textvariable=self._v)
+                                         labelpos='w',
+                                         label_text=label,
+                                         validate=self._validate,
+                                         entry_width=15,
+                                         entry_textvariable=self._v)
         elif self._widget_type == 'slider':
             # we require values:
             if self._values is None:
                 raise TypeError(
-                    "values attribute must be set for slider '%s'" % \
+                    "values attribute must be set for slider '%s'" %
                     self.name)
 
             min = float(self._values[0]); max = float(self._values[1])
             try:
                 step = float(self._values[2])  # try if present
             except:
-                step = (max - min)/100.0       # default
-            self.widget = Tkinter.Scale(self.parent,
-                     orient='horizontal',
-                     from_=min, to=max,
-                     tickinterval=(max - min)/5.0,
-                     resolution=step,
-                     label=label,
-                     #font="helvetica 12 italic",
-                     length=300,
-                     variable=self._v)
+                step = (max - min) / 100.0       # default
+            self.widget = tkinter.Scale(self.parent,
+                                        orient='horizontal',
+                                        from_=min, to=max,
+                                        tickinterval=(max - min) / 5.0,
+                                        resolution=step,
+                                        label=label,
+                                        #font="helvetica 12 italic",
+                                        length=300,
+                                        variable=self._v)
         elif self._widget_type == 'option':
             # we require values, which now contains the option values
             if self._values is None:
                 raise TypeError(
-                    "values attribute must be set for option menu '%s'" % \
+                    "values attribute must be set for option menu '%s'" %
                     self.name)
 
             self.widget = Pmw.OptionMenu(self.parent,
-               labelpos='w',  # n, nw, ne, e and so on
-               label_text=label,
-               items=self._values,
-               menubutton_textvariable=self._v
-               )
+                                         labelpos='w',  # n, nw, ne, e and so on
+                                         label_text=label,
+                                         items=self._values,
+                                         menubutton_textvariable=self._v
+                                         )
         elif self._widget_type == 'checkbutton':
-            self.widget = Tkinter.Checkbutton(self.parent,
+            self.widget = tkinter.Checkbutton(self.parent,
                                               text=label,
                                               variable=self._v)
         # no packing of widgets
@@ -762,9 +778,9 @@ class InputPrmGUI(InputPrm):
         # is registered:
         try:
             gui = self._v.get()  # fails if value has unit
-        except ValueError, msg:
+        except ValueError as msg:
             if self.unit is None:
-                print msg, '\nvalue with unit, but no registered unit!'
+                print(msg, '\nvalue with unit, but no registered unit!')
                 sys.exit(1)
             # else: ok, go on with self._scan and interpret
 
@@ -785,7 +801,9 @@ class InputPrmGUI(InputPrm):
 
 
 class InputPrmCGI(InputPrm):
+
     """Represent a parameter by a form variable in HTML."""
+
     def __init__(self, name=None, default=0.0, str2type=None,
                  widget_type='entry', values=None, form=None,
                  help=None, unit=None, cmlarg=None):
@@ -811,7 +829,7 @@ class InputPrmCGI(InputPrm):
     def make_form_entry(self):
         """Write the form's input field, according to widget_type."""
         if self.name is None:
-            raise TypeError("name attribute must be set before "\
+            raise TypeError("name attribute must be set before "
                             "widget can be created")
 
         value = str(self.get())
@@ -824,14 +842,14 @@ class InputPrmCGI(InputPrm):
             # we require values, which now contains the option values
             if self._values is None:
                 raise TypeError(
-                    "values attribute must be set for option menu '%s'" % \
+                    "values attribute must be set for option menu '%s'" %
                     self.name)
 
             s += """<select name="%s" size=1 value="%s">\n""" % \
                  (self.name, value)
             for v in self._values:
                 s += """<option value="%s">%s </option>\n""" % \
-                     (v,v)
+                     (v, v)
             s += """</select><br>\n"""
 
         elif self._widget_type == 'checkbutton':
@@ -843,14 +861,13 @@ class InputPrmCGI(InputPrm):
 
     def get(self):
         if self._form is not None:
-            InputPrm.set(self,\
-                self._form.getvalue(self.name, str(self._v)))
+            InputPrm.set(self,
+                         self._form.getvalue(self.name, str(self._v)))
             # InputPrm.set handles units
 
         return self._v
 
     # just inherit def set(self, value):
-
 
     def __repr__(self):
         """Application of eval to this output creates the object."""
@@ -888,7 +905,9 @@ def createInputPrm(interface, name, default, str2type=None,
 
     return p
 
+
 class Parameters:
+
     """
     Class for holding a set of InputPrm-type parameters.
     See src/py/examples/simviz/simviz1cp.py for examples
@@ -912,6 +931,7 @@ class Parameters:
     Normally, this is automated in classes like AutoSimVizGUI and
     AutoSimVizCGI.
     """
+
     def __init__(self, interface='plain', form=None, prm_dict={}):
         """
         @param interface: 'plain', 'CGI', or 'GUI'
@@ -932,8 +952,8 @@ class Parameters:
             help=None, unit=None, cmlarg=None):
         """Add a new parameter."""
         self.dict[name] = createInputPrm(self._interface, name,
-            default, str2type, widget_type=widget_type,
-            values=values, help=help, unit=unit, cmlarg=cmlarg)
+                                         default, str2type, widget_type=widget_type,
+                                         values=values, help=help, unit=unit, cmlarg=cmlarg)
         self._seq.append(self.dict[name])
 
     def endadd(self):
@@ -954,7 +974,7 @@ class Parameters:
                 elif p.widget_type == 'checkbutton':
                     self.checkbt_sequence.append(p)
                 else:
-                    raise ValueError('unknown widget_type "%s"' \
+                    raise ValueError('unknown widget_type "%s"'
                                      % p.widget_type)
         elif self._interface == 'CGI':
             for p in self._seq:
@@ -1008,7 +1028,7 @@ class Parameters:
         self.__dict__[name] = value
         if name in self.dict:
             self.dict[name].set(value)
-        #if str(a) in self.dict:
+        # if str(a) in self.dict:
         #    self.dict[str(a)].set(value)
 
     def parse_options(self, argv):
@@ -1024,7 +1044,7 @@ class Parameters:
         p = scitools.misc.cmldict(argv, cmlargs=None, validity=0)
         # p[key] holds all command-line args, we are only interested
         # in those keys corresponding to self.dict.keys()
-        for key in p.keys():
+        for key in list(p.keys()):
             if key.find('__') != -1:
                 key_blanks = key.replace('__', ' ')
             else:
@@ -1034,7 +1054,7 @@ class Parameters:
 
     def usage(self):
         """Print legal command-line options."""
-        s = '' # returned message
+        s = ''  # returned message
         for p in self.dict:
             if p.find(' ') != -1:
                 opt = p.replace(' ', '__')
@@ -1063,7 +1083,6 @@ class Parameters:
         return s
 
 
-
 def parametersGUI(p, parent, pack_side='top',
                   scrolled={'height': 400, 'width': 350}):
     """
@@ -1079,31 +1098,32 @@ def parametersGUI(p, parent, pack_side='top',
     p.endadd()  # for safety
     if scrolled:
         frame = Pmw.ScrolledFrame(parent,
-          usehullsize=1, hull_width=scrolled['width'],
-                         hull_height=scrolled['height'])
+                                  usehullsize=1, hull_width=scrolled['width'],
+                                  hull_height=scrolled['height'])
         frame.pack(side=pack_side, fill='both', expand=1)
         frame = frame.interior()
     else:
-        frame = Tkinter.Frame(parent, borderwidth=2)
+        frame = tkinter.Frame(parent, borderwidth=2)
         frame.pack(side=pack_side, fill='both', expand=1)
 
     widgets = []  # for alignment
     for obj in p.parameters_sequence:
         # must be set on beforehand: obj.widget_type = 'entry'
         if obj.widget_type is None:
-            raise TypeError("widget_type attribute "\
+            raise TypeError("widget_type attribute "
                             "must be set for InputPrmGUI '%s'" % obj.name)
         obj.parent = frame
         obj.make_widget()
         #obj.widget.pack(side='top', padx=5, pady=5, fill='x', expand=1)
         obj.widget.pack(side='top', padx=5, pady=3, anchor='w')
         if obj.widget_type == 'entry' or \
-               obj.widget_type == 'option':
+                obj.widget_type == 'option':
             widgets.append(obj.widget)
     Pmw.alignlabels(widgets)  # nice alignment
 
 
 class AutoSimVizGUI:
+
     """
     Organize a set of widgets for input data together with
     buttons for running a simulator and performing visualizations.
@@ -1183,18 +1203,17 @@ class AutoSimVizGUI:
         else:
             self.parameters_sequence = None
 
-
         self.master = parent
-        self.top = Tkinter.Frame(self.master)
+        self.top = tkinter.Frame(self.master)
         self.top.pack(expand=1, fill='both')  # could be moved to pack method...
-        self.top_columns = Tkinter.Frame(self.top)
+        self.top_columns = tkinter.Frame(self.top)
         self.top_columns.pack(expand=1, fill='both')
 
         self.pane = pane
         if self.pane:
             self.top_pane = Pmw.PanedWidget(self.top_columns,
                                             orient='horizontal')
-###                            hull_width=900, hull_height=600)
+# hull_width=900, hull_height=600)
             self.top_pane.pack(expand=1, fill='both')
 
         if self.sliders_sequence is not None:
@@ -1206,7 +1225,7 @@ class AutoSimVizGUI:
             else:
                 parent = self.top_columns
             self.sliders_frame = Pmw.ScrolledFrame(parent,
-                usehullsize=1, hull_width=320, hull_height=height)
+                                                   usehullsize=1, hull_width=320, hull_height=height)
             self.sliders_frame.pack(side='left', fill='both', expand=1)
             self.sliders_frame = self.sliders_frame.interior()
 
@@ -1227,7 +1246,7 @@ class AutoSimVizGUI:
             else:
                 parent = self.top_columns
             self.entries_frame = Pmw.ScrolledFrame(parent,
-                usehullsize=1, hull_width=240, hull_height=height)
+                                                   usehullsize=1, hull_width=240, hull_height=height)
             self.entries_frame.pack(side='left', fill='both', expand=1)
             self.entries_frame = self.entries_frame.interior()
 
@@ -1270,11 +1289,11 @@ class AutoSimVizGUI:
                 parent = self.top_columns
 
             if height is None:
-                height = min(len(self.parameters_sequence)*80, 700)
+                height = min(len(self.parameters_sequence) * 80, 700)
 
             parametersGUI(self.p, parent,
-                         pack_side='left',
-                         scrolled={'height':height, 'width':350})
+                          pack_side='left',
+                          scrolled={'height': height, 'width': 350})
 
         # note: if we use Pmw.ScrolledCanvas, call canvas.resizescrollregion()
 
@@ -1285,28 +1304,27 @@ class AutoSimVizGUI:
             parent = self.top_pane.pane('buttons')
         else:
             parent = self.top_columns
-        self.button_frame = Tkinter.Frame(parent)
+        self.button_frame = tkinter.Frame(parent)
         self.button_frame.pack(side='left')
 
         # put a help button first:
         if type(help) is type(""):  # description given?
             self.description = help
-            Tkinter.Button(self.button_frame, text="Help", width=10,
-               command=self._helpwindow).\
-               pack(side='top', padx=5, pady=3, anchor="n")
-
+            tkinter.Button(self.button_frame, text="Help", width=10,
+                           command=self._helpwindow).\
+                pack(side='top', padx=5, pady=3, anchor="n")
 
         if logo is not None:
-            self.logo = Tkinter.PhotoImage(file=logo)
-            Tkinter.Label(self.button_frame, image=self.logo).\
-                         pack(side='top', pady=20)
+            self.logo = tkinter.PhotoImage(file=logo)
+            tkinter.Label(self.button_frame, image=self.logo).\
+                pack(side='top', pady=20)
 
         if buttons:
             for button_name, func in buttons:
                 width = max(len(button_name), 10)
-                Tkinter.Button(self.button_frame, text=button_name,
-                           width=width, command=func).\
-                           pack(side='top', padx=5, pady=3)
+                tkinter.Button(self.button_frame, text=button_name,
+                               width=width, command=func).\
+                    pack(side='top', padx=5, pady=3)
 
         self.master.bind('<q>', self._quit)
         if self.pane:
@@ -1339,30 +1357,30 @@ class AutoSimVizGUI:
                 parent = self.top_pane.pane('plot')
             else:
                 parent = self.top_columns
-            self.plotframe = Tkinter.Frame(parent)
+            self.plotframe = tkinter.Frame(parent)
             self.plotframe.pack(side='left', expand=1, fill='both')
             # size of plot canvas:
-            width=400; total_height=500
+            width = 400; total_height = 500
         elif placement == 'bottom':
-            self.plotframe = Tkinter.Frame(self.top)
+            self.plotframe = tkinter.Frame(self.top)
             self.plotframe.pack(side='bottom', expand=1, fill='both')
             # size of plot canvas:
-            width=None; total_height=no_of_plotframes*200
+            width = None; total_height = no_of_plotframes * 200
 
-        height=int(total_height/float(no_of_plotframes))
+        height = int(total_height / float(no_of_plotframes))
         self.g = []
         for i in range(no_of_plotframes):
             try:
                 self.g.append(Pmw.Blt.Graph(self.plotframe,
-                                            width=width,height=height))
+                                            width=width, height=height))
             except:
-                print "Python is not linked with Blt"; sys.exit(1)
+                print("Python is not linked with Blt"); sys.exit(1)
             # place the plot areas below each other:
-            self.g[i].pack(side='top',expand=1, fill='both')
+            self.g[i].pack(side='top', expand=1, fill='both')
 
         # some dictionaries with self.g[i] as keys:
         self.data = {}  # holds (x,y) Blt vectors in a graph
-        self.identifier = {} # holds curve identifiers (numbers) for each graph
+        self.identifier = {}  # holds curve identifiers (numbers) for each graph
         for graph in self.g:
             self.identifier[graph] = 0
         # when a new curve is drawn, the self.nsavecurves old ones
@@ -1387,10 +1405,10 @@ class AutoSimVizGUI:
         One can convert x and y, which are plain Python lists, to
         NumPy arrays for further processing if desired.
         """
-        if isinstance(graph, (list,tuple)):
+        if isinstance(graph, (list, tuple)):
             if len(graph) != 1:
                 raise TypeError(
-                    'graph argument is a list of length %d>1, should be scalar' %\
+                    'graph argument is a list of length %d>1, should be scalar' %
                     len(graph))
             else:
                 graph = graph[0]
@@ -1400,7 +1418,7 @@ class AutoSimVizGUI:
         self.identifier[graph] += 1  # identifiers are integers
         id = self.identifier[graph]
         # current storage index in an array [0,..,self.nsavecurves+1]
-        counter = id % (self.nsavecurves+1)
+        counter = id % (self.nsavecurves + 1)
 
         # The Blt vectors cannot be local variables, because the plot
         # disappears when the vectors go out of scope.
@@ -1424,7 +1442,7 @@ class AutoSimVizGUI:
         if graph.element_exists(str(id_old)):
             graph.element_delete(str(id_old))  # remove old curve
         # dash the old remaining curves:
-        for i in range(max(id_old+1,1),id):
+        for i in range(max(id_old + 1, 1), id):
             graph.element_configure(str(i), linewidth=1)
         color = self.curvecolors[counter]
 
@@ -1438,23 +1456,23 @@ class AutoSimVizGUI:
         graph.configure(title=curvename)
         self.master.update()
         return self.data[graph][counter]['x'],\
-               self.data[graph][counter]['y']
+            self.data[graph][counter]['y']
 
     def update_curveplot(self, filename, graph):
         """Update Blt vectors with data from a two-column file."""
 
         id = self.identifier[graph]
-        counter = id % (self.nsavecurves+1)
+        counter = id % (self.nsavecurves + 1)
 
         f = open(filename, 'r')
         lines = f.readlines()
         if len(lines) != len(self.data[graph][counter]['x']):
-            print "Blt vector has length=%d, but %s has %d lines" % \
-                  (len(self.data[graph][counter]['x']),len(lines))
+            print("Blt vector has length=%d, but %s has %d lines" %
+                  (len(self.data[graph][counter]['x']), len(lines)))
         for i in range(len(self.data[graph][counter]['x'])):
             self.data[graph][counter]['x'][i], \
-            self.data[graph][counter]['y'][i] = \
-                                      list(map(float, lines[i].split()))
+                self.data[graph][counter]['y'][i] = \
+                list(map(float, lines[i].split()))
         f.close()
 
     def _quit(self, event=None):
@@ -1466,27 +1484,28 @@ class AutoSimVizGUI:
         containing self.description.
         """
         # read file into a text widget in a _separate_ window:
-        self.filewindow = Tkinter.Toplevel(self.master) # new window
+        self.filewindow = tkinter.Toplevel(self.master)  # new window
 
         lines = self.description.split('\n')
-        nlines = min(len(lines),30)
-        width = min(max([len(i) for i in lines]), 70) # max line width
+        nlines = min(len(lines), 30)
+        width = min(max([len(i) for i in lines]), 70)  # max line width
         self.filetext = Pmw.ScrolledText(self.filewindow,
-             borderframe=5, # a bit space around the text
-             vscrollmode='dynamic', hscrollmode='dynamic',
-             labelpos='n', label_text="Description",
-             text_width=width, text_height=nlines,
-             text_wrap='none')
+                                         borderframe=5,  # a bit space around the text
+                                         vscrollmode='dynamic', hscrollmode='dynamic',
+                                         labelpos='n', label_text="Description",
+                                         text_width=width, text_height=nlines,
+                                         text_wrap='none')
         self.filetext.pack()
 
         self.filetext.insert('end', self.description)
 
         # add a quit button:
-        Tkinter.Button(self.filewindow, text="Quit",
-               command=self.filewindow.destroy).pack(pady=10)
+        tkinter.Button(self.filewindow, text="Quit",
+                       command=self.filewindow.destroy).pack(pady=10)
 
 
 class AutoSimVizCGI:
+
     """
     Organize a set of form variables for input data.
     """
@@ -1525,8 +1544,10 @@ class AutoSimVizCGI:
         # should we have a help and/or dimension column?
         help = 0; unit = 0
         for p in self.p.parameters_sequence:
-            if p.unit is not None: unit = 1
-            if p.help is not None: help = 1
+            if p.unit is not None:
+                unit = 1
+            if p.help is not None:
+                help = 1
         for p in self.p.parameters_sequence:
             s += '<tr>\n<td>%s</td><td>%s</td>' % \
                  (p.name, p.make_form_entry())
@@ -1548,45 +1569,48 @@ class AutoSimVizCGI:
 </form>
 """
         # perform simulation and visualization as next step
-        #return s
-        print s
+        # return s
+        print(s)
 
     def footer(self):
         """Write out HTML footer instructions."""
         s = """\n</body></html>\n"""
-        #return s
-        print s
+        # return s
+        print(s)
+
 
 def _test1_Parameters():
     d = {'A': 1.0, 'w': 0.2, 'func': 'siny', 'y0': 0.0}
     p = Parameters(interface='GUI', prm_dict=d)
     p['w'] = 0.1
-    p.add('tstop', 2.0, widget_type='slider', values=(0,10))
+    p.add('tstop', 2.0, widget_type='slider', values=(0, 10))
     p.add('plot', False)
     d = p.get()
-    print d
-    print repr(p)
+    print(d)
+    print(repr(p))
     p['plot'] = True
     for name in p:
-        print 'p[%s]=%s' % (name, p[name])
+        print('p[%s]=%s' % (name, p[name]))
     return p
 
+
 def _test1_Parameters_wGUI():
-    parent = Tkinter.Tk()
+    parent = tkinter.Tk()
     Pmw.initialise(parent)
     import scitools.misc
     scitools.misc.fontscheme1(parent)
     p = _test1_Parameters()
     parametersGUI(p, parent, scrolled=False)
+
     def get():
-        print p.get()
-    Tkinter.Button(parent, text='Dump', command=get).pack(pady=10)
-    Tkinter.Button(parent, text='Quit', command=parent.quit).pack(pady=10)
+        print(p.get())
+    tkinter.Button(parent, text='Dump', command=get).pack(pady=10)
+    tkinter.Button(parent, text='Quit', command=parent.quit).pack(pady=10)
     parent.mainloop()
 
 if __name__ == '__main__':
     cmd = sys.argv[1] + '(' + '  '.join(sys.argv[2:]) + ')'
-    print cmd
+    print(cmd)
     exec(cmd)
 
 
@@ -1597,7 +1621,9 @@ import types
 from scitools.numpyutils import seq, wrap2callable, ndarray, pi
 from scitools.StringFunction import StringFunction
 
+
 class FuncSpec:
+
     """
     Specification of a function.
     Lists of such specifications can be fed to class FunctionSelector
@@ -1613,7 +1639,7 @@ class FuncSpec:
                  formula=None,
                  image=None,
                  function_object=None,
-                 vector = 0,
+                 vector=0,
                  description=None,
                  xcoor=None,
                  scrolled_frame=False,
@@ -1642,7 +1668,7 @@ class FuncSpec:
         self.name = name
         self.representation = representation
         if not self.name:
-            raise ValueError('name keyword must be set when creating a '\
+            raise ValueError('name keyword must be set when creating a '
                              'FuncSpec object')
 
         self.configure(
@@ -1662,10 +1688,10 @@ class FuncSpec:
         if self.parameters is not None:
             if isinstance(self.parameters, dict):
                 self.parameters = \
-                   Parameters(interface='GUI', prm_dict=self.parameters)
+                    Parameters(interface='GUI', prm_dict=self.parameters)
             if not isinstance(self.parameters, Parameters):
                 raise TypeError(
-                    'parameters must be a dictionary or Parameters object, '\
+                    'parameters must be a dictionary or Parameters object, '
                     'not a %s' % type(self.parameters))
 
         if 'independent_variables' in kwargs:
@@ -1676,9 +1702,9 @@ class FuncSpec:
             self.image = kwargs['image']
         if 'function_object' in kwargs:
             self.function_object = kwargs['function_object']
-            if type(self.function_object) == types.ClassType:
+            if type(self.function_object) == type:
                 raise TypeError(
-                    'class type, not instance, provided as '\
+                    'class type, not instance, provided as '
                     'function_object for %s' % self.name)
         if 'vector' in kwargs:
             self.vector = kwargs['vector']
@@ -1694,7 +1720,7 @@ class FuncSpec:
     def ok(self):
         if not isinstance(self.independent_variables, (list, tuple)):
             raise TypeError(
-                'independent_variables must be list or tuple, not %s' % \
+                'independent_variables must be list or tuple, not %s' %
                 type(self.independent_variables))
 
         if self.formula is not None:
@@ -1705,20 +1731,20 @@ class FuncSpec:
         if self.image is not None:
             if not isinstance(self.image, str):
                 raise TypeError(
-                    'image must be string (filename), not %s' % \
+                    'image must be string (filename), not %s' %
                     type(self.image))
             if not os.path.isfile(self.image):
                 raise ValueError('file %s not found' % self.image)
 
         if not isinstance(self.vector, int):
             raise TypeError(
-                'vector must be int (0=scalar, >=1: no of vector comp.), '\
+                'vector must be int (0=scalar, >=1: no of vector comp.), '
                 'not %s' % type(self.vector))
 
         if self.description is not None:
-            if not isinstance(self.description, basestring):
+            if not isinstance(self.description, str):
                 raise TypeError(
-                    'description must be string, not %s' % \
+                    'description must be string, not %s' %
                     type(self.description))
 
         if self.xcoor is not None:
@@ -1728,13 +1754,12 @@ class FuncSpec:
 
         if self.scrolled_frame != False:
             if not isinstance(self.scrolled_frame, dict):
-                raise TypeError('scrolled_frame must be True or dict, '\
+                raise TypeError('scrolled_frame must be True or dict, '
                                 'not %s' % type(self.scrolled_frame))
-
 
     def get_independent_variables(self):
         if not self.independent_variables:
-            raise ValueError('FuncSpec for "%s" has no list of independent '\
+            raise ValueError('FuncSpec for "%s" has no list of independent '
                              'variables' % self.name)
         text = 'independent variable'
         if len(self.independent_variables) > 1:
@@ -1746,29 +1771,30 @@ class FuncSpec:
         args = []
         for key in self.__dict__:
             if self.__dict__[key] is not None:
-                args.append('%s=%s' % (key,self.__dict__[key]))
+                args.append('%s=%s' % (key, self.__dict__[key]))
         return 'FuncSpec(' + ', '.join(args) + ')'
 
 
 class StringFormula:
+
     def __init__(self, parent, func_spec):
         self.fspec = func_spec
         self.master = parent
-        self.top = Tkinter.Frame(parent, borderwidth=2)
+        self.top = tkinter.Frame(parent, borderwidth=2)
         self.top.pack(side='top')
 
         # note that StringFunction works for scalar and vector fields!
         # just use [formula_x, formula_y]
 
-        self.formula = Tkinter.StringVar()
+        self.formula = tkinter.StringVar()
         if self.fspec.formula is not None:
             self.formula.set(self.fspec.formula)
 
         self.widget = Pmw.EntryField(self.top,
-                      labelpos='n',
-                      label_text=self.fspec.get_independent_variables(),
-                      entry_width=15,
-                      entry_textvariable=self.formula)
+                                     labelpos='n',
+                                     label_text=self.fspec.get_independent_variables(),
+                                     entry_width=15,
+                                     entry_textvariable=self.formula)
         self.widget.pack(pady=5)
 
         if self.fspec.parameters:
@@ -1778,7 +1804,7 @@ class StringFormula:
     def get(self):
         """Return function object."""
         f = StringFunction(self.formula.get(),
-            independent_variables=self.fspec.independent_variables)
+                           independent_variables=self.fspec.independent_variables)
         if self.fspec.parameters:
             # turn parameters object into dictionary and send
             # this as keyword arguments to StringFunction.set_parameters
@@ -1786,36 +1812,36 @@ class StringFormula:
         return wrap2callable(f)
 
 
-
 class UserFunction:
+
     def __init__(self, parent, func_spec):
         self.fspec = func_spec
         self.master = parent
-        self.top = Tkinter.Frame(parent, borderwidth=2)
+        self.top = tkinter.Frame(parent, borderwidth=2)
         self.top.pack(side='top')
-        Tkinter.Label(self.top,
-        text=self.fspec.get_independent_variables()).pack()
+        tkinter.Label(self.top,
+                      text=self.fspec.get_independent_variables()).pack()
         if self.fspec.formula:
-            width = min(len(self.fspec.formula)+5, 30)
-            Tkinter.Label(self.top, text=self.fspec.formula,
+            width = min(len(self.fspec.formula) + 5, 30)
+            tkinter.Label(self.top, text=self.fspec.formula,
                           width=width).pack()
         else:
-            print 'Warning: UserFunction, name=%s, has no formula!' % \
-                  self.fspec.name
-            Tkinter.Label(self.top, text='no function expression known').pack()
+            print('Warning: UserFunction, name=%s, has no formula!' %
+                  self.fspec.name)
+            tkinter.Label(self.top, text='no function expression known').pack()
         if self.fspec.parameters:
-            print self.fspec.parameters, type(self.fspec.parameters)
-            Tkinter.Label(self.top, text='parameters: ' +
-                          ', '.join(self.fspec.parameters.keys())).pack()
+            print(self.fspec.parameters, type(self.fspec.parameters))
+            tkinter.Label(self.top, text='parameters: ' +
+                          ', '.join(list(self.fspec.parameters.keys()))).pack()
 
         if self.fspec.image is not None:
-            self.image = Tkinter.PhotoImage(file=self.fspec.image)
-            Tkinter.Label(self.top, image=self.image).pack()
+            self.image = tkinter.PhotoImage(file=self.fspec.image)
+            tkinter.Label(self.top, image=self.image).pack()
 
         # widgets for setting parameters:
         if self.fspec.parameters:
             parametersGUI(self.fspec.parameters, self.top,
-                          pack_side='top',scrolled=self.fspec.scrolled_frame)
+                          pack_side='top', scrolled=self.fspec.scrolled_frame)
 
     def get(self):
         """Return function object."""
@@ -1827,23 +1853,24 @@ class UserFunction:
                     f = self.fspec.function_object
                 except:
                     raise AttributeError(
-                        'FuncSpec "%s" used in UserFunction has '\
+                        'FuncSpec "%s" used in UserFunction has '
                         'no function_object set' % self.fspec.name)
                 if hasattr(f, name):
                     setattr(f, name, d[name])
                 else:
-                    raise NameError('expected parameter name %s '\
-                                    'as attribute in function object '\
-                                    '\n(dir(function object)=%s)' % \
-                                    (name,dir(f)))
+                    raise NameError('expected parameter name %s '
+                                    'as attribute in function object '
+                                    '\n(dir(function object)=%s)' %
+                                    (name, dir(f)))
         return wrap2callable(self.fspec.function_object)
 
 
 class Drawing(UserFunction):
+
     def __init__(self, parent, func_spec):
         UserFunction.__init__(self, parent, func_spec)
         if self.fspec.xcoor is None:
-            raise ValueError('want DrawFunction widget, but no xcoor info'\
+            raise ValueError('want DrawFunction widget, but no xcoor info'
                              ' in the FuncSpec object')
         self.drawing = DrawFunction(self.fspec.xcoor, self.top)
         self.drawing.pack(padx=10, pady=10)
@@ -1851,7 +1878,7 @@ class Drawing(UserFunction):
     def get(self):
         """Return function object."""
         x, y = self.drawing.get()
-        d = wrap2callable((x,y))
+        d = wrap2callable((x, y))
         # The drawing function d may be combined with another
         # expression, forming a new function object. This functionality
         # is in a method 'embed' in self.func_spec.function_object.
@@ -1860,23 +1887,25 @@ class Drawing(UserFunction):
             f.attach_func(d)
             d = f
         except:
-            pass # no combination with other functions registered
+            pass  # no combination with other functions registered
         return d
 
 
 class FunctionChoices:
+
     """
     Notebook for various representations of a function.
     The representations appear as pages. Each page is
     realized as a UserFunction, StringFormula, or Drawing
     instance.
     """
+
     def __init__(self, parent, func_spec_list):
         self.master = parent
-        self.top = Tkinter.Frame(self.master, borderwidth=2)
+        self.top = tkinter.Frame(self.master, borderwidth=2)
         self.top.pack(expand=True, fill='both')
         self.nb = Pmw.NoteBook(self.top)
-        self.func_spec_list = func_spec_list # list of FuncSpec objects
+        self.func_spec_list = func_spec_list  # list of FuncSpec objects
         # hold UserFunction, Drawing, or StringFormula objects,
         # one for each page (key is page name):
         self.page = {}
@@ -1889,7 +1918,7 @@ class FunctionChoices:
             group.pack(fill='both', expand=1, padx=10, pady=10)
             # build contents in current page:
             self.page[f.name] = \
-                          f.representation(group.interior(), f)
+                f.representation(group.interior(), f)
 
         self.nb.pack(padx=5, pady=5, fill='both', expand=1)
         self.nb.setnaturalsize()
@@ -1908,7 +1937,9 @@ class FunctionChoices:
         #dump(f, hide_nonpublic=False)
         return f, current
 
+
 class FunctionSelector:
+
     """
     Notebook with a collection of functions to be specified.
     Each function is represented by a FunctionChoices page.
@@ -1917,16 +1948,17 @@ class FunctionSelector:
     drawing, string formulas, ready-made formulas with
     free parameters, hardcoded Python functions etc.
     """
+
     def __init__(self, parent):
         self.master = parent
-        self.top = Tkinter.Frame(self.master, borderwidth=2)
+        self.top = tkinter.Frame(self.master, borderwidth=2)
         self.top.pack(expand=True, fill='both')
         self.nb = Pmw.NoteBook(self.top)
         self.page = {}  # FunctionChoices widgets
 
     def add(self, name, func_spec_list):
         new_page = self.nb.add(name, tab_text=name)
-        group = Tkinter.Frame(new_page, borderwidth=2)
+        group = tkinter.Frame(new_page, borderwidth=2)
         group.pack(expand=True, fill='both')
         w = FunctionChoices(group, func_spec_list)
         self.page[name] = w
@@ -1952,13 +1984,15 @@ class FunctionSelector:
 
 def _test_FunctionChoices(root):
     class MyFunc:
+
         def __init__(self, a, b):
-            self.a = a;  self.b = b
+            self.a = a; self.b = b
+
         def __call__(self, q, t):
-            return self.a*q + self.b*t
+            return self.a * q + self.b * t
 
     F = FuncSpec
-    nb = [F(Drawing, name='k coeff', xcoor=seq(0,1,0.01)),
+    nb = [F(Drawing, name='k coeff', xcoor=seq(0, 1, 0.01)),
           F(StringFormula, name='velocity',
             parameters={'A': 1, 'B': 1, 'p': 1, 'q': 1},
             formula='[-B*cos(q*y), A*sin(p*x)]',  # vector field
@@ -1968,11 +2002,11 @@ def _test_FunctionChoices(root):
             parameters=('a', 'b'),
             formula='a*q + b*t',
             independent_variables=('q', 't'),
-            function_object=MyFunc(0,0)),
+            function_object=MyFunc(0, 0)),
           ]
-    print nb
+    print(nb)
     gui = FunctionChoices(root, nb)
-    Tkinter.Button(root, text='get',
+    tkinter.Button(root, text='get',
                    # note that gui is local so obj=gui is needed to
                    # remember the gui object...
                    command=gui.get).pack(pady=5)
@@ -1984,36 +2018,46 @@ def _test_FunctionSelector(root):
     s = FunctionSelector(root)
 
     class MovingSource1:
+
         """Function object: A*exp(-(x - x0 - sin(w*t))**2)."""
+
         def __init__(self, A, w, x0):
             self.A = A; self.w = w; self.x0 = x0
+
         def __call__(self, x, t):
-            return self.A*exp(-(x - self.x0 - sin(self.w*t))**2)
+            return self.A * exp(-(x - self.x0 - sin(self.w * t))**2)
+
         def __str__(self):
             return 'A*exp(-(x - x0 - sin(w*t))**2)'
+
         def parameters(self):
             return {'A': self.A, 'w': self.w, 'x0': self.x0}
 
-
     def growing_source(x, t):
-        A = 1; w  = 0.1; x0 = 5
-        return A*(sin(w*t))**2*exp(-(x-x0)**2)
+        A = 1; w = 0.1; x0 = 5
+        return A * (sin(w * t))**2 * exp(-(x - x0)**2)
 
     class MovingSource2:
+
         """
         As MovingSource1, but let the user specify
         (through a drawing, for instance) the spatial shape f:
         f(x - x0 - sin(w*t)).
         """
+
         def __init__(self, w, x0):
             self.w = w; self.x0 = x0
-            self.spatial_shape = lambda x: exp(-x*x)
+            self.spatial_shape = lambda x: exp(-x * x)
+
         def attach_func(self, spatial_shape):
             self.spatial_shape = spatial_shape
+
         def __call__(self, x, t):
-            return self.spatial_shape(x - self.x0 - sin(self.w*t))
+            return self.spatial_shape(x - self.x0 - sin(self.w * t))
+
         def __str__(self):
             return 'f(x - x0 - sin(w*t))'
+
         def parameters(self):
             return {'w': self.w, 'x0': self.x0}
 
@@ -2036,7 +2080,7 @@ def _test_FunctionSelector(root):
            function_object=ms2,
            parameters=ms2.parameters(),
            formula=str(ms2),
-           xcoor=seq(0,10,0.1),),
+           xcoor=seq(0, 10, 0.1),),
          F(StringFormula, name='growing source 2',
            parameters={'A': 1.0, 'w': 1.0, 'x0': 0},
            formula='A*(sin(w*t))**2*exp(-(x-x0)**2)',
@@ -2044,48 +2088,58 @@ def _test_FunctionSelector(root):
          F(UserFunction, name='no source',
            independent_variables=('x', 't'),
            formula='f(x,t)=0',
-           function_object=lambda x,t: 0),
+           function_object=lambda x, t: 0),
          ]
     s.add('f', f)
 
     class GaussianBell:
+
         """Gaussian Bell at x0 with st.dev. sigma."""
+
         def __init__(self, x0, sigma):
             self.x0 = x0; self.sigma = sigma
+
         def __call__(self, x):
-            return exp(-0.5*((x-self.x0)/self.sigma)**2)
+            return exp(-0.5 * ((x - self.x0) / self.sigma)**2)
+
         def __str__(self):
             return 'exp(-0.5*((x-x0)/sigma)**2)'
+
         def parameters(self):
             return {'x0': self.x0, 'sigma': self.sigma}
 
-    gb = GaussianBell(5,1)
+    gb = GaussianBell(5, 1)
     I = [F(UserFunction, name='localized disturbance',
            function_object=gb,
            independent_variables=['x'],
            parameters=gb.parameters()),
          F(Drawing, name='draw initial shape',
            independent_variables=['x'],
-           xcoor=seq(0,10,0.1),)
+           xcoor=seq(0, 10, 0.1),)
          ]
     s.add('initial condition', I)
 
     class OscHalfPeriod:
+
         """Oscillate sin(w*t) half a period, then hold zero."""
+
         def __init__(self, w):
             self.w = w
+
         def __call__(self, t):
-            T = pi/self.w
+            T = pi / self.w
             if t <= T:
-                return sin(self.w*t)
+                return sin(self.w * t)
             else:
                 return 0.0
+
         def __str__(self):
             return 'sin(w*t) for t<pi/w, otherwise 0'
+
         def parameters(self):
             return {'w': self.w}
 
-    half_period = OscHalfPeriod(pi/2)
+    half_period = OscHalfPeriod(pi / 2)
     bc = [F(UserFunction, name='1 period oscillation',
             independent_variables=('t',),
             function_object=half_period,
@@ -2104,20 +2158,20 @@ def _test_FunctionSelector(root):
         I_func, page = s.get('initial condition')
         bc_func, page = s.get('boundary conditions')
         from scitools.misc import dump
-        print 'f_func:'
+        print('f_func:')
         dump(f_func, hide_nonpublic=False)
-        print 'I_func:'
+        print('I_func:')
         dump(I_func, hide_nonpublic=False)
-        print 'bc_func:'
+        print('bc_func:')
         dump(bc_func, hide_nonpublic=False)
 
-    Tkinter.Button(root, text='get',
+    tkinter.Button(root, text='get',
                    command=get).pack(pady=5)
     root.mainloop()
 
 
 def _FunctionSelector_test():
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     Pmw.initialise(root)
     import scitools.misc
     scitools.misc.fontscheme6(root)
@@ -2125,22 +2179,23 @@ def _FunctionSelector_test():
     _test_FunctionSelector(root)
 
 
-
 class FuncDependenceViz:
+
     """
     Visualization of the shape of a function depends
     continuously on its parameters, and this class
     makes a graphical illustration of this dependence.
 
     """
+
     def __init__(self, master,
-                 parameter_intervals={}, # interval for each prm
+                 parameter_intervals={},  # interval for each prm
                  functions={},           # functions to be plotted
                  xmin=0.0, xmax=1.0,     # x axis range
                  resolution=101,         # no of x evaluations
                  width=500, height=400,  # size of plot window
-                 viztool = 'Pmw.Blt.Graph', # or 'gnuplot'
-                 plot_update = 'after'   # how slider movements
+                 viztool='Pmw.Blt.Graph',  # or 'gnuplot'
+                 plot_update='after'   # how slider movements
                                          # update the plots
                  ):
         """
@@ -2154,7 +2209,7 @@ class FuncDependenceViz:
         Gnuplot = import_module('Gnuplot')
         self.Gnuplot = Gnuplot
         self.master = master
-        self.top = Tkinter.Frame(master, borderwidth=2)
+        self.top = tkinter.Frame(master, borderwidth=2)
         self.top.pack()  # could leave this pack for a pack class function
 
         self.p_intervals = parameter_intervals
@@ -2164,25 +2219,25 @@ class FuncDependenceViz:
         self.slider_var = {}  # Tkinter vars for slide.p
         for pname in self.p_intervals:
             # set parameter value to midpoint in interval:
-            self.p[pname] = (self.p_intervals[pname][0] + \
-                             self.p_intervals[pname][1])/2.0
-            self.slider_var[pname] = Tkinter.DoubleVar()
+            self.p[pname] = (self.p_intervals[pname][0] +
+                             self.p_intervals[pname][1]) / 2.0
+            self.slider_var[pname] = tkinter.DoubleVar()
             self.slider_var[pname].set(self.p[pname])
 
         # define the sliders:
         for pname in self.p_intervals:
             pmin = self.p_intervals[pname][0]
             pmax = self.p_intervals[pname][1]
-            slider = Tkinter.Scale(self.top,
-                           orient='horizontal',
-                           from_=pmin,
-                           to=pmax,
-                           tickinterval=(pmax-pmin)/10.0,
-                           resolution=(pmax-pmin)/100.0,
-                           label=pname,
-                           font="helvetica 10 bold",
-                           length=width-100,
-                           variable=self.slider_var[pname])
+            slider = tkinter.Scale(self.top,
+                                   orient='horizontal',
+                                   from_=pmin,
+                                   to=pmax,
+                                   tickinterval=(pmax - pmin) / 10.0,
+                                   resolution=(pmax - pmin) / 100.0,
+                                   label=pname,
+                                   font="helvetica 10 bold",
+                                   length=width - 100,
+                                   variable=self.slider_var[pname])
             slider.pack(side='top', pady=4)
 
             # we can update the plot according to slider
@@ -2195,20 +2250,20 @@ class FuncDependenceViz:
             # does not work: slider.bind('<B1-Motion>', self.visualize)
 
         # define a widget row where xmin/xmax and n can be adjusted:
-        self.xmin = Tkinter.DoubleVar(); self.xmin.set(xmin)
-        self.xmax = Tkinter.DoubleVar(); self.xmax.set(xmax)
-        self.n = Tkinter.IntVar(); self.n.set(resolution)
+        self.xmin = tkinter.DoubleVar(); self.xmin.set(xmin)
+        self.xmax = tkinter.DoubleVar(); self.xmax.set(xmax)
+        self.n = tkinter.IntVar(); self.n.set(resolution)
 
-        row = Tkinter.Frame(self.top, borderwidth=2)
+        row = tkinter.Frame(self.top, borderwidth=2)
         row.pack()
-        Tkinter.Label(row, text="x min:").pack(side='left')
-        Tkinter.Entry(row, textvariable=self.xmin, width=5,
+        tkinter.Label(row, text="x min:").pack(side='left')
+        tkinter.Entry(row, textvariable=self.xmin, width=5,
                       justify='right').pack(side='left')
-        Tkinter.Label(row, text="  x max:").pack(side='left')
-        Tkinter.Entry(row, textvariable=self.xmax, width=5,
+        tkinter.Label(row, text="  x max:").pack(side='left')
+        tkinter.Entry(row, textvariable=self.xmax, width=5,
                       justify='right').pack(side='left')
-        Tkinter.Label(row, text="  no of points:").pack(side='left')
-        Tkinter.Entry(row, textvariable=self.n, width=3,
+        tkinter.Label(row, text="  no of points:").pack(side='left')
+        tkinter.Entry(row, textvariable=self.n, width=3,
                       justify='right').pack(side='left')
 
         # make graph widget or use a plotting program?
@@ -2222,7 +2277,7 @@ class FuncDependenceViz:
 
         self.viztool = viztool  # user-specified plotting tool
 
-        print have_blt, viztool
+        print(have_blt, viztool)
         if have_blt and viztool == "Pmw.Blt.Graph":
             self.g.pack(expand=1, fill='both')
         else:
@@ -2233,19 +2288,19 @@ class FuncDependenceViz:
         self.make_vectors()  # vectors for x and y values in plot
 
         # PostScript plot:
-        Tkinter.Button(row, text="Postscript plot",
-                       command=self.psdump).pack(side='left',padx=5)
+        tkinter.Button(row, text="Postscript plot",
+                       command=self.psdump).pack(side='left', padx=5)
         # bind 'p' to dumping the plot in PostScript:
         # (must bind to master, not self.top)
         self.master.bind('<p>', self.psdump)
         self.master.bind('<q>', self.quit)  # convenient
 
     def psdump(self, event=None):
-        import tkFileDialog
-        fname = tkFileDialog.SaveAs(
-                filetypes=[('psfiles','*.ps')],
-                initialfile="tmp.ps",
-                title="Save plot in PostScript format").show()
+        import tkinter.filedialog
+        fname = tkinter.filedialog.SaveAs(
+            filetypes=[('psfiles', '*.ps')],
+            initialfile="tmp.ps",
+            title="Save plot in PostScript format").show()
         if fname:
             if self.viztool == "gnuplot":
                 self.g.hardcopy(filename=fname, enhanced=1,
@@ -2264,21 +2319,21 @@ class FuncDependenceViz:
         # self.x : vector of x coordinates
         # self.y[funcname] : vector of function values
 
-        dx = (self.xmax.get() - self.xmin.get())/\
-             float(self.n.get() - 1)
+        dx = (self.xmax.get() - self.xmin.get()) /\
+            float(self.n.get() - 1)
         if dx != self.dx:
             self.dx = dx
             # x increment has changed, make new vectors:
 
             # add dx/2 to upper limit to ensure self.n entries:
-            x = arange(self.xmin.get(), self.xmax.get()+dx/2, dx, float)
+            x = arange(self.xmin.get(), self.xmax.get() + dx / 2, dx, float)
             if x.shape[0] != self.n.get():
                 raise IndexError("x has wrong length")
             self.x = x
 
             self.y = {}
             for funcname in self.funcs:
-                self.y[funcname] = zeros(x.shape[0],float)
+                self.y[funcname] = zeros(x.shape[0], float)
 
             if self.viztool == "Pmw.Blt.Graph":
                 self.bind_vectors2BLTgraph()
@@ -2286,15 +2341,14 @@ class FuncDependenceViz:
             # fill the vectors with appropriate data for testing:
             self.fill_vectors()
 
-
     def bind_vectors2BLTgraph(self):
         "bind vectors to the curves in the BLT graph"
         # each curve has its own color:
-        colors = ['red','blue','green','black','grey',
-                  'black','yellow','orange']
+        colors = ['red', 'blue', 'green', 'black', 'grey',
+                  'black', 'yellow', 'orange']
         if len(self.funcs) > len(colors):
-            print "Cannot handle more than %d functions"\
-                  % len(self.funcs); sys.exit(1)
+            print("Cannot handle more than %d functions"
+                  % len(self.funcs)); sys.exit(1)
         color_counter = 0
         for curvename in self.funcs:
             if self.g.element_exists(curvename):
@@ -2302,13 +2356,13 @@ class FuncDependenceViz:
             self.g.line_create(
                 curvename,           # used as identifier
                 xdata=tuple(self.x),            # x coords
-                ydata=tuple(self.y[curvename]), # y coords
+                ydata=tuple(self.y[curvename]),  # y coords
                 color=colors[color_counter],
                 linewidth=1,
                 dashes='',           # number: dash, "": solid
                 label=curvename,     # legend
                 symbol='',           # no symbols at data points
-                )
+            )
             color_counter += 1
 
     def visualize(self, var):
@@ -2319,7 +2373,7 @@ class FuncDependenceViz:
 
         title = ""
         for pname in self.p:
-            title  += "%s=%g " % (pname,self.p[pname])
+            title += "%s=%g " % (pname, self.p[pname])
 
         if self.viztool == "gnuplot":
             self.g.clear()
@@ -2327,7 +2381,7 @@ class FuncDependenceViz:
                                            self.xmax.get()))
             self.g.title(title)
             # we do not launch the plot here
-            plots = []; line_counter=1
+            plots = []; line_counter = 1
             for funcname in self.funcs:
                 plots.append(self.Gnuplot.Data(
                     self.x, self.y[funcname],
@@ -2350,13 +2404,12 @@ class FuncDependenceViz:
             for i in range(self.n.get()):
                 x = self.x[i]
                 self.y[funcname][i] = \
-                     self.funcs[funcname](x, self.p)
-
+                    self.funcs[funcname](x, self.p)
 
 
 def _test_FuncDependenceViz():
     import math
-    p_intervals = {'mu': (0,8), 'sigma': (0,1), 'alpha': (0,1)}
+    p_intervals = {'mu': (0, 8), 'sigma': (0, 1), 'alpha': (0, 1)}
 
     # recall that lambda is a reserved keyword in Python,
     # use lambda_ instead:
@@ -2364,28 +2417,28 @@ def _test_FuncDependenceViz():
         if x < 1.0E-9:
             f = 0.0
         else:
-            f = 1/(zeta*math.sqrt(2*math.pi)*x)*math.exp(
-                -0.5*((math.log(x)-lambda_)/zeta)**2)
+            f = 1 / (zeta * math.sqrt(2 * math.pi) * x) * math.exp(
+                -0.5 * ((math.log(x) - lambda_) / zeta)**2)
         return f
 
     def U(x, p):
         mu = p['mu']; sigma = p['sigma']
-        zeta = math.sqrt(math.log(1 + (sigma/mu)**2))
-        lambda_ = math.log(mu) - 0.5*0.5*zeta**2
+        zeta = math.sqrt(math.log(1 + (sigma / mu)**2))
+        lambda_ = math.log(mu) - 0.5 * 0.5 * zeta**2
         return lognormal(x, lambda_, zeta)
 
     def F(x, p):
         mu = p['mu']; sigma = p['mu']; alpha = p['alpha']
-        zeta = math.sqrt(math.log(1 + (sigma/mu)**2))
-        lambda_ = math.log(mu) - 0.5*0.5*zeta**2
+        zeta = math.sqrt(math.log(1 + (sigma / mu)**2))
+        lambda_ = math.log(mu) - 0.5 * 0.5 * zeta**2
         # response modification:
-        lambda_ = math.log(alpha) + 2*lambda_
-        zeta = 2*zeta
+        lambda_ = math.log(alpha) + 2 * lambda_
+        zeta = 2 * zeta
         return lognormal(x, lambda_, zeta)
 
-    f = { 'U': U, 'F': F }   # function names and objects
+    f = {'U': U, 'F': F}   # function names and objects
 
-    root = Tkinter.Tk()
+    root = tkinter.Tk()
     Pmw.initialise(root)
     try:
         viztool = sys.argv[1]
@@ -2404,16 +2457,16 @@ def _test_FuncDependenceViz():
 
 
 def _test():
-    print 'Testing DrawFunction:'
+    print('Testing DrawFunction:')
     _test_DrawFunction()
-    print 'Testing CanvasCoords:'
+    print('Testing CanvasCoords:')
     _CanvasCoords_test()
-    print 'Testing FunctionSelector:'
+    print('Testing FunctionSelector:')
     _FunctionSelector_test()
-    print 'Testing ParameterInterface:'
+    print('Testing ParameterInterface:')
     _test1_Parameters()
     _test1_Parameters_wGUI()
-    print 'Testing FuncDependenceViz:'
+    print('Testing FuncDependenceViz:')
     _test_FuncDependenceViz()
 
 if __name__ == '__main__':

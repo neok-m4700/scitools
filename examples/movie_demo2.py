@@ -24,7 +24,7 @@ for t in t_values:
 # Make movie file the simplest possible way
 movie('tmp_*.png')
 import glob, os
-print 'generated the file', glob.glob('movie.*')[0]
+print('generated the file', glob.glob('movie.*')[0])
 #os.remove(glob.glob('movie.*')[0])
 
 # Make animated GIF movie in the file tmpmovie.gif

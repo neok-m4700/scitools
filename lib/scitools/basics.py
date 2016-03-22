@@ -68,6 +68,7 @@ These debug functions require the DEBUG variable to be different from 0.
 Default configuration file
 --------------------------
 """
+
 # Collect all import statements done by this module
 _import_list = []
 # Measure CPU time for various import statements
@@ -94,7 +95,7 @@ has_scipy = False   # indicates for all application scripts if one has scipy
 if _globaldata._load_scipy:
     try:
         from .numpyutils import *   # loads numpy too
-        from math import factorial # override
+        from math import factorial  # override
         _import_list.append("from numpy import *")
         _import_list.append("from numpyutils import *")
         from scipy import *        # overrides some numpy functions
@@ -104,7 +105,8 @@ if _globaldata._load_scipy:
         _import_list.append("from scipy import *")
     except ImportError:
         # ImportError is likely due to missin scipy
-        if VERBOSE >= 2: print 'tried to import scipy, but could not find it'
+        if VERBOSE >= 2:
+            print('tried to import scipy, but could not find it')
         pass
     _t2 = _time.clock(); _import_times += 'scipy=%g ' % (_t2 - _t1)
 
@@ -126,7 +128,9 @@ if not has_scipy:
         _t2 = _time.clock(); _import_times += 'numpy=%g ' % (_t2 - _t1)
 
 # nice to have imports:
-import sys, operator, math
+import sys
+import operator
+import math
 from scitools.StringFunction import StringFunction
 from glob import glob
 _import_list.append("import sys, operator, math")
@@ -145,9 +149,9 @@ _import_list.append("from debug import watch, trace")
 
 if VERBOSE >= 2:
     for i in _import_list:
-        print i
+        print(i)
 
 if VERBOSE >= 3:
-    print _import_times
+    print(_import_times)
 
 __doc__ += '\nImport statements in this module:\n' + '\n'.join(_import_list)

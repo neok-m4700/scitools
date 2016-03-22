@@ -29,9 +29,8 @@ TODO:
 
 """
 
-from __future__ import division
 
-from common import *
+from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
 from scitools.misc import check_if_module_exists
 
@@ -41,6 +40,7 @@ import math
 
 
 class PyXBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -50,7 +50,6 @@ class PyXBackend(BaseClass):
 
         # Set docstrings of all functions to the docstrings of BaseClass
         # The exception is if something is very different
-
 
         self.figure(self.getp('curfig'))
 
@@ -70,7 +69,7 @@ class PyXBackend(BaseClass):
             '>': pyx.graph.style.symbol.triangle,  # triangle (right)
             'p': None,  # pentagram
             'h': None,  # hexagram
-            }
+        }
 
         self._colors = {
             '': None,   # no color --> blue
@@ -82,7 +81,7 @@ class PyXBackend(BaseClass):
             'y': pyx.graph.style.color.cmyk.Yellow,   # yellow
             'k': pyx.graph.style.color.cmyk.Black,    # black
             'w': pyx.graph.style.color.cmyk.White,    # white
-            }
+        }
 
         self._line_styles = {
             '': None,                              # no line
@@ -90,7 +89,7 @@ class PyXBackend(BaseClass):
             ':': pyx.style.linestyle.dotted,       # dotted line
             '-.': pyx.style.linestyle.dashdotted,  # dash-dot line
             '--': pyx.style.linestyle.dashed       # dashed line
-            }
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -102,17 +101,17 @@ class PyXBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
-            print "Setting backend standard variables"
+            print("Setting backend standard variables")
             for disp in 'self._markers self._colors self._line_styles'.split():
-                print disp, eval(disp)
+                print(disp, eval(disp))
 
     def _get_scale(self, ax):
         # return a linear or logarithmic (base 10) axis
         if DEBUG:
-            print "Get axis scales"
+            print("Get axis scales")
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -135,7 +134,7 @@ class PyXBackend(BaseClass):
     def _set_labels(self, ax):
         """Add text labels for x-, y-, and z-axis."""
         if DEBUG:
-            print "Setting labels"
+            print("Setting labels")
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
@@ -153,12 +152,12 @@ class PyXBackend(BaseClass):
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
         if DEBUG:
-            print "Setting title"
+            print("Setting title")
         title = ax.getp('title')
         if title:
             # set title
             g = self._g.items[-1]
-            g.text(g.width/2+g.xpos, g.height+0.2+g.ypos, title,
+            g.text(g.width / 2 + g.xpos, g.height + 0.2 + g.ypos, title,
                    [pyx.text.halign.center,
                     pyx.text.valign.bottom,
                     pyx.text.size.Large])
@@ -166,9 +165,9 @@ class PyXBackend(BaseClass):
     def _get_limits(self, ax):
         # return axis limits in x, y, and z direction
         if DEBUG:
-            print "Setting axis limits"
+            print("Setting axis limits")
         mode = ax.getp('mode')
-        limits = [None]*6
+        limits = [None] * 6
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
             # and z direction. If this is not automated in the plotting
@@ -283,7 +282,7 @@ class PyXBackend(BaseClass):
     def _set_box(self, ax):
         """Turn box around axes boundary on or off."""
         if DEBUG:
-            print "Setting box"
+            print("Setting box")
         if ax.getp('box'):
             # display box
             pass
@@ -294,7 +293,7 @@ class PyXBackend(BaseClass):
     def _set_grid(self, ax):
         """Turn grid lines on or off."""
         if DEBUG:
-            print "Setting grid"
+            print("Setting grid")
         if ax.getp('grid'):
             # turn grid lines on
             pass
@@ -305,7 +304,7 @@ class PyXBackend(BaseClass):
     def _set_hidden_line_removal(self, ax):
         """Turn on/off hidden line removal for meshes."""
         if DEBUG:
-            print "Setting hidden line removal"
+            print("Setting hidden line removal")
         if ax.getp('hidden'):
             # turn hidden line removal on
             pass
@@ -316,7 +315,7 @@ class PyXBackend(BaseClass):
     def _set_colorbar(self, ax):
         """Add a colorbar to the axis."""
         if DEBUG:
-            print "Setting colorbar"
+            print("Setting colorbar")
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             # turn on colorbar
@@ -330,12 +329,12 @@ class PyXBackend(BaseClass):
     def _set_caxis(self, ax):
         """Set the color axis scale."""
         if DEBUG:
-            print "Setting caxis"
+            print("Setting caxis")
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             pass
         else:
@@ -345,14 +344,14 @@ class PyXBackend(BaseClass):
     def _set_colormap(self, ax):
         """Set the colormap."""
         if DEBUG:
-            print "Setting colormap"
+            print("Setting colormap")
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
 
     def _set_view(self, ax):
         """Set viewpoint specification."""
         if DEBUG:
-            print "Setting view"
+            print("Setting view")
         cam = ax.getp('camera')
         view = cam.getp('view')
         if view == 2:
@@ -383,7 +382,7 @@ class PyXBackend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print "Setting axis properties"
+            print("Setting axis properties")
         self._set_title(ax)
         self._set_position(ax)
         self._set_axis_method(ax)
@@ -413,13 +412,13 @@ class PyXBackend(BaseClass):
         style = self._line_styles[item.getp('linetype')]
         width = item.getp('linewidth')
         if width:
-            width = pyx.style.linewidth(float(width)*pyx.unit.w_pt)
+            width = pyx.style.linewidth(float(width) * pyx.unit.w_pt)
         return marker, color, style, width
 
     def _add_line(self, item):
         """Add a 2D or 3D curve to the scene."""
         if DEBUG:
-            print "Adding a line"
+            print("Adding a line")
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
@@ -458,12 +457,12 @@ class PyXBackend(BaseClass):
         legend = item.getp('legend')
         if not legend:
             legend = None
-        self._g.items[-1].plot(pyx.graph.data.points(data,x=1,y=2,title=legend),
+        self._g.items[-1].plot(pyx.graph.data.points(data, x=1, y=2, title=legend),
                                styles=styles)
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
-            print "Adding a surface"
+            print("Adding a surface")
         x = squeeze(item.getp('xdata'))  # grid component in x-direction
         y = squeeze(item.getp('ydata'))  # grid component in y-direction
         z = item.getp('zdata')           # scalar field
@@ -471,11 +470,11 @@ class PyXBackend(BaseClass):
 
         data = []
         m, n = shape(z)
-        if shape(x) != (m,n) and shape(y) != (m,n):
-            x, y = ndgrid(x,y,sparse=False)
+        if shape(x) != (m, n) and shape(y) != (m, n):
+            x, y = ndgrid(x, y, sparse=False)
         for i in range(m):
             for j in range(n):
-                data.append([x[i,j], y[i,j], z[i,j]])
+                data.append([x[i, j], y[i, j], z[i, j]])
 
         contours = item.getp('contours')
         if contours:
@@ -505,7 +504,7 @@ class PyXBackend(BaseClass):
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print "Adding contours"
+            print("Adding contours")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
@@ -516,7 +515,7 @@ class PyXBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
 
         location = item.getp('clocation')
@@ -537,10 +536,10 @@ class PyXBackend(BaseClass):
 
     def _add_vectors(self, item):
         if DEBUG:
-            print "Adding vectors"
+            print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
@@ -553,7 +552,7 @@ class PyXBackend(BaseClass):
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -566,7 +565,7 @@ class PyXBackend(BaseClass):
 
     def _add_streams(self, item):
         if DEBUG:
-            print "Adding streams"
+            print("Adding streams")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # vector components:
@@ -576,7 +575,7 @@ class PyXBackend(BaseClass):
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -594,7 +593,7 @@ class PyXBackend(BaseClass):
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print "Adding a isosurface"
+            print("Adding a isosurface")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -603,13 +602,13 @@ class PyXBackend(BaseClass):
 
     def _add_slices(self, item):
         if DEBUG:
-            print "Adding slices in a volume"
+            print("Adding slices in a volume")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -619,13 +618,13 @@ class PyXBackend(BaseClass):
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print "Adding contours in slice planes"
+            print("Adding contours in slice planes")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -636,19 +635,19 @@ class PyXBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
     def _get_figure_size(self, fig):
         if DEBUG:
-            print "Get figure size"
+            print("Get figure size")
         width, height = fig.getp('size')
         if width is None or height is None:
             # use the default width and height in plotting package
             width = 15
-            ratio = 0.5*(math.sqrt(5)+1)  # golden mean
-            height = (1.0/ratio)*width
+            ratio = 0.5 * (math.sqrt(5) + 1)  # golden mean
+            height = (1.0 / ratio) * width
         return width, height
 
     def figure(self, *args, **kwargs):
@@ -663,7 +662,7 @@ class PyXBackend(BaseClass):
             # as fig._g
             if DEBUG:
                 name = 'Fig ' + str(fig.getp('number'))
-                print "creating figure %s in backend" % name
+                print("creating figure %s in backend" % name)
 
             fig._g = pyx.canvas.canvas()
 
@@ -674,22 +673,22 @@ class PyXBackend(BaseClass):
         """Replot all axes and all plotitems in the backend."""
         # NOTE: only the current figure (gcf) is redrawn.
         if DEBUG:
-            print "Doing replot in backend"
+            print("Doing replot in backend")
 
         fig = self.gcf()
         # reset the plotting package instance in fig._g now if needed
         self._g.items = []
 
         width, height = self._get_figure_size(fig)
-        xpos = 0;  ypos = 0
-        tmp_xpos = 0;  tmp_ypos = 0
+        xpos = 0; ypos = 0
+        tmp_xpos = 0; tmp_ypos = 0
 
-        row = 1;  column = 1
+        row = 1; column = 1
         nrows, ncolumns = fig.getp('axshape')
         sbsp = 1.8  # space between subplots
-        w = width/ncolumns-sbsp  # subplot width
-        h = height/nrows-sbsp    # subplot height
-        for axnr, ax in fig.getp('axes').items():
+        w = width / ncolumns - sbsp  # subplot width
+        h = height / nrows - sbsp    # subplot height
+        for axnr, ax in list(fig.getp('axes').items()):
             legends = False
             xaxis, yaxis = self._get_scale(ax)
             xmin, xmax, ymin, ymax, zmin, zmax = self._get_limits(ax)
@@ -699,7 +698,7 @@ class PyXBackend(BaseClass):
             if pth:
                 # create axes in tiled position
                 # this is subplot(nrows,ncolumns,pth)
-                xpos = tmp_xpos;  ypos = tmp_ypos
+                xpos = tmp_xpos; ypos = tmp_ypos
                 if column < ncolumns:
                     column += 1
                     tmp_xpos += w + sbsp
@@ -718,12 +717,12 @@ class PyXBackend(BaseClass):
             graph = pyx.graph.graphxy(xpos, ypos, **kwargs)
             #graph = pyx.graph.graphxyz(xpos, ypos, width=5, height=5, depth=5)
             plotitems = ax.getp('plotitems')
-            plotitems.sort(self._cmpPlotProperties)
+            plotitems.sort(key=self._cmpPlotProperties)
             if plotitems:
                 self._g.insert(graph)  # insert graph into figure canvas
                 self._set_axis_props(ax)
             for item in plotitems:
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     self._add_line(item)
                 elif isinstance(item, Surface):
@@ -752,7 +751,7 @@ class PyXBackend(BaseClass):
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
-                print "\nDumping plot data to screen\n"
+                print("\nDumping plot data to screen\n")
                 debug(self)
             pass
 
@@ -772,7 +771,7 @@ class PyXBackend(BaseClass):
             self._replot()
 
         if DEBUG:
-            print "Hardcopy to %s" % filename
+            print("Hardcopy to %s" % filename)
 
         basename, ext = os.path.splitext(filename)
         if not ext:
@@ -787,10 +786,9 @@ class PyXBackend(BaseClass):
         BaseClass.clf(self)
 
     # implement colormap functions here
-    #def jet(self, m=None):
+    # def jet(self, m=None):
     #    """Variant of hsv."""
     #    pass
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

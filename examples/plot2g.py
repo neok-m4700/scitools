@@ -18,4 +18,4 @@ plot(t, y1, 'r-6', t2, y2, 'bo3',
      title='Plotting two curves in the same plot',
      savefig='plot2g.png')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

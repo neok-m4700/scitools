@@ -40,7 +40,7 @@ daspect([1,1,.4])
 
 show()
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')
 
 #savefig('tmp_isosurf2a.eps')
 #savefig('tmp_isosurf2a.png')

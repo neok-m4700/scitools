@@ -59,7 +59,6 @@ Tip:
 
 """
 
-from __future__ import division
 
 from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
@@ -72,6 +71,7 @@ else:
 
 
 class GraceBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -82,7 +82,6 @@ class GraceBackend(BaseClass):
         # Set docstrings of all functions to the docstrings of BaseClass
         # The exception is if something is very different
 
-
         self.figure(self.getp('curfig'))
 
         # conversion tables for format strings:
@@ -92,7 +91,7 @@ class GraceBackend(BaseClass):
             'o': 1,  # circle
             'x': 9,  # cross
             '+': 8,  # plus sign
-            '*': 10, # asterisk
+            '*': 10,  # asterisk
             's': 2,  # square
             'd': 3,  # diamond
             '^': 4,  # triangle (up)
@@ -101,7 +100,7 @@ class GraceBackend(BaseClass):
             '>': 7,  # triangle (right)
             'p': 2,  # pentagram --> square
             'h': 3,  # hexagram --> diamond
-            }
+        }
 
         self._colors = {
             '': 4,   # no color --> blue
@@ -109,19 +108,19 @@ class GraceBackend(BaseClass):
             'g': 3,  # green
             'b': 4,  # blue
             'c': 9,  # cyan
-            'm': 10, # magenta
+            'm': 10,  # magenta
             'y': 5,  # yellow
             'k': 1,  # black
             'w': 0,  # white
-            }
+        }
 
         self._line_styles = {
-            '': None, # no line
+            '': None,  # no line
             '-': 1,   # solid line
             ':': 2,   # dotted line
             '-.': 6,  # dash-dot line
             '--': 4,  # dashed line
-            }
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -133,17 +132,17 @@ class GraceBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
-            print "Setting backend standard variables"
+            print("Setting backend standard variables")
             for disp in 'self._markers self._colors self._line_styles'.split():
-                print disp, eval(disp)
+                print(disp, eval(disp))
 
     def _set_scale(self, ax):
         """Set linear or logarithmic (base 10) axis scale."""
         if DEBUG:
-            print "Setting scales"
+            print("Setting scales")
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -166,7 +165,7 @@ class GraceBackend(BaseClass):
     def _set_labels(self, ax):
         """Add text labels for x-, y-, and z-axis."""
         if DEBUG:
-            print "Setting labels"
+            print("Setting labels")
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
@@ -179,14 +178,14 @@ class GraceBackend(BaseClass):
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
         if DEBUG:
-            print "Setting title"
+            print("Setting title")
         title = self._fix_latex(ax.getp('title'))
         self._g('subtitle "%s"' % title)  # set title
 
     def _set_limits(self, ax):
         """Set axis limits in x, y, and z direction."""
         if DEBUG:
-            print "Setting axis limits"
+            print("Setting axis limits")
         mode = ax.getp('mode')
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
@@ -309,7 +308,7 @@ class GraceBackend(BaseClass):
     def _set_box(self, ax):
         """Turn box around axes boundary on or off."""
         if DEBUG:
-            print "Setting box"
+            print("Setting box")
         if ax.getp('box'):
             # display box
             pass
@@ -320,7 +319,7 @@ class GraceBackend(BaseClass):
     def _set_grid(self, ax):
         """Turn grid lines on or off."""
         if DEBUG:
-            print "Setting grid"
+            print("Setting grid")
         if ax.getp('grid'):
             # turn grid lines on
             self._g('xaxis tick major linestyle 2')
@@ -337,7 +336,7 @@ class GraceBackend(BaseClass):
     def _set_hidden_line_removal(self, ax):
         """Turn on/off hidden line removal for meshes."""
         if DEBUG:
-            print "Setting hidden line removal"
+            print("Setting hidden line removal")
         if ax.getp('hidden'):
             # turn hidden line removal on
             pass
@@ -348,7 +347,7 @@ class GraceBackend(BaseClass):
     def _set_colorbar(self, ax):
         """Add a colorbar to the axis."""
         if DEBUG:
-            print "Setting colorbar"
+            print("Setting colorbar")
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             # turn on colorbar
@@ -362,12 +361,12 @@ class GraceBackend(BaseClass):
     def _set_caxis(self, ax):
         """Set the color axis scale."""
         if DEBUG:
-            print "Setting caxis"
+            print("Setting caxis")
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             pass
         else:
@@ -377,14 +376,14 @@ class GraceBackend(BaseClass):
     def _set_colormap(self, ax):
         """Set the colormap."""
         if DEBUG:
-            print "Setting colormap"
+            print("Setting colormap")
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
 
     def _set_view(self, ax):
         """Set viewpoint specification."""
         if DEBUG:
-            print "Setting view"
+            print("Setting view")
         cam = ax.getp('camera')
         view = cam.getp('view')
         if view == 2:
@@ -415,7 +414,7 @@ class GraceBackend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print "Setting axis properties"
+            print("Setting axis properties")
         self._set_title(ax)
         self._set_scale(ax)
         self._set_limits(ax)
@@ -481,7 +480,7 @@ class GraceBackend(BaseClass):
     def _add_line(self, item, name):
         """Add a 2D or 3D curve to the scene."""
         if DEBUG:
-            print "Adding a line"
+            print("Adding a line")
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
@@ -490,13 +489,13 @@ class GraceBackend(BaseClass):
         marker, color, style, width = self._get_linespecs(item)
 
         self._g('s%s on' % name)
-        self._g('s%s symbol %s' % (name,marker))
+        self._g('s%s symbol %s' % (name, marker))
         self._g('s%s symbol fill pattern 0' % name)
         self._g('s%s symbol size 0.6' % name)
-        self._g('s%s symbol color %s' % (name,color))
-        self._g('s%s line color %s' % (name,color))
+        self._g('s%s symbol color %s' % (name, color))
+        self._g('s%s line color %s' % (name, color))
         if style is not None:
-            self._g('s%s linestyle %s' % (name,style))
+            self._g('s%s linestyle %s' % (name, style))
         else:
             if not marker:
                 self._g('s%s linestyle 1' % name)  # solid line
@@ -504,7 +503,7 @@ class GraceBackend(BaseClass):
                 self._g('s%s linestyle 0' % name)  # no line
         if not width:
             width = 1.0
-        self._g('s%s linewidth %s' % (name,width))
+        self._g('s%s linewidth %s' % (name, width))
 
         if z is not None:
             # zdata is given, add a 3D curve:
@@ -515,11 +514,11 @@ class GraceBackend(BaseClass):
                 self._g('s%s point %s, %s' % (name, x[i], y[i]))
 
         legend = self._fix_latex(item.getp('legend'))
-        self._g('s%s legend "%s"' % (name,legend))
+        self._g('s%s legend "%s"' % (name, legend))
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
-            print "Adding a surface"
+            print("Adding a surface")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
@@ -544,7 +543,7 @@ class GraceBackend(BaseClass):
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print "Adding contours"
+            print("Adding contours")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
@@ -555,7 +554,7 @@ class GraceBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
 
         location = item.getp('clocation')
@@ -576,10 +575,10 @@ class GraceBackend(BaseClass):
 
     def _add_vectors(self, item):
         if DEBUG:
-            print "Adding vectors"
+            print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
@@ -592,7 +591,7 @@ class GraceBackend(BaseClass):
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -605,7 +604,7 @@ class GraceBackend(BaseClass):
 
     def _add_streams(self, item):
         if DEBUG:
-            print "Adding streams"
+            print("Adding streams")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # vector components:
@@ -615,7 +614,7 @@ class GraceBackend(BaseClass):
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -633,7 +632,7 @@ class GraceBackend(BaseClass):
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print "Adding a isosurface"
+            print("Adding a isosurface")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -642,13 +641,13 @@ class GraceBackend(BaseClass):
 
     def _add_slices(self, item):
         if DEBUG:
-            print "Adding slices in a volume"
+            print("Adding slices in a volume")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -658,13 +657,13 @@ class GraceBackend(BaseClass):
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print "Adding contours in slice planes"
+            print("Adding contours in slice planes")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -675,17 +674,17 @@ class GraceBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
     def _set_figure_size(self, fig):
         if DEBUG:
-            print "Setting figure size"
+            print("Setting figure size")
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
-            self._g('page resize %s, %s' % (width,height))
+            self._g('page resize %s, %s' % (width, height))
         else:
             # use the default width and height in plotting package
             pass
@@ -702,7 +701,7 @@ class GraceBackend(BaseClass):
             # as fig._g
             if DEBUG:
                 name = 'Fig ' + str(fig.getp('number'))
-                print "creating figure %s in backend" % name
+                print("creating figure %s in backend" % name)
 
             fig._g = grace_np.GraceProcess()
             fig._g._no_lines_in_graph = []
@@ -714,7 +713,7 @@ class GraceBackend(BaseClass):
         """Replot all axes and all plotitems in the backend."""
         # NOTE: only the current figure (gcf) is redrawn.
         if DEBUG:
-            print "Doing replot in backend"
+            print("Doing replot in backend")
 
         fig = self.gcf()
         # add Grace attributes to current figure (if not already added):
@@ -729,9 +728,9 @@ class GraceBackend(BaseClass):
         # erase all lines in every graph:
         for g in range(no_graphs):
             for i in range(no_lines[g]):
-                fig._g('kill g%s.s%s' % (g,i))
+                fig._g('kill g%s.s%s' % (g, i))
         no_graphs = len(fig.getp('axes'))
-        fig._g._no_lines_in_graph = [0]*no_graphs
+        fig._g._no_lines_in_graph = [0] * no_graphs
 
         self._set_figure_size(fig)
 
@@ -739,10 +738,10 @@ class GraceBackend(BaseClass):
         vgap = 0.6
         offset = 0.1
         nrows, ncolumns = fig.getp('axshape')
-        fig._g('arrange(%s, %s, %s, %s, %s)' % \
+        fig._g('arrange(%s, %s, %s, %s, %s)' %
                (nrows, ncolumns, offset, hgap, vgap))
         for axnr, ax in list(fig.getp('axes').items()):
-            curr_graph = axnr-1
+            curr_graph = axnr - 1
             numberofitems = ax.getp('numberofitems')
             pth = ax.getp('pth')
             if pth:
@@ -758,10 +757,10 @@ class GraceBackend(BaseClass):
             i = 0
             legends = []
             plotitems = ax.getp('plotitems')
-            plotitems.sort(self._cmpPlotProperties)
+            plotitems.sort(key=self._cmpPlotProperties)
             for item in plotitems:
                 name = str(i)
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     self._add_line(item, name)
                     fig._g._no_lines_in_graph[curr_graph] += 1
@@ -795,7 +794,7 @@ class GraceBackend(BaseClass):
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
-                print "\nDumping plot data to screen\n"
+                print("\nDumping plot data to screen\n")
                 debug(self)
             pass
         self._g('redraw')
@@ -846,7 +845,7 @@ class GraceBackend(BaseClass):
             self._replot()
 
         if DEBUG:
-            print "Hardcopy to %s" % filename
+            print("Hardcopy to %s" % filename)
 
         ext2dev = {'.agr': 'agr', '.eps': 'EPS', '.jpg': 'JPEG',
                    '.gmf': 'Metafile', '.mif': 'MIF', '.pdf': 'PDF',
@@ -858,7 +857,7 @@ class GraceBackend(BaseClass):
             ext = '.ps'  # no extension given, assume .ps
             filename += ext
         elif ext not in ext2dev:
-            raise ValueError("hardcopy: extension must be %s, not '%s'" % \
+            raise ValueError("hardcopy: extension must be %s, not '%s'" %
                              (list(ext2dev.keys()), ext))
 
         device = ext2dev[ext]
@@ -866,12 +865,12 @@ class GraceBackend(BaseClass):
             self._g('saveall "%s"' % filename)
         else:
             self._g('hardcopy device "%s"' % device)
-            width, height = kwargs.get('size', (None,None))
+            width, height = kwargs.get('size', (None, None))
             if width and height:
-                self._g('device "%s" page size %s, %s' % (device,width,height))
+                self._g('device "%s" page size %s, %s' % (device, width, height))
             dpi = kwargs.get('dpi', None)
             if dpi:
-                self._g('device "%s" dpi %s' % (device,dpi))
+                self._g('device "%s" dpi %s' % (device, dpi))
             antialiase = kwargs.get('antialiase', True)
             if antialiase:
                 self._g('device "%s" font antialiasing on' % device)
@@ -881,17 +880,17 @@ class GraceBackend(BaseClass):
                 colormode = 'color'
                 if not color:
                     colormode = 'grayscale'
-                self._g('device "%s" op "%s"' % (device,colormode))
+                self._g('device "%s" op "%s"' % (device, colormode))
             if device in ['EPS', 'PostScript']:
-                pass # set orientation
+                pass  # set orientation
             if device in ['JPEG']:
                 quality = kwargs.get('quality', 100)
-                self._g('device "%s" op "quality:%d"' % (device,quality))
+                self._g('device "%s" op "quality:%d"' % (device, quality))
             if device in ['PNM']:
                 format = 'ppm'
                 if not color:
                     format = 'pgm'
-                self._g('device "%s" op "format:%s"' % (device,format))
+                self._g('device "%s" op "format:%s"' % (device, format))
             self._g('print to "%s"' % filename)
             self._g('print')
 
@@ -899,7 +898,7 @@ class GraceBackend(BaseClass):
         try:
             fig._g.exit()
         except OSError as msg:
-            print msg
+            print(msg)
 
     def clf(self):
         fig = gcf()
@@ -920,10 +919,9 @@ class GraceBackend(BaseClass):
         BaseClass.closefigs(self)
 
     # implement colormap functions here
-    #def jet(self, m=None):
+    # def jet(self, m=None):
     #    """Variant of hsv."""
     #    pass
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

@@ -16,4 +16,4 @@ plot(t, y1, 'r-', t, y2, 'bo',
      title='Plotting two curves in the same plot',
      savefig='tmp2.eps')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

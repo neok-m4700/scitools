@@ -59,7 +59,7 @@ grid('off')
 
 show()
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')
 
 #savefig('tmp_streamtube2.eps')
 #savefig('tmp_streamtube2_lq.eps', vector_file=False)

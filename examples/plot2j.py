@@ -20,7 +20,7 @@ ax.setp(xlabel='t', ylabel='y',
         title='Plotting two curves in the same plot')
 show()  # show the plot again after ax.setp actions
 
-print ax.dump()
-fig = gcf(); print fig.dump()
+print(ax.dump())
+fig = gcf(); print(fig.dump())
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

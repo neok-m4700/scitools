@@ -19,7 +19,7 @@ plot(x, y, dot='o', plot_slope=False)
 
 # store plot in a string:
 p = plot(x, y, output=str)
-print p
+print(p)
 
 
 

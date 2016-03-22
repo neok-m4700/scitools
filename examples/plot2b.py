@@ -17,4 +17,4 @@ plot(t, y1, 'r-', t, y2, 'b-',
      savefig='plot2b.png')
 
 savefig('plot2b.png')
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

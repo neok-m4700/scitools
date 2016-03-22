@@ -24,7 +24,7 @@ REQUIREMENTS:
 Matplotlib
 
 """
-from __future__ import division
+
 
 from .common import *
 from scitools.numpyutils import floor, linspace, array
@@ -39,14 +39,16 @@ import matplotlib.colors
 # Override values from the matplotlib configuration file with values
 # from scitools.cfg before importing pylab
 _update_from_config_file(matplotlib.rcParams, section='matplotlib')
-matplotlib.interactive(True)
+# matplotlib.interactive(True)
 from matplotlib.font_manager import fontManager, FontProperties
 import matplotlib.pyplot as pylab
+
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 import re
 
 
 class MatplotlibBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -59,20 +61,20 @@ class MatplotlibBackend(BaseClass):
         # conversion tables for format strings:
         self._markers = {
             '': '',   # no marker
-            '.': '.', # dot
-            'o': 'o', # circle
-            'x': 'x', # cross
-            '+': '+', # plus sign
-            '*': '+', # asterisk --> plus
-            's': 's', # square,
-            'd': 'd', # diamond,
-            'v': 'v', # triangle (down),
-            '^': '^', # triangle (up),
-            '<': '<', # triangle (left),
-            '>': '>', # triangle (right),
-            'p': 'p', # pentagram,
-            'h': 'h', # hexagram,
-            }
+            '.': '.',  # dot
+            'o': 'o',  # circle
+            'x': 'x',  # cross
+            '+': '+',  # plus sign
+            '*': '+',  # asterisk --> plus
+            's': 's',  # square,
+            'd': 'd',  # diamond,
+            'v': 'v',  # triangle (down),
+            '^': '^',  # triangle (up),
+            '<': '<',  # triangle (left),
+            '>': '>',  # triangle (right),
+            'p': 'p',  # pentagram,
+            'h': 'h',  # hexagram,
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -84,17 +86,17 @@ class MatplotlibBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
-            print "Setting backend standard variables"
+            print("Setting backend standard variables")
             for disp in 'self._markers'.split():
-                print disp, eval(disp)
+                print(disp, eval(disp))
 
     def _set_scale(self, ax):
         """Set linear or logarithmic (base 10) axis scale."""
         if DEBUG:
-            print "Setting scales"
+            print("Setting scales")
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -110,14 +112,14 @@ class MatplotlibBackend(BaseClass):
             self._g.gca().set_yscale('log')
         elif scale == 'linear':
             # use linear scale on both x- and y-axis
-            #self._g.gca().set_xscale('linear')
-            #self._g.gca().set_yscale('linear')
+            # self._g.gca().set_xscale('linear')
+            # self._g.gca().set_yscale('linear')
             pass
 
     def _set_labels(self, ax):
         """Add text labels for x-, y-, and z-axis."""
         if DEBUG:
-            print "Setting labels"
+            print("Setting labels")
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
@@ -137,7 +139,7 @@ class MatplotlibBackend(BaseClass):
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
         if DEBUG:
-            print "Setting title"
+            print("Setting title")
         title = ax.getp('title')
         # The title can be a mix of math and text, leave this
         # to the user
@@ -148,14 +150,14 @@ class MatplotlibBackend(BaseClass):
     def _set_limits(self, ax):
         """Set axis limits in x, y, and z direction."""
         if DEBUG:
-            print "Setting axis limits"
+            print("Setting axis limits")
         mode = ax.getp('mode')
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
             # and z direction. If this is not automated in the plotting
             # package, one can use the following limits:
             #xmin, xmax, ymin, ymax, zmin, zmax = ax.get_limits()
-            #self._g.axis('auto')
+            # self._g.axis('auto')
             pass
         elif mode == 'manual':
             # (some) axis limits are frozen
@@ -217,8 +219,9 @@ class MatplotlibBackend(BaseClass):
             xmax = ax.getp('xmax')
             ymin = ax.getp('ymin')
             ymax = ax.getp('ymax')
-            r = float(xmax-xmin)/(ymax-ymin)
-            self._g.gca().set_aspect(r*dar[0])
+            if all(v is not None for v in (xmin, xmax, ymin, ymax)):
+                r = float(xmax - xmin) / (ymax - ymin)
+                self._g.gca().set_aspect(r * dar[0])
         elif ax.getp('daspectmode') == 'equal':
             self._g.gca().set_aspect('equal')
         else:
@@ -268,7 +271,7 @@ class MatplotlibBackend(BaseClass):
     def _set_box(self, ax):
         """Turn box around axes boundary on or off."""
         if DEBUG:
-            print "Setting box"
+            print("Setting box")
         if ax.getp('box'):
             # display box
             self._g.box(on=True)
@@ -279,10 +282,10 @@ class MatplotlibBackend(BaseClass):
     def _set_grid(self, ax):
         """Turn grid lines on or off."""
         if DEBUG:
-            print "Setting grid"
+            print("Setting grid")
         if self._mpl3D:
             # Do not call self._g.grid for 3D surf plots
-                return
+            return
 
         if ax.getp('grid'):
             # turn grid lines on
@@ -294,7 +297,7 @@ class MatplotlibBackend(BaseClass):
     def _set_hidden_line_removal(self, ax):
         """Turn on/off hidden line removal for meshes."""
         if DEBUG:
-            print "Setting hidden line removal"
+            print("Setting hidden line removal")
         if ax.getp('hidden'):
             # turn hidden line removal on
             pass
@@ -305,10 +308,10 @@ class MatplotlibBackend(BaseClass):
     def _set_colorbar(self, ax):
         """Add a colorbar to the axis."""
         if DEBUG:
-            print "Setting colorbar"
+            print("Setting colorbar")
         if self._mpl3D:
             # Do not call self._g.grid for 3D surf plots
-                return
+            return
 
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
@@ -319,8 +322,8 @@ class MatplotlibBackend(BaseClass):
             if cbar_title:
                 cbar2.set_label(cbar_title)
             #pos = [0.78, 0.1, 0.12, 0.8]
-            #cbar2.ax.set_position(pos)
-            #print cbar2.ax.get_position()
+            # cbar2.ax.set_position(pos)
+            # print cbar2.ax.get_position()
         else:
             # turn off colorbar
             pass
@@ -328,17 +331,17 @@ class MatplotlibBackend(BaseClass):
     def _set_caxis(self, ax):
         """Set the color axis scale."""
         if DEBUG:
-            print "Setting caxis"
+            print("Setting caxis")
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             if self._mplsurf is not None:
-                pass # cannot handle 3D surf
+                pass  # cannot handle 3D surf
             else:
-                self._g.clim(cmin,cmax)
+                self._g.clim(cmin, cmax)
         else:
             # use autoranging for color axis scale
             pass
@@ -346,7 +349,7 @@ class MatplotlibBackend(BaseClass):
     def _set_colormap(self, ax):
         """Set the colormap."""
         if DEBUG:
-            print "Setting colormap"
+            print("Setting colormap")
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
         # the colormap is set in
@@ -354,7 +357,7 @@ class MatplotlibBackend(BaseClass):
     def _set_view(self, ax):
         """Set viewpoint specification."""
         if DEBUG:
-            print "Setting view"
+            print("Setting view")
         cam = ax.getp('camera')
         view = cam.getp('view')
         if view == 2:
@@ -385,7 +388,7 @@ class MatplotlibBackend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print "Setting axis properties"
+            print("Setting axis properties")
         self._set_title(ax)
         self._set_scale(ax)
         self._set_axis_method(ax)
@@ -416,11 +419,11 @@ class MatplotlibBackend(BaseClass):
         style = item.getp('linetype')
         width = item.getp('linewidth')
         if PlotProperties._local_prop['default_lines'] == 'with_markers' \
-               and color and marker == '' and style == '' \
-               and item.getp('zdata') is None:
+                and color and marker == '' and style == '' \
+                and item.getp('zdata') is None:
             # Add marker so that curves in png/pdf/eps can be distinguised
             # in black-and-white
-            #if len(item.getp('xdata')) <= 61:  # this is solved in _add_line
+            # if len(item.getp('xdata')) <= 61:  # this is solved in _add_line
             marker = PlotProperties._colors2markers[color]
             style = '-'
         if width:
@@ -431,13 +434,13 @@ class MatplotlibBackend(BaseClass):
         """Enclose legend in $$ if latex syntax is detected."""
         # We always support latex syntax either through direct
         # use of latex (text.usetex=true) or through the native mathtext.
-        #if not matplotlib.rcParams['text.usetex']:
+        # if not matplotlib.rcParams['text.usetex']:
         #    return legend
 
         legend = legend.strip()
         if len(legend) >= 2 and legend[0] != '$' and legend[-1] != '$':
             # else: assume correct latex syntax, otherwise fix
-            #print '....fix', legend,
+            # print '....fix', legend,
             if '**' in legend:
                 legend = legend.replace('**', '^')
             if '*' in legend:
@@ -460,7 +463,7 @@ class MatplotlibBackend(BaseClass):
                 #word = r'(\s?[A-Za-z][a-z]*[ :;,$)])'
                 #word = r'(\w[ :;,$)])'
                 #word = r'(\b[A-Za-z][a-z]*[ :;,$)]\b)'
-                #if re.search(word, legend):
+                # if re.search(word, legend):
                 #    legend = re.sub(word, r'\hbox{\g<1>}', legend)
                 # remove internal $ chars:
                 legend = legend.replace('$', '')
@@ -468,24 +471,24 @@ class MatplotlibBackend(BaseClass):
 
                 # fix sin, cos, exp, ln, log, etc:
                 def _fix_func(func, newfunc, legend):
-                    if re.search(r'[^\\]'+func, legend):
-                        legend = legend.replace(func, '\\'+newfunc)
+                    if re.search(r'[^\\]' + func, legend):
+                        legend = legend.replace(func, '\\' + newfunc)
                     return legend
                 funcs = 'sin', 'cos', 'tan', 'exp', 'ln', 'log', \
                         'sinh', 'cosh', 'tanh'
                 for func in funcs:
                     legend = _fix_func(func, func, legend)
                 funcs = [('atan', 'arctan'), ('asin', 'arcsin'),
-                         ('acos', 'arccos'),]
+                         ('acos', 'arccos'), ]
                 for func, newfunc in funcs:
                     legend = _fix_func(func, newfunc, legend)
-                #print 'after fix:', legend
+                # print 'after fix:', legend
         return legend
 
     def _add_line(self, item):
         """Add a 2D or 3D curve to the scene."""
         if DEBUG:
-            print "Adding a line"
+            print("Adding a line")
         # get data:
         x = squeeze(item.getp('xdata'))
         y = squeeze(item.getp('ydata'))
@@ -495,31 +498,31 @@ class MatplotlibBackend(BaseClass):
         # get line specifiactions:
         marker, color, style, width = self._get_linespecs(item)
 
-        fmt = marker+color+style
+        fmt = marker + color + style
         if not width:
             width = 1.0
-        #print 'plt: %s color=[%s] marker=[%s] style=[%s]' % (fmt, color, marker, style), width
+        # print 'plt: %s color=[%s] marker=[%s] style=[%s]' % (fmt, color, marker, style), width
 
         if z is not None:
             # zdata is given, add a 3D curve:
-            print "No support for plot3 in Matplotlib."
+            print("No support for plot3 in Matplotlib.")
         else:
             # no zdata, add a 2D curve:
             #l, = self._g.plot(x,y,fmt,linewidth=width)
-            l = self._g.plot(x,y,fmt,linewidth=width)
+            l = self._g.plot(x, y, fmt, linewidth=width)
             legend = item.getp('legend')
             legend = self._fix_latex(legend)
             if legend:
                 l[0].set_label(legend)
             if marker and width != 1.0:
                 # marker size is given in pixels in matplotlib
-                markersize = width*5
+                markersize = width * 5
                 l[0].set_markersize(markersize)
                 l[0].set_markeredgecolor(color)
                 # unfilled markers
                 l[0].set_markerfacecolor("None")  # note the quotes!
                 # use thicker lines for larger markers
-                marker_lw = 1 if width <= 2 else width/2
+                marker_lw = 1 if width <= 2 else width / 2
                 l[0].set_markeredgewidth(marker_lw)
 
             if style == '-' and marker == PlotProperties._colors2markers[color]\
@@ -527,7 +530,7 @@ class MatplotlibBackend(BaseClass):
                 # assume that user has empty format spec and that
                 # _get_linespecs has set marker and solid line, then
                 # limit to 15 markers for visibility
-                every = int(len(x)/15.)
+                every = int(len(x) / 15.)
                 l[0].set_markevery(every)
                 # downside: user has specified line and markers, but with
                 # line one should limit the no of markers - if data points
@@ -537,7 +540,7 @@ class MatplotlibBackend(BaseClass):
     def _add_filled_line(self, item):
         """Add a 2D or 3D filled curve."""
         if DEBUG:
-            print "Adding a line"
+            print("Adding a line")
         # get data:
         x = squeeze(item.getp('xdata'))
         y = squeeze(item.getp('ydata'))
@@ -563,11 +566,11 @@ class MatplotlibBackend(BaseClass):
 
         if z is not None:
             # zdata is given, add a filled 3D curve:
-            print "No support for fill3 in Matplotlib."
+            print("No support for fill3 in Matplotlib.")
         else:
             # no zdata, add a filled 2D curve:
             l = self._g.fill(x, y, fc=facecolor, ec=edgecolor,
-                              linewidth=width, alpha=opacity)
+                             linewidth=width, alpha=opacity)
             legend = item.getp('legend')
             legend = self._fix_latex(legend)
             if legend:
@@ -575,7 +578,7 @@ class MatplotlibBackend(BaseClass):
 
     def _add_bar_graph(self, item, shading='faceted'):
         if DEBUG:
-            print "Adding a bar graph"
+            print("Adding a bar graph")
         # get data:
         x = squeeze(item.getp('xdata'))
         y = squeeze(item.getp('ydata'))
@@ -594,28 +597,28 @@ class MatplotlibBackend(BaseClass):
             opacity = 1.0
 
         if y.ndim == 1:
-            y = reshape(y,(len(y),1))
+            y = reshape(y, (len(y), 1))
         nx, ny = shape(y)
 
-        step = item.getp('barstepsize')/10
+        step = item.getp('barstepsize') / 10
 
-        center = floor(ny/2)
-        start = -step*center
-        stop = step*center
-        if not ny%2:
-            start += step/2
-            stop -= step/2
-        a = linspace(start,stop,ny)
+        center = floor(ny / 2)
+        start = -step * center
+        stop = step * center
+        if not ny % 2:
+            start += step / 2
+            stop -= step / 2
+        a = linspace(start, stop, ny)
 
-        barwidth = item.getp('barwidth')/10
+        barwidth = item.getp('barwidth') / 10
 
         hold_state = self._g.ishold()
         self._g.hold(True)
         colors = PlotProperties._colors + \
-                 list(matplotlib.colors.cnames.values())
+            list(matplotlib.colors.cnames.values())
         for j in range(ny):
-            y_ = y[:,j]
-            x_ = array(list(range(nx))) + a[j] - barwidth/2
+            y_ = y[:, j]
+            x_ = array(list(range(nx))) + a[j] - barwidth / 2
             if not facecolor:
                 c = colors[j]
             else:
@@ -635,7 +638,7 @@ class MatplotlibBackend(BaseClass):
     def _add_surface(self, item, shading='faceted', colormap=None,
                      showcolorbar=False, zmin=None, zmax=None):
         if DEBUG:
-            print "Adding a surface"
+            print("Adding a surface")
         x = squeeze(item.getp('xdata'))  # grid component in x-direction
         y = squeeze(item.getp('ydata'))  # grid component in y-direction
         z = item.getp('zdata')           # scalar field
@@ -659,12 +662,12 @@ class MatplotlibBackend(BaseClass):
             # the current item is produced by meshc or surfc and we
             # should therefore add contours at the bottom:
             #self._add_contours(contours, placement='bottom')
-            print "No support for meshc/surfc in Matplotlib."
+            print("No support for meshc/surfc in Matplotlib.")
 
         if item.getp('wireframe'):
             # wireframe mesh (as produced by mesh or meshc)
             fig = self._g.gcf()
-            #ax = fig.gca(projection='3d') # old syntax
+            # ax = fig.gca(projection='3d') # old syntax
             #ax = Axes3D(fig)
             ax = fig.add_subplot(111, projection='3d')
             h = ax.plot_wireframe(x, y, z)
@@ -708,7 +711,7 @@ class MatplotlibBackend(BaseClass):
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print "Adding contours"
+            print("Adding contours")
         x = squeeze(item.getp('xdata'))  # grid component in x-direction
         y = squeeze(item.getp('ydata'))  # grid component in y-direction
         z = item.getp('zdata')           # scalar field
@@ -732,7 +735,7 @@ class MatplotlibBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         else:
             clevels = cvector
@@ -741,7 +744,7 @@ class MatplotlibBackend(BaseClass):
         location = item.getp('clocation')
         if location == 'surface':
             # place the contours at the corresponding z level (contour3)
-            print "No support for contour3 in Matplotlib."
+            print("No support for contour3 in Matplotlib.")
         elif location == 'base':
             if placement == 'bottom':
                 # place the contours at the bottom (as in meshc or surfc)
@@ -764,7 +767,7 @@ class MatplotlibBackend(BaseClass):
 
         if legend:
             kwargs['label'] = legend
-        cs = contour_cmd(x,y,z,clevels,**kwargs)
+        cs = contour_cmd(x, y, z, clevels, **kwargs)
 
         if item.getp('clabels'):
             # add labels on the contour curves
@@ -772,10 +775,10 @@ class MatplotlibBackend(BaseClass):
 
     def _add_vectors(self, item):
         if DEBUG:
-            print "Adding vectors"
+            print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x = squeeze(item.getp('xdata'))
@@ -796,28 +799,28 @@ class MatplotlibBackend(BaseClass):
         if scale == 0:
             scale = None
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
             # points (x,y,z):
-            print "No support for quiver3 in Matplotlib."
+            print("No support for quiver3 in Matplotlib.")
         else:
             # draw velocity vectors as arrows with components (u,v) at
             # points (x,y):
             if shape(x) != shape(u) and shape(y) != shape(u):
                 x, y = meshgrid(x, y, sparse=False, indexing=indexing)
             if not color:
-                c = u**2+v**2  # color arrows by magnitude
-                h = self._g.quiver(x,y,u,v,c,scale=scale)
+                c = u**2 + v**2  # color arrows by magnitude
+                h = self._g.quiver(x, y, u, v, c, scale=scale)
             else:
-                h = self._g.quiver(x,y,u,v,scale=scale,color=color)
+                h = self._g.quiver(x, y, u, v, scale=scale, color=color)
             if legend:
                 h.set_label(legend)
 
     def _add_streams(self, item):
         if DEBUG:
-            print "Adding streams"
+            print("Adding streams")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # vector components:
@@ -827,7 +830,7 @@ class MatplotlibBackend(BaseClass):
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -845,7 +848,7 @@ class MatplotlibBackend(BaseClass):
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print "Adding a isosurface"
+            print("Adding a isosurface")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -854,7 +857,7 @@ class MatplotlibBackend(BaseClass):
 
     def _add_slices(self, item):
         if DEBUG:
-            print "Adding slices in a volume"
+            print("Adding slices in a volume")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -870,7 +873,7 @@ class MatplotlibBackend(BaseClass):
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print "Adding contours in slice planes"
+            print("Adding contours in slice planes")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -887,18 +890,18 @@ class MatplotlibBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
     def _set_figure_size(self, fig):
         if DEBUG:
-            print "Setting figure size"
+            print("Setting figure size")
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
             fig = self._g.gcf()
-            fig.set_size_inches(width,height)
+            fig.set_size_inches(width, height)
         else:
             # use the default width and height in plotting package
             pass
@@ -916,11 +919,11 @@ class MatplotlibBackend(BaseClass):
             # as fig._g
             if DEBUG:
                 name = 'Fig ' + str(fignum)
-                print "creating figure %s in backend" % name
+                print("creating figure %s in backend" % name)
 
             fig._g = pylab
 
-        self._g = fig._g # link for faster access
+        self._g = fig._g  # link for faster access
         self._mpl3D = False
         self._mplsurf = None
         self._texts = {}  # store calls to text (for replot)
@@ -930,7 +933,7 @@ class MatplotlibBackend(BaseClass):
         """Replot all axes and all plotitems in the backend."""
         # NOTE: only the current figure (gcf) is redrawn.
         if DEBUG:
-            print "Doing replot in backend"
+            print("Doing replot in backend")
 
         # turn off interactive in pyplot temporarily:
         old_pylab_interactive_state = self._g.isinteractive()
@@ -959,14 +962,13 @@ class MatplotlibBackend(BaseClass):
                 self._g.subplot(nrows, ncolumns, axnr)
             else:
                 rect = ax.getp('viewport')
-                if isinstance(rect, (list,tuple)) and len(rect) == 4 and \
-                       ax.getp('pth') is None:
+                if isinstance(rect, (list, tuple)) and len(rect) == 4 and \
+                        ax.getp('pth') is None:
                     self._g.axes(rect)
             legends = False
             plotitems = ax.getp('plotitems')
-            plotitems.sort(self._cmpPlotProperties)
-            for item in plotitems:
-                func = item.getp('function') # function that produced this item
+            for item in sorted(plotitems, key=self._cmpPlotProperties):
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     if func == 'fill':
                         self._add_filled_line(item)
@@ -976,11 +978,11 @@ class MatplotlibBackend(BaseClass):
                     self._add_bar_graph(item, shading=ax.getp('shading'))
                 elif isinstance(item, Surface):
                     self._add_surface(item,
-                      shading=ax.getp('shading'),
-                      colormap=ax.getp('colormap'),
-                      showcolorbar=ax.getp('colorbar').getp('visible'),
-                      zmin=ax.getp('zmin'),
-                      zmax=ax.getp('zmax'))
+                                      shading=ax.getp('shading'),
+                                      colormap=ax.getp('colormap'),
+                                      showcolorbar=ax.getp('colorbar').getp('visible'),
+                                      zmin=ax.getp('zmin'),
+                                      zmax=ax.getp('zmax'))
                 elif isinstance(item, Contours):
                     self._add_contours(item, colormap=ax.getp('colormap'))
                 elif isinstance(item, VelocityVectors):
@@ -1028,12 +1030,12 @@ class MatplotlibBackend(BaseClass):
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
-                print "\nDumping plot data to screen\n"
+                print("\nDumping plot data to screen\n")
                 debug(self)
             self._g.figure(self.getp('curfig'))  # raise figure
             # Or is there a better way to draw the current figure without
             # calling pylab.show()?
-            #self._g.show()
+            # self._g.show()
 
     def text(self, x, y, text,
              fontname=Axis._local_prop['fontname'],
@@ -1041,7 +1043,6 @@ class MatplotlibBackend(BaseClass):
         """Write text at position (x,y) in a curveplot."""
         self._g.text(x, y, text, family=fontname, size=fontsize)
         self._texts[(x, y, text, fontname, fontsize)] = None
-
 
     def hardcopy(self, filename, **kwargs):
         """
@@ -1065,14 +1066,14 @@ class MatplotlibBackend(BaseClass):
             self._replot()
 
         if DEBUG:
-            print "Hardcopy to %s" % filename
+            print("Hardcopy to %s" % filename)
 
         dpi = kwargs.get('dpi', 100)
         orientation = kwargs.get('orientation', 'portrait')
 
         imgdata = None
         if filename.startswith('.'):
-            from StringIO import StringIO
+            from io import StringIO
             imgdata = StringIO()
             self._g.savefig(imgdata,
                             format=filename[1:],
@@ -1145,22 +1146,22 @@ class MatplotlibBackend(BaseClass):
         return pylab.cm.get_cmap('pink', m)
 
     def white(self, m=None):
-        raise NotImplementedError('white not implemented in class %s' % \
+        raise NotImplementedError('white not implemented in class %s' %
                                   self.__class__.__name__)
 
     def flag(self, m=None):
         return pylab.cm.get_cmap('flag', m)
 
     def lines(self, m=None):
-        raise NotImplementedError('lines not implemented in class %s' % \
+        raise NotImplementedError('lines not implemented in class %s' %
                                   self.__class__.__name__)
 
     def colorcube(self, m=None):
-        raise NotImplementedError('colorcube not implemented in class %s' % \
+        raise NotImplementedError('colorcube not implemented in class %s' %
                                   self.__class__.__name__)
 
     def vga(self, m=None):
-        raise NotImplementedError('vga not implemented in class %s' % \
+        raise NotImplementedError('vga not implemented in class %s' %
                                   self.__class__.__name__)
 
     def jet(self, m=None):
@@ -1183,7 +1184,6 @@ class MatplotlibBackend(BaseClass):
 
     def summer(self, m=None):
         return pylab.cm.get_cmap('summer', m)
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

@@ -42,5 +42,5 @@ show()
 #savefig('subplot1b.eps', color=True)
 #savefig('subplot1b.png', color=True)
 
-raw_input("Press Return key to quit: ")
+input("Press Return key to quit: ")
 

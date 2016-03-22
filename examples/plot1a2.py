@@ -5,11 +5,11 @@ def f(t):
 
 t = linspace(0, 3, 51)    # 51 points between 0 and 3
 y = zeros(len(t), 'd')    # 51 doubles ('d')
-for i in xrange(len(t)):
+for i in range(len(t)):
     y[i] = f(t[i])
 
 plot(t, y, 'r-')
 savefig('plot1a2.png')
 savefig('plot1a2.eps')
 show()
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

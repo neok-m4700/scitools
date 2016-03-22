@@ -50,8 +50,8 @@ source_suffix = '.txt'
 master_doc = 'index'
 
 # General information about the project.
-project = u'SciTools'
-copyright = u'2012, H. P. Langtangen, J. Ring, ++'
+project = 'SciTools'
+copyright = '2012, H. P. Langtangen, J. Ring, ++'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -211,8 +211,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'SciTools.tex', u'SciTools Documentation',
-   u'H. P. Langtangen, J. Ring, ++', 'manual'),
+  ('index', 'SciTools.tex', 'SciTools Documentation',
+   'H. P. Langtangen, J. Ring, ++', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -241,8 +241,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'scitools', u'SciTools Documentation',
-     [u'H. P. Langtangen, J. Ring, ++'], 1)
+    ('index', 'scitools', 'SciTools Documentation',
+     ['H. P. Langtangen, J. Ring, ++'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -255,8 +255,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'SciTools', u'SciTools Documentation',
-   u'H. P. Langtangen, J. Ring, ++', 'SciTools', 'One line description of project.',
+  ('index', 'SciTools', 'SciTools Documentation',
+   'H. P. Langtangen, J. Ring, ++', 'SciTools', 'One line description of project.',
    'Miscellaneous'),
 ]
 

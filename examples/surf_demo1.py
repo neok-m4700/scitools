@@ -50,4 +50,4 @@ surf(xv,yv,values)
 #savefig('surf1d.eps')
 #savefig('surf1d.png')
 
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

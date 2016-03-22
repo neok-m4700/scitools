@@ -39,6 +39,8 @@ contour(xv, yv, values, clabels='on')  # contour(x,y,values,..) also works
 figure()
 # The contourf command draws filled contours:
 values = peaks(201)
-contourf(values, 10, caxis=[-20, 20], title='Filled Contour Plot')
+contourf(values, 10, caxis=[-20, 20], title='Filled Contour Plot', savefig='out.pdf')
 
-raw_input('Press Return key to quit: ')
+show()
+
+input('Press Return key to quit: ')

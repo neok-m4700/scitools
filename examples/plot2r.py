@@ -45,4 +45,4 @@ Using object embedding:<br>
 <object data="tmp.svg" type="image/svg+xml"></object>
 """ % vars())
     f.close()
-raw_input('Press Return key to quit: ')
+input('Press Return key to quit: ')

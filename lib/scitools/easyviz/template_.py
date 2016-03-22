@@ -29,24 +29,24 @@ REQUIREMENTS:
 
 """
 
-from __future__ import division
 
-from common import *
+from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
-from scitools.misc import check_if_module_exists 
+from scitools.misc import check_if_module_exists
 
 #check_if_module_exists('<package>', msg='You need to install the <package> package.', abort=False)
-#import <package>
+# import <package>
 
 
 class TemplateBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
-        
+
     def _init(self, *args, **kwargs):
         """Perform initialization that is special for this backend."""
-        
+
         self.figure(self.getp('curfig'))
 
         # conversion tables for format strings:
@@ -65,8 +65,8 @@ class TemplateBackend(BaseClass):
             '>': None,  # triangle (right)
             'p': None,  # pentagram
             'h': None,  # hexagram
-            }
-                        
+        }
+
         self._colors = {
             '': None,   # no color --> blue
             'r': None,  # red
@@ -77,15 +77,15 @@ class TemplateBackend(BaseClass):
             'y': None,  # yellow
             'k': None,  # black
             'w': None,  # white
-            }
-        
+        }
+
         self._line_styles = {
-            '': None,    # no line 
+            '': None,    # no line
             '-': None,   # solid line
             ':': None,   # dotted line
             '-.': None,  # dash-dot line
             '--': None,  # dashed line
-            }
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -97,17 +97,17 @@ class TemplateBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
-            print "Setting backend standard variables"
+            print("Setting backend standard variables")
             for disp in 'self._markers self._colors self._line_styles'.split():
-                print disp, eval(disp)
+                print(disp, eval(disp))
 
     def _set_scale(self, ax):
         """Set linear or logarithmic (base 10) axis scale."""
         if DEBUG:
-            print "Setting scales"
+            print("Setting scales")
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -125,7 +125,7 @@ class TemplateBackend(BaseClass):
     def _set_labels(self, ax):
         """Add text labels for x-, y-, and z-axis."""
         if DEBUG:
-            print "Setting labels"
+            print("Setting labels")
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
@@ -138,19 +138,19 @@ class TemplateBackend(BaseClass):
         if zlabel:
             # add a text label on z-axis
             pass
-        
+
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
         if DEBUG:
-            print "Setting title"
+            print("Setting title")
         title = ax.getp('title')
         if title:
             pass  # set title
-    
+
     def _set_limits(self, ax):
         """Set axis limits in x, y, and z direction."""
         if DEBUG:
-            print "Setting axis limits"
+            print("Setting axis limits")
         mode = ax.getp('mode')
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
@@ -219,7 +219,7 @@ class TemplateBackend(BaseClass):
             # daspectmode is 'auto'. Plotting package handles data
             # aspect ratio automatically.
             pass
-        
+
     def _set_axis_method(self, ax):
         method = ax.getp('method')
         if method == 'equal':
@@ -244,7 +244,7 @@ class TemplateBackend(BaseClass):
         Use either the default Cartesian coordinate system or a
         matrix coordinate system.
         """
-        
+
         direction = ax.getp('direction')
         if direction == 'ij':
             # Use matrix coordinates. The origin of the coordinate
@@ -262,18 +262,18 @@ class TemplateBackend(BaseClass):
     def _set_box(self, ax):
         """Turn box around axes boundary on or off."""
         if DEBUG:
-            print "Setting box"
+            print("Setting box")
         if ax.getp('box'):
-            # display box 
+            # display box
             pass
         else:
             # do not display box
             pass
-        
+
     def _set_grid(self, ax):
         """Turn grid lines on or off."""
         if DEBUG:
-            print "Setting grid"
+            print("Setting grid")
         if ax.getp('grid'):
             # turn grid lines on
             pass
@@ -284,7 +284,7 @@ class TemplateBackend(BaseClass):
     def _set_hidden_line_removal(self, ax):
         """Turn on/off hidden line removal for meshes."""
         if DEBUG:
-            print "Setting hidden line removal"
+            print("Setting hidden line removal")
         if ax.getp('hidden'):
             # turn hidden line removal on
             pass
@@ -295,7 +295,7 @@ class TemplateBackend(BaseClass):
     def _set_colorbar(self, ax):
         """Add a colorbar to the axis."""
         if DEBUG:
-            print "Setting colorbar"
+            print("Setting colorbar")
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             # turn on colorbar
@@ -309,12 +309,12 @@ class TemplateBackend(BaseClass):
     def _set_caxis(self, ax):
         """Set the color axis scale."""
         if DEBUG:
-            print "Setting caxis"
+            print("Setting caxis")
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             pass
         else:
@@ -324,14 +324,14 @@ class TemplateBackend(BaseClass):
     def _set_colormap(self, ax):
         """Set the colormap."""
         if DEBUG:
-            print "Setting colormap"
+            print("Setting colormap")
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
 
     def _set_view(self, ax):
         """Set viewpoint specification."""
         if DEBUG:
-            print "Setting view"
+            print("Setting view")
         cam = ax.getp('camera')
         view = cam.getp('view')
         if view == 2:
@@ -348,7 +348,7 @@ class TemplateBackend(BaseClass):
             else:
                 # set a 3D view according to az and el
                 pass
-            
+
             if cam.getp('cammode') == 'manual':
                 # for advanced camera handling:
                 roll = cam.getp('camroll')
@@ -362,7 +362,7 @@ class TemplateBackend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print "Setting axis properties"
+            print("Setting axis properties")
         self._set_title(ax)
         self._set_scale(ax)
         self._set_limits(ax)
@@ -388,7 +388,7 @@ class TemplateBackend(BaseClass):
         Return the line marker, line color, line style, and
         line width of the item.
         """
-        
+
         marker = self._markers[item.getp('linemarker')]
         color = self._colors[item.getp('linecolor')]
         style = self._line_styles[item.getp('linetype')]
@@ -398,7 +398,7 @@ class TemplateBackend(BaseClass):
     def _add_line(self, item):
         """Add a 2D or 3D curve to the scene."""
         if DEBUG:
-            print "Adding a line"
+            print("Adding a line")
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
@@ -415,12 +415,12 @@ class TemplateBackend(BaseClass):
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
-            print "Adding a surface"
+            print("Adding a surface")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
         c = item.getp('cdata')  # pseudocolor data (can be None)
-        
+
         contours = item.getp('contours')
         if contours:
             # the current item is produced by meshc or surfc and we
@@ -440,7 +440,7 @@ class TemplateBackend(BaseClass):
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print "Adding contours"
+            print("Adding contours")
         x = item.getp('xdata')  # grid component in x-direction
         y = item.getp('ydata')  # grid component in y-direction
         z = item.getp('zdata')  # scalar field
@@ -451,7 +451,7 @@ class TemplateBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
 
         location = item.getp('clocation')
@@ -469,13 +469,13 @@ class TemplateBackend(BaseClass):
         if item.getp('clabels'):
             # add labels on the contour curves
             pass
-    
+
     def _add_vectors(self, item):
         if DEBUG:
-            print "Adding vectors"
+            print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
@@ -488,7 +488,7 @@ class TemplateBackend(BaseClass):
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -501,7 +501,7 @@ class TemplateBackend(BaseClass):
 
     def _add_streams(self, item):
         if DEBUG:
-            print "Adding streams"
+            print("Adding streams")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # vector components:
@@ -511,7 +511,7 @@ class TemplateBackend(BaseClass):
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -529,7 +529,7 @@ class TemplateBackend(BaseClass):
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print "Adding a isosurface"
+            print("Adding a isosurface")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -538,13 +538,13 @@ class TemplateBackend(BaseClass):
 
     def _add_slices(self, item):
         if DEBUG:
-            print "Adding slices in a volume"
+            print("Adding slices in a volume")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -554,13 +554,13 @@ class TemplateBackend(BaseClass):
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print "Adding contours in slice planes"
+            print("Adding contours in slice planes")
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         sx, sy, sz = item.getp('slices')
-        if rank(sz) == 2:
+        if sz.ndim == 2:
             # sx, sy, and sz defines a surface
             pass
         else:
@@ -571,13 +571,13 @@ class TemplateBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
     def _set_figure_size(self, fig):
         if DEBUG:
-            print "Setting figure size"
+            print("Setting figure size")
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
@@ -598,12 +598,12 @@ class TemplateBackend(BaseClass):
             # as fig._g
             if DEBUG:
                 name = 'Fig ' + str(fig.getp('number'))
-                print "creating figure %s in backend" % name
+                print("creating figure %s in backend" % name)
 
             class fig__:
                 pass
             fig._g = fig__()
-            
+
         self._g = fig._g  # link for faster access
         return fig
 
@@ -611,23 +611,23 @@ class TemplateBackend(BaseClass):
         """Replot all axes and all plotitems in the backend."""
         # NOTE: only the current figure (gcf) is redrawn.
         if DEBUG:
-            print "Doing replot in backend"
-        
+            print("Doing replot in backend")
+
         fig = self.gcf()
         # reset the plotting package instance in fig._g now if needed
-        
+
         self._set_figure_size(fig)
-        
+
         nrows, ncolumns = fig.getp('axshape')
-        for axnr, ax in fig.getp('axes').items():
+        for axnr, ax in list(fig.getp('axes').items()):
             if nrows != 1 or ncolumns != 1:
                 # create axes in tiled position
                 # this is subplot(nrows,ncolumns,axnr)
                 pass
             plotitems = ax.getp('plotitems')
-            plotitems.sort(self._cmpPlotProperties)
+            plotitems.sort(key=self._cmpPlotProperties)
             for item in plotitems:
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     self._add_line(item)
                 elif isinstance(item, Surface):
@@ -651,11 +651,11 @@ class TemplateBackend(BaseClass):
                     pass
 
             self._set_axis_props(ax)
-                    
+
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
-                print "\nDumping plot data to screen\n"
+                print("\nDumping plot data to screen\n")
                 debug(self)
             pass
 
@@ -670,11 +670,10 @@ class TemplateBackend(BaseClass):
             self._replot()
 
         if DEBUG:
-            print "Hardcopy to %s" % filename
+            print("Hardcopy to %s" % filename)
 
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:
@@ -691,6 +690,6 @@ class TemplateBackend(BaseClass):
                         m2.__doc__ = ""
                     m2.__doc__ = m1.__doc__ + m2.__doc__
 
-    
+
 plt = TemplateBackend()  # create backend instance
 use(plt, globals())      # export public namespace of plt to globals()

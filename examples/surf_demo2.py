@@ -195,4 +195,4 @@ if __name__ == '__main__':
     test2()
     figure()
     test3()
-    raw_input('Press Return key to quit: ')
+    input('Press Return key to quit: ')

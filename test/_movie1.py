@@ -40,7 +40,7 @@ while t <= tstop:
     plot(x, y, 'r-', x, y2, 'b-', xtop, ytop, 'y--',
          axis=[0, 15, -0.1, 1.1], show=False)
     hardcopy(filename)
-    print 't=%s' % t
+    print('t=%s' % t)
     t += dt
     if backend == 'matlab':
         close()
