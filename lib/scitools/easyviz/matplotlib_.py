@@ -1035,7 +1035,7 @@ class MatplotlibBackend(BaseClass):
             self._g.figure(self.getp('curfig'))  # raise figure
             # Or is there a better way to draw the current figure without
             # calling pylab.show()?
-            # self._g.show()
+            self._g.show()
 
     def text(self, x, y, text,
              fontname=Axis._local_prop['fontname'],
