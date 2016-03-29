@@ -882,7 +882,7 @@ class Streams(PlotProperties):
                 #w = asarray(args[2])
                 w, sx, sy, sz = [asarray(a) for a in args[2:6]]
             else:  # streamline(X,Y,U,V,startx,starty)
-                x = u; y = v
+                x, y = u, v
                 #u, v = [asarray(a) for a in args[2:4]]
                 u, v, sx, sy = [asarray(a) for a in args[2:6]]
         elif nargs >= 4 and nargs <= 5:  # streamline(U,V,startx,starty)

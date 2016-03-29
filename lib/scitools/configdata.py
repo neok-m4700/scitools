@@ -191,7 +191,10 @@ def load_config_file(name,
     @return: a SafeConfigParser object and a list of filenames of the
     files that were read to set parameters in the SafeConfigParser object.
     """
-    import configparser
+    try:
+      import configparser
+    except:
+      import ConfigParser as configparser
     config = configparser.SafeConfigParser(default_dict4intpl)
     if case_sensitive_options:
         config.optionxform = str

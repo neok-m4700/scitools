@@ -2,7 +2,6 @@
 from .common import *
 from scitools.numpyutils import ravel, zeros, array, allclose, meshgrid, newaxis
 from scitools.globaldata import DEBUG, VERBOSE
-from scitools.numpyutils import NumPy_dtype
 from scitools.misc import check_if_module_exists
 
 check_if_module_exists('vtk', msg='You need to install the VTK package.', abort=False)
@@ -592,10 +591,10 @@ class VtkBackend(BaseClass):
             if heights:
                 z = values / dar[2]
             elif bottom:
-                z = zeros(values.shape, NumPy_dtype(values)) + \
+                z = zeros(values.shape, values.dtype) + \
                     self._axis._vtk_scaled_bounds[4]
             else:
-                z = zeros(values.shape, NumPy_dtype(values))
+                z = zeros(values.shape, values.dtype)
             try:
                 cdata = asarray(item.getp('cdata'))
             except KeyError:
@@ -919,7 +918,7 @@ class VtkBackend(BaseClass):
         if z is not None:
             z = ravel(z) / dar[2]
         else:
-            z = zeros(n, NumPy_dtype(x))
+            z = zeros(n, x.dtype)
         ids = vtk.vtkIdList()
         for i in range(1, n):
             points.InsertNextPoint(x[i - 1], y[i - 1], z[i - 1])

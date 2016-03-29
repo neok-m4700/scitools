@@ -3,7 +3,9 @@
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/ref/streamline.html
 
-from scitools.easyviz import *
+# from scitools.easyviz import *
+from scitools.easyviz.vtk_new_ import *
+
 from time import sleep
 from scipy import io
 
@@ -16,21 +18,21 @@ v = wind['v']
 w = wind['w']
 
 setp(show=False)
-sx,sy,sz = ndgrid([80]*4,seq(20,50,10),seq(0,15,5),sparse=False)
-sl = streamline(x,y,z,u,v,w,sx,sy,sz)
+sx, sy, sz = ndgrid([80] * 4, seq(20, 50, 10), seq(0, 15, 5), sparse=False)
+sl = streamline(x, y, z, u, v, w, sx, sy, sz)
 sl.setp(linecolor='r')
 view(3)
-axis([60,140,10,60,-5,20])
+axis([60, 140, 10, 60, -5, 20])
 setp(show=True)
 show()
 
 
 figure()
 # alternative syntax:
-sl = streamline(x,y,z,u,v,w,sx,sy,sz,
+sl = streamline(x, y, z, u, v, w, sx, sy, sz,
                 linecolor='r',
                 view=3,
-                axis=[60,140,10,60,-5,20])
+                axis=[60, 140, 10, 60, -5, 20])
 
 
 input('Press Return key to quit: ')
