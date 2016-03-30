@@ -43,6 +43,8 @@ from .misc import _update_from_config_file
 import os
 import sys
 
+# DEBUG=True  # override globaldata
+
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
 inc_dirs = [os.path.expandvars('$CONDA_ENV_PATH/include/vtk-7.0')]
@@ -73,6 +75,8 @@ try:
 except:
     from vtk.tk import vtkTkRenderWindowInteractor
 
+from vtk.util.vtkAlgorithm import VTKPythonAlgorithmBase
+
 _vtk_options = {'mesa': 0,
                 'vtk_inc_dir': inc_dirs,
                 'vtk_lib_dir': lib_dirs}
@@ -96,6 +100,16 @@ if OPTIMIZATION == 'weave':
         except ImportError:
             print('Weave not available. Optimization turned off.')
 
+
+# class StructuredGridWrapper(VTKPythonAlgorithmBase):
+
+#     def __init__(self, sgrid):
+#         VTKPythonAlgorithmBase.__init__(self, nInputPorts=0, nOutputPorts=1, outputType='vtkStructuredGrid')
+#         self.sgrid = sgrid
+
+#     def RequestData(self, request, inInfo, outInfo):
+#         output = self.sgrid
+#         return 1
 
 class _VTKFigure(object):
 
@@ -519,7 +533,7 @@ class VTKBackend(BaseClass):
         camera = vtk.vtkCamera()
         camera.SetFocalPoint(cam.getp('camtarget'))
         camera.SetViewUp(cam.getp('camup'))
-        camera.ParallelProjectionOn()
+        camera.ParallelProjectionOff()
         if view == 2:
             # setup a default 2D view
             camera.SetPosition(fp[0], fp[1], 1)
@@ -899,6 +913,7 @@ for (int k=0; k<nz; k++) {
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(n)
         vectors = vtk.vtkFloatArray()
+        vectors.SetName('vectors')
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
@@ -929,12 +944,20 @@ for (int k=0; k<nz; k++) {
                         points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
                         vectors.SetTuple3(ind, u[i, j, k], v[i, j, k], w[i, j, k])
                         ind += 1
+
         points.Modified()
-        sgrid = vtk.vtkStructuredGrid()
-        sgrid.SetDimensions(item.getp('dims'))
-        sgrid.SetPoints(points)
-        sgrid.GetPointData().SetVectors(vectors)
-        # sgrid.Update()
+        ps = vtk.vtkProgrammableSource()
+        def foo():
+            output = ps.GetStructuredGridOutput()
+            output.SetDimensions(item.getp('dims'))
+            output.SetPoints(points)
+            output.GetPointData().SetVectors(vectors)
+
+        ps.SetExecuteMethod(foo)
+        sgrid = vtk.vtkPointDataToCellData()
+        sgrid.SetInputConnection(ps.GetOutputPort(2))
+        sgrid.PassPointDataOn()
+        sgrid.Update()
         return sgrid
 
     def _get_linespecs(self, item):
@@ -1174,64 +1197,44 @@ for (int k=0; k<nz; k++) {
         else:
             sgrid = self._create_2D_vector_data(item)
 
-        length = sgrid.GetLength()
-        max_velocity = sgrid.GetPointData().GetVectors().GetMaxNorm()
-        max_time = 35. * length / max_velocity
+        print(sgrid)
+        print('sgrid', sgrid.GetOutput())
+
+        wr = vtk.vtkStructuredGridWriter()
+        wr.SetInputData(sgrid.GetOutput())
+        wr.SetFileName('/home/tb246060/Bureau/test.vtk')
+        wr.Write()
+        # OK streamtracer in paraview, just need to debug streamtracer in vtk !!
+
+        # length = sgrid.GetLength()
+        # max_velocity = sgrid.GetPointData().GetVectors().GetMaxNorm()
+        # max_time = 35. * length / max_velocity
 
         dx, dy, dz = self._ax.getp('daspect')
         sx = ravel(item.getp('startx')) / dx
         sy = ravel(item.getp('starty')) / dy
         sz = ravel(item.getp('startz')) / dz
-        for i in range(item.getp('numberofstreams')):
-            # integ = vtk.vtkRungeKutta2()
-            # integ = vtk.vtkRungeKutta4()
-            centers = vtk.vtkCellCenters()
-            centers.SetInputData(sgrid)
+
+        v1 = True
+        if v1:
+            # The starting point, or the so-called 'seed', of a streamline may be set in two different ways. Starting from global x-y-z "position" allows you to start a single trace at a specified x-y-z coordinate. If you specify a source object, traces will be generated from each point in the source that is inside the dataset
             stream = vtk.vtkStreamTracer()
-            stream.SetInputData(sgrid)
-            stream.SetSourceConnection(centers.GetOutputPort())
+            stream.DebugOn()
+            stream.SetInputConnection(sgrid.GetOutputPort())
+            stream.SetInputData(sgrid.GetOutput())
+            # stream.SetStartPosition(sx[0], sy[0], sz[0])
+            # stream.SetInitialIntegrationStep(.0001)
+            stream.SetIntegrationDirectionToBoth()
+            stream.SetIntegratorTypeToRungeKutta45()
+            stream.Update()
+            print(stream.GetOutput())
+            print(dir(stream))
+            rt = stream.GetOutput().GetCellData().GetArray('ReasonForTermination')
+            print('ReasonForTermination', rt)
 
-            stream.SetInitialIntegrationStep(item.getp('stepsize'))
-            # stream.SetIntegrationStepLength(item.getp('stepsize'))
-            # stream.SetIntegrationDirectionToIntegrateBothDirections()
-            stream.SetIntegrationDirectionToForward()
-            # stream.SetMaximumPropagationTime(max_time)
-            # stream.SetMaximumPropagationTime(200)
-            # stream.SpeedScalarsOn()
-            stream.SetComputeVorticity(True)
-            stream.SetStartPosition(sx[i], sy[i], sz[i])
-            # stream.SetIntegrator(integ)
-            stream.SetIntegratorTypeToRungeKutta2()
-            # stream.Update()
-            # data = self._cut_data(stream)
-            data = stream
+            data = _cut_data(stream)
 
-            if item.getp('tubes'):
-                # draw stream tubes:
-                ncirc = item.getp('n')
-                scale = item.getp('tubescale')
-                streamtube = vtk.vtkTubeFilter()
-                streamtube.SetInputConnection(data.GetOutputPort())
-                streamtube.SetRadius(1)
-                streamtube.SetNumberOfSides(ncirc)
-                streamtube.SetVaryRadiusToVaryRadiusByVector()
-                # streamtube.Update()
-                output = streamtube.GetOutput()
-            elif item.getp('ribbons'):
-                # draw stream ribbons:
-                width = item.getp('ribbonwidth')
-                streamribbon = vtk.vtkRibbonFilter()
-                streamribbon.SetInputConnection(data.GetOutputPort())
-                streamribbon.VaryWidthOn()
-                streamribbon.SetWidthFactor(width)
-                # streamribbon.SetAngle(90)
-                streamribbon.SetDefaultNormal([0, 1, 0])
-                streamribbon.UseDefaultNormalOn()
-                # streamribbon.Update()
-                output = streamribbon.GetOutput()
-            else:
-                # draw stream lines:
-                output = data.GetOutput()
+            output = data.GetOutput()
 
             mapper = vtk.vtkPolyDataMapper()
             mapper.SetInputData(output)
@@ -1249,6 +1252,73 @@ for (int k=0; k<nz; k++) {
             # self._add_legend(item, output)
             self._ax._renderer.AddActor(actor)
             self._ax._apd.AddInputData(output)
+        else:
+            for i in range(item.getp('numberofstreams')):
+                stream = vtk.vtkStreamTracer()
+                stream.SetInputConnection(sgrida.GetOutputPort(2))
+                # stream.SetSourceData(sgrid)
+
+                # stream.SetInitialIntegrationStep(item.getp('stepsize'))
+                # stream.SetIntegrationStepLength(item.getp('stepsize'))
+                # stream.SetIntegrationDirectionToIntegrateBothDirections()
+                stream.SetIntegrationDirectionToForward()
+                # stream.SetMaximumPropagation(max_time)
+                # stream.SetMaximumPropagation(200)
+                # stream.SpeedScalarsOn()
+                # stream.SetComputeVorticity(True)
+                stream.SetStartPosition(sx[i], sy[i], sz[i])
+                integ = vtk.vtkRungeKutta2()
+                stream.SetIntegrator(integ)
+                # stream.SetIntegratorTypeToRungeKutta2()
+
+                print(dir(stream))
+                stream.Update()
+
+                data = self._cut_data(stream)
+
+                if item.getp('tubes'):
+                    # draw stream tubes:
+                    ncirc = item.getp('n')
+                    scale = item.getp('tubescale')
+                    streamtube = vtk.vtkTubeFilter()
+                    streamtube.SetInputConnection(data.GetOutputPort())
+                    streamtube.SetRadius(1)
+                    streamtube.SetNumberOfSides(ncirc)
+                    streamtube.SetVaryRadiusToVaryRadiusByVector()
+                    # streamtube.Update()
+                    output = streamtube.GetOutput()
+                elif item.getp('ribbons'):
+                    # draw stream ribbons:
+                    width = item.getp('ribbonwidth')
+                    streamribbon = vtk.vtkRibbonFilter()
+                    streamribbon.SetInputConnection(data.GetOutputPort())
+                    streamribbon.VaryWidthOn()
+                    streamribbon.SetWidthFactor(width)
+                    # streamribbon.SetAngle(90)
+                    streamribbon.SetDefaultNormal([0, 1, 0])
+                    streamribbon.UseDefaultNormalOn()
+                    # streamribbon.Update()
+                    output = streamribbon.GetOutput()
+                else:
+                    # draw stream lines:
+                    output = data.GetOutput()
+
+                mapper = vtk.vtkPolyDataMapper()
+                mapper.SetInputData(output)
+                mapper.SetLookupTable(self._ax._colormap)
+                cax = self._ax._caxis
+                if cax is None:
+                    cax = output.GetBounds()[4:]
+                    #cax = sgrid.GetScalarRange()
+                mapper.SetScalarRange(cax)
+                mapper.Update()
+                actor = vtk.vtkActor()
+                actor.SetMapper(mapper)
+                # self._set_shading(item, stream, actor)
+                self._set_actor_properties(item, actor)
+                # self._add_legend(item, output)
+                self._ax._renderer.AddActor(actor)
+                self._ax._apd.AddInputData(output)
 
     def _add_isosurface(self, item):
         if DEBUG:
