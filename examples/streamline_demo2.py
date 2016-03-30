@@ -52,4 +52,5 @@ axis('tight')
 
 show()
 
-input('Press Return key to quit: ')
+# input('Press Return key to quit: ')
+# close()

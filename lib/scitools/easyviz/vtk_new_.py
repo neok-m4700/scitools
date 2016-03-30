@@ -68,6 +68,11 @@ try:
 except:
     from vtk.tk import vtkTkRenderWidget
 
+try:
+    import vtkTkRenderWindowInteractor
+except:
+    from vtk.tk import vtkTkRenderWindowInteractor
+
 _vtk_options = {'mesa': 0,
                 'vtk_inc_dir': inc_dirs,
                 'vtk_lib_dir': lib_dirs}
@@ -102,19 +107,28 @@ class _VTKFigure(object):
         self.master = plt._master
         self.root = tkinter.Toplevel(self.master)
         self.root.title(title)
-        self.root.protocol('WM_DELETE_WINDOW', self.close)
-        self.root.bind('<KeyPress-q>', self.close)
+        self.root.protocol('WM_DELETE_WINDOW', self.exit)
+        # self.root.bind('<Key>', self.key)
         self.root.minsize(200, 200)
         self.root.geometry('{}x{}'.format(width, height))
         self.root.withdraw()
         self.frame = tkinter.Frame(self.root, relief='sunken', bd=2)
         self.frame.pack(side='top', fill='both', expand=1)
-        self.tkw = vtkTkRenderWidget.vtkTkRenderWidget(self.frame,
-                                                       width=width,
-                                                       height=height)
+        self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame,
+                                                                           width=width,
+                                                                           height=height)
+        self.tkw.Initialize()
         self.tkw.pack(expand='true', fill='both')
+
         self.renwin = self.tkw.GetRenderWindow()
         self.renwin.SetSize(width, height)
+
+        self.tkw.Start()
+
+    # def key(self, event):
+    #     print('pressed', repr(event.char))
+    #     if repr(event.char) == 'q':
+    #         self.close(event)
 
     def reset(self):
         # remove all renderers:
@@ -134,6 +148,7 @@ class _VTKFigure(object):
         self.root.update()         # update window
         self.render()
 
+
     def render(self):
         # First we render each of the axis renderers:
         renderers = self.renwin.GetRenderers()
@@ -141,11 +156,20 @@ class _VTKFigure(object):
         while ren is not None:
             ren.Render()
             ren = renderers.GetNextItem()
+
         # Then we render the complete scene:
         self.renwin.Render()
 
+        self.master.mainloop()
+
     def exit(self):
-        self.root.destroy()
+        if DEBUG:
+            print('exit !')
+        self.renwin.Finalize()
+        self.renwin.GetInteractor().TerminateApp()
+        del self.renwin
+        self.master.quit()
+        self.master.destroy()
 
     def set_size(self, width, height):
         self.root.geometry('{}x{}'.format(width, height))
@@ -1039,7 +1063,7 @@ for (int k=0; k<nz; k++) {
         isoActor = vtk.vtkActor()
         isoActor.SetMapper(isoMapper)
         self._set_actor_properties(item, isoActor)
-        #self._add_legend(item, iso.GetOutput())
+        # self._add_legend(item, iso.GetOutput())
         self._ax._renderer.AddActor(isoActor)
         self._ax._apd.AddInputData(data.GetOutput())
 
@@ -1166,6 +1190,8 @@ for (int k=0; k<nz; k++) {
             centers.SetInputData(sgrid)
             stream = vtk.vtkStreamTracer()
             stream.SetInputConnection(centers.GetOutputPort())
+            stream.SetSourceConnection(centers.GetOutputPort())
+
             stream.SetInitialIntegrationStep(item.getp('stepsize'))
             # stream.SetIntegrationStepLength(item.getp('stepsize'))
             # stream.SetIntegrationDirectionToIntegrateBothDirections()
@@ -1177,31 +1203,32 @@ for (int k=0; k<nz; k++) {
             stream.SetStartPosition(sx[i], sy[i], sz[i])
             # stream.SetIntegrator(integ)
             stream.SetIntegratorTypeToRungeKutta2()
-            stream.Update()
-            data = self._cut_data(stream)
+            # stream.Update()
+            # data = self._cut_data(stream)
+            data = stream
 
             if item.getp('tubes'):
                 # draw stream tubes:
                 ncirc = item.getp('n')
                 scale = item.getp('tubescale')
                 streamtube = vtk.vtkTubeFilter()
-                streamtube.SetInputData(data.GetOutput())
+                streamtube.SetInputConnection(data.GetOutputPort())
                 streamtube.SetRadius(1)
                 streamtube.SetNumberOfSides(ncirc)
                 streamtube.SetVaryRadiusToVaryRadiusByVector()
-                streamtube.Update()
+                # streamtube.Update()
                 output = streamtube.GetOutput()
             elif item.getp('ribbons'):
                 # draw stream ribbons:
                 width = item.getp('ribbonwidth')
                 streamribbon = vtk.vtkRibbonFilter()
-                streamribbon.SetInputData(data.GetOutput())
+                streamribbon.SetInputConnection(data.GetOutputPort())
                 streamribbon.VaryWidthOn()
                 streamribbon.SetWidthFactor(width)
                 # streamribbon.SetAngle(90)
                 streamribbon.SetDefaultNormal([0, 1, 0])
                 streamribbon.UseDefaultNormalOn()
-                streamribbon.Update()
+                # streamribbon.Update()
                 output = streamribbon.GetOutput()
             else:
                 # draw stream lines:
@@ -1218,9 +1245,9 @@ for (int k=0; k<nz; k++) {
             mapper.Update()
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
-            #self._set_shading(item, stream, actor)
+            # self._set_shading(item, stream, actor)
             self._set_actor_properties(item, actor)
-            #self._add_legend(item, output)
+            # self._add_legend(item, output)
             self._ax._renderer.AddActor(actor)
             self._ax._apd.AddInputData(output)
 
@@ -1388,6 +1415,9 @@ for (int k=0; k<nz; k++) {
 
         self._g = fig._g  # link for faster access
         return fig
+
+    def closefig(self, arg=None):
+        self._g.close()
 
     def _setup_axis(self, ax):
         self._set_limits(ax)

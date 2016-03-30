@@ -2009,9 +2009,9 @@ class BaseClass(object):
         else:
             raise TypeError("getp: wrong number of arguments")
 
-    #def __getitem__(self, name):  self.getp(name)
+    # def __getitem__(self, name):  self.getp(name)
 
-    #def __setitem__(self, name, value):  self.setp({name:value})
+    # def __setitem__(self, name, value):  self.setp({name:value})
 
     def _replot(self, *args, **kwargs):
         """

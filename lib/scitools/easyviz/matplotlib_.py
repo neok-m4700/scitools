@@ -1117,8 +1117,8 @@ class MatplotlibBackend(BaseClass):
         else:
             raise ValueError("closefig: cannot close figure '%s'" % arg)
         self._g.close(num)
-        #del self._figs[num]._g
-        #del self._figs[num]
+        # del self._figs[num]._g
+        # del self._figs[num]
 
     def closefigs(self):
         for key in self._figs:
