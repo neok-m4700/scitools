@@ -148,7 +148,6 @@ class _VTKFigure(object):
         self.root.update()         # update window
         self.render()
 
-
     def render(self):
         # First we render each of the axis renderers:
         renderers = self.renwin.GetRenderers()
@@ -1189,7 +1188,7 @@ for (int k=0; k<nz; k++) {
             centers = vtk.vtkCellCenters()
             centers.SetInputData(sgrid)
             stream = vtk.vtkStreamTracer()
-            stream.SetInputConnection(centers.GetOutputPort())
+            stream.SetInputData(sgrid)
             stream.SetSourceConnection(centers.GetOutputPort())
 
             stream.SetInitialIntegrationStep(item.getp('stepsize'))
