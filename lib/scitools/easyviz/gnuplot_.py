@@ -874,8 +874,8 @@ class GnuplotBackend(BaseClass):
             width = 1.0
         width = width - width/2
         edgecolor = item.getp('edgecolor')
-        #facecolor = item.getp('facecolor')
-        #if facecolor and facecolor in self._colors:
+        # facecolor = item.getp('facecolor')
+        # if facecolor and facecolor in self._colors:
         #    facecolor = self._colors[facecolor]
 
         withstring = ''

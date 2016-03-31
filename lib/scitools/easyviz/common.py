@@ -866,24 +866,24 @@ class Streams(PlotProperties):
     def _parseargs(self, *args):
         # TODO: do more error checking and add support for indexing='ij'.
         z, w, sz, option = [None] * 4
-        #kwargs = {'indexing': self._prop['indexing']}
+        # kwargs = {'indexing': self._prop['indexing']}
         nargs = len(args)
         if nargs >= 9 and nargs <= 10:
             x, y, z, u, v, w, sx, sy, sz = [asarray(a) for a in args[:9]]
-            #x, y, z, u, v, w = _check_xyzuvw(*args[:6])
+            # x, y, z, u, v, w = _check_xyzuvw(*args[:6])
             # x, y, z = [asarray(a) for a in args[:3]] #_check_xyz(*args[:3])
-            #u, v, w = [asarray(a) for a in args[3:6]]
-            #sx, sy, sz = [asarray(a) for a in args[6:9]]
+            # u, v, w = [asarray(a) for a in args[3:6]]
+            # sx, sy, sz = [asarray(a) for a in args[6:9]]
         elif nargs >= 6 and nargs <= 7:
             u, v = [asarray(a) for a in args[:2]]
             if u.ndim == 3:  # streamline(U,V,W,startx,starty,startz)
                 nx, ny, nz = shape(u)
                 x, y, z = ndgrid(seq(nx - 1), seq(ny - 1), seq(nz - 1))
-                #w = asarray(args[2])
+                # w = asarray(args[2])
                 w, sx, sy, sz = [asarray(a) for a in args[2:6]]
             else:  # streamline(X,Y,U,V,startx,starty)
                 x, y = u, v
-                #u, v = [asarray(a) for a in args[2:4]]
+                # u, v = [asarray(a) for a in args[2:4]]
                 u, v, sx, sy = [asarray(a) for a in args[2:6]]
         elif nargs >= 4 and nargs <= 5:  # streamline(U,V,startx,starty)
             u, v = [asarray(a) for a in args[:2]]
