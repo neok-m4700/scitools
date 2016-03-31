@@ -41,7 +41,7 @@ from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
 from .misc import _update_from_config_file
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
-import numpy as np
+# import numpy as np
 import os
 import sys
 
@@ -112,7 +112,6 @@ class _VTKFigure(object):
         self.root = tkinter.Toplevel(self.master)
         self.root.title(title)
         self.root.protocol('WM_DELETE_WINDOW', self.exit)
-        # self.root.bind('<Key>', self.key)
         self.root.minsize(200, 200)
         self.root.geometry('{}x{}'.format(width, height))
         self.root.withdraw()
@@ -125,11 +124,6 @@ class _VTKFigure(object):
 
         self.renwin = self.tkw.GetRenderWindow()
         self.renwin.SetSize(width, height)
-
-    # def key(self, event):
-    #     print('pressed', repr(event.char))
-    #     if repr(event.char) == 'q':
-    #         self.close(event)
 
     def reset(self):
         # remove all renderers:
@@ -144,6 +138,8 @@ class _VTKFigure(object):
         self.root.withdraw()
 
     def display(self, show=True):
+        if DEBUG:
+            print('<display>')
         if show:
             self.root.deiconify()  # raise window
         self.root.update()         # update window
@@ -151,7 +147,10 @@ class _VTKFigure(object):
 
     def render(self):
         if DEBUG:
-            print('render !')
+            print('<render>')
+
+        # full pipeline update (is it really necessary ?, tb added)
+        self.plt._ax._apd.Update()
 
         self.tkw.Initialize()
 
@@ -165,18 +164,20 @@ class _VTKFigure(object):
         # then we render the complete scene:
 
         self.renwin.Render()
-        self.tkw.Start()
 
-        # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
-        self.tkw.focus_force()
-        self.tkw.event_generate('<KeyPress-t>')
-        self.tkw.update()
+        if self.plt.getp('interactive'):
+            self.tkw.Start()
 
-        self.master.mainloop()
+            # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
+            self.tkw.focus_force()
+            self.tkw.event_generate('<KeyPress-t>')
+            self.tkw.update()
+
+            self.master.mainloop()
 
     def exit(self):
         if DEBUG:
-            print('exit !')
+            print('<exit>')
         self.renwin.Finalize()
         self.renwin.GetInteractor().TerminateApp()
         del self.renwin
@@ -297,7 +298,7 @@ class VTKBackend(BaseClass):
     def _set_scale(self, ax):
         '''Set linear or logarithmic (base 10) axis scale.'''
         if DEBUG:
-            print('Setting scales')
+            print('<scales>')
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -315,7 +316,7 @@ class VTKBackend(BaseClass):
     def _set_labels(self, ax):
         '''Add text labels for x-, y-, and z-axis.'''
         if DEBUG:
-            print('Setting labels')
+            print('<labels>')
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
@@ -332,7 +333,7 @@ class VTKBackend(BaseClass):
     def _set_title(self, ax):
         '''Add a title at the top of the axis.'''
         if DEBUG:
-            print('Setting title')
+            print('<title>')
         title = self._fix_latex(ax.getp('title'))
         if title:
             tprop = vtk.vtkTextProperty()
@@ -354,7 +355,7 @@ class VTKBackend(BaseClass):
     def _set_limits(self, ax):
         '''Set axis limits in x, y, and z direction.'''
         if DEBUG:
-            print('Setting axis limits')
+            print('<axis limits>')
         mode = ax.getp('mode')
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
@@ -462,9 +463,9 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_box(self, ax):
-        '''Turn box around axes boundary on or off.'''
+        '''turn box around axes boundary on or off'''
         if DEBUG:
-            print('Setting box')
+            print('<box>')
         if ax.getp('box'):
             # display box
             pass
@@ -473,9 +474,9 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_grid(self, ax):
-        '''Turn grid lines on or off.'''
+        '''turn grid lines on or off'''
         if DEBUG:
-            print('Setting grid')
+            print('<grid>')
         if ax.getp('grid'):
             # turn grid lines on
             pass
@@ -484,9 +485,9 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_hidden_line_removal(self, ax):
-        '''Turn on/off hidden line removal for meshes.'''
+        '''turn on/off hidden line removal for meshes'''
         if DEBUG:
-            print('Setting hidden line removal')
+            print('<hidden line removal>')
         if ax.getp('hidden'):
             # turn hidden line removal on
             pass
@@ -495,9 +496,9 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_colorbar(self, ax):
-        '''Add a colorbar to the axis.'''
+        '''add a colorbar to the axis'''
         if DEBUG:
-            print('Setting colorbar')
+            print('<colorbar>')
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             # turn on colorbar
@@ -509,9 +510,9 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_caxis(self, ax):
-        '''Set the color axis scale.'''
+        '''set the color axis scale'''
         if DEBUG:
-            print('Setting caxis')
+            print('<caxis>')
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
@@ -524,9 +525,9 @@ class VTKBackend(BaseClass):
             ax._caxis = None
 
     def _set_colormap(self, ax):
-        '''Set the colormap.'''
+        '''set the colormap'''
         if DEBUG:
-            print('Setting colormap')
+            print('<colormap>')
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
         if not isinstance(cmap, vtk.vtkLookupTable):
@@ -534,9 +535,9 @@ class VTKBackend(BaseClass):
         ax._colormap = cmap
 
     def _set_view(self, ax):
-        '''Set viewpoint specification.'''
+        '''set viewpoint specification'''
         if DEBUG:
-            print('Setting view')
+            print('<view>')
         cam = ax.getp('camera')
 
         view = cam.getp('view')
@@ -584,7 +585,7 @@ class VTKBackend(BaseClass):
         # make sure all actors are inside the current view:
         ren = self._ax._renderer
 
-        # unit axes
+        # unit axes
         axes = vtk.vtkAxesActor()
         axes.GetXAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
         axes.GetYAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
@@ -601,7 +602,7 @@ class VTKBackend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print('Setting axis properties')
+            print('<axis properties>')
         self._set_title(ax)
         self._set_scale(ax)
         self._set_limits(ax)
@@ -623,7 +624,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _is_inside_limits(self, data):
-        '''Return True if data limits is inside axis limits.'''
+        '''return True if data limits is inside axis limits'''
         slim = self._ax._scaled_limits
         dlim = data.GetBounds()
         for i in range(0, len(slim), 2):
@@ -635,7 +636,7 @@ class VTKBackend(BaseClass):
         return True
 
     def _cut_data(self, data):
-        '''Return cutted data if limits is outside (scaled) axis limits.'''
+        '''return cutted data if limits is outside (scaled) axis limits'''
         data.Update()  # because of GetOutput()
         if self._is_inside_limits(data.GetOutput()):
             return data
@@ -975,7 +976,7 @@ for (int k=0; k<nz; k++) {
             for k in range(nz - 1):
                 for j in range(ny - 1):
                     for i in range(nx - 1):
-                        scalars.SetTuple1(ind, np.sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
+                        scalars.SetTuple1(ind, sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
                         ind += 1
 
         sgrid = vtk.vtkStructuredGrid()
@@ -1000,7 +1001,7 @@ for (int k=0; k<nz; k++) {
     def _add_line(self, item):
         '''Add a 2D or 3D curve to the scene.'''
         if DEBUG:
-            print('Adding a line')
+            print('<line +>')
         # get data:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # get line specifiactions:
@@ -1015,7 +1016,7 @@ for (int k=0; k<nz; k++) {
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
-            print('Adding a surface')
+            print('<surface +>')
 
         sgrid = self._create_2D_scalar_data(item)
 
@@ -1061,7 +1062,7 @@ for (int k=0; k<nz; k++) {
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print('Adding contours')
+            print('<contours +>')
 
         sgrid = self._create_2D_scalar_data(item)
         plane = vtk.vtkStructuredGridGeometryFilter()
@@ -1155,7 +1156,7 @@ for (int k=0; k<nz; k++) {
 
     def _add_vectors(self, item):
         if DEBUG:
-            print('Adding vectors')
+            print('<vectors +>')
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
         item.scale_vectors()
@@ -1186,8 +1187,7 @@ for (int k=0; k<nz; k++) {
         arrow.SetColor(self._get_color(item.getp('linecolor'), (1, 0, 0)))
 
         plane = vtk.vtkStructuredGridGeometryFilter()
-        plane.SetInputData(sgrid.GetOutputPort())
-        plane.Update()
+        plane.SetInputConnection(sgrid.GetOutputPort())
         data = self._cut_data(plane)
         data.Update()
         datao = data.GetOutput()
@@ -1214,7 +1214,7 @@ for (int k=0; k<nz; k++) {
 
     def _add_streams(self, item):
         if DEBUG:
-            print('Adding streams')
+            print('<streams +>')
 
         if item.getp('udata').ndim == 3:
             sgrid = self._create_3D_vector_data(item)
@@ -1251,9 +1251,8 @@ for (int k=0; k<nz; k++) {
 
         streamer = vtk.vtkStreamTracer()
 
-        print(dir(sgrid))
+        # print(dir(sgrid))
 
-        # streamer.SetInputData(sgrid.GetOutput(2))
         streamer.SetInputData(sgrid.GetOutputDataObject(0))
         streamer.SetSourceConnection(seeds.GetOutputPort())
         streamer.SetIntegrationDirectionToBoth()
@@ -1310,7 +1309,7 @@ for (int k=0; k<nz; k++) {
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print('Adding a isosurface')
+            print('<isosurface +>')
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -1341,7 +1340,7 @@ for (int k=0; k<nz; k++) {
 
     def _add_slices(self, item, contours=False):
         if DEBUG:
-            print('Adding slices in a volume')
+            print('<slices vol +>')
 
         sgrid = self._create_3D_scalar_data(item)
         sgrid.Modified()
@@ -1349,43 +1348,42 @@ for (int k=0; k<nz; k++) {
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
             # sx, sy, and sz defines a surface
-            # temporary disable
-            # h = Surface(sx, sy, sz)
-            # sgrid2 = self._create_2D_scalar_data(h)
-            # plane = vtk.vtkStructuredGridGeometryFilter()
-            # plane.SetInputConnection(sgrid2.GetOutputPort())
-            # data = self._cut_data(plane)
-            # data.Update()
-            # datao = data.GetOutput()
-            # implds = vtk.vtkImplicitDataSet()
-            # implds.SetDataSet(datao)
-            # implds.Modified()
-            # cut = vtk.vtkCutter()
-            # cut.SetInputConnection(sgrid.GetOutputPort())
-            # cut.SetCutFunction(implds)
-            # cut.GenerateValues(10, -2, 2)
-            # cut.GenerateCutScalarsOn()
-            # mapper = vtk.vtkPolyDataMapper()
-            # mapper.SetInputConnection(cut.GetOutputPort())
-            # mapper.SetLookupTable(self._ax._colormap)
-            # cax = self._ax._caxis
-            # if cax is None:
-            #     cax = datao.GetScalarRange()
-            # mapper.SetScalarRange(cax)
-            # actor = vtk.vtkActor()
-            # actor.SetMapper(mapper)
-            # self._set_shading(item, data, actor)
-            # self._set_actor_properties(item, actor)
-            # self._ax._renderer.AddActor(actor)
-            # self._ax._apd.AddInputConnection(cut.GetOutputPort())
-            # self._ax._apd.AddInputConnection(data.GetOutputPort())
+            h = Surface(sx, sy, sz)
+            sgrid2 = self._create_2D_scalar_data(h)
+            plane = vtk.vtkStructuredGridGeometryFilter()
+            plane.SetInputConnection(sgrid2.GetOutputPort())
+            data = self._cut_data(plane)
+            data.Update()
+            datao = data.GetOutput()
+            implds = vtk.vtkImplicitDataSet()
+            implds.SetDataSet(datao)
+            implds.Modified()
+            cut = vtk.vtkCutter()
+            cut.SetInputConnection(sgrid.GetOutputPort())
+            cut.SetCutFunction(implds)
+            cut.GenerateValues(10, -2, 2)
+            cut.GenerateCutScalarsOn()
+            mapper = vtk.vtkPolyDataMapper()
+            mapper.SetInputConnection(cut.GetOutputPort())
+            mapper.SetLookupTable(self._ax._colormap)
+            cax = self._ax._caxis
+            if cax is None:
+                cax = datao.GetScalarRange()
+            mapper.SetScalarRange(cax)
+            actor = vtk.vtkActor()
+            actor.SetMapper(mapper)
+            self._set_shading(item, data, actor)
+            self._set_actor_properties(item, actor)
+            self._ax._renderer.AddActor(actor)
+            self._ax._apd.AddInputConnection(cut.GetOutputPort())
+            self._ax._apd.AddInputConnection(data.GetOutputPort())
             pass
         else:
             print('there')
             # sx, sy, and sz is either numbers or vectors with numbers
             origins, normals = [], []
             sgrido = sgrid.GetOutputDataObject(0)
-            print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
+            # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
             dx, dy, dz = self._ax.getp('daspect')
             sx, sy, sz = ravel(sx) / dx, ravel(sy) / dy, ravel(sz) / dz
@@ -1407,7 +1405,7 @@ for (int k=0; k<nz; k++) {
                 cut.SetCutFunction(plane)
                 data = self._cut_data(cut)
                 datao = data.GetOutput()
-                print('datao', datao.GetNumberOfCells(), datao.GetNumberOfPoints())
+                # print('datao', datao.GetNumberOfCells(), datao.GetNumberOfPoints())
                 mapper = vtk.vtkPolyDataMapper()
                 if contours:
                     iso = vtk.vtkContourFilter()
@@ -1437,13 +1435,13 @@ for (int k=0; k<nz; k++) {
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print('Adding contours in slice planes')
+            print('<contour slice planes +>')
 
         self._add_slices(item, contours=True)
 
     def _set_figure_size(self, fig):
         if DEBUG:
-            print('Setting figure size')
+            print('<figure size>')
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
@@ -1518,7 +1516,7 @@ for (int k=0; k<nz; k++) {
         '''Replot all axes and all plotitems in the backend.'''
         # NOTE: only the current figure (gcf) is redrawn.
         if DEBUG:
-            print('Doing replot in backend')
+            print('<replot> in backend')
 
         fig = self.gcf()
         # reset the plotting package instance in fig._g now if needed
@@ -1564,13 +1562,10 @@ for (int k=0; k<nz; k++) {
 
             self._set_axis_props(ax)
 
-            # full pipeline update (is it really necessary ?, tb added)
-            self._ax._apd.Update()
-
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
-                print('\nDumping plot data to screen\n')
+                print('\n<plot data to screen>\n')
                 debug(self)
             pass
         self._g.display(show=self.getp('show'))
@@ -1842,7 +1837,7 @@ use(plt, globals())  # export public namespace of plt to globals()
 backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 
 ############
-# OBSOLETE #
+# OBSOLETE #
 ############
 
 # self._g.tkw.bind('<KeyPress-a>', lambda e, s=lineWidget: s.InvokeEvent(vtk.vtkCommand.StartInteractionEvent))
@@ -1945,3 +1940,11 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 
 # sgrid.SetExecuteMethod(add_vect)
 # sgrid.Update()
+
+
+# self.root.bind('<Key>', self.key)
+
+# def key(self, event):
+#     print('pressed', repr(event.char))
+#     if repr(event.char) == 'q':
+#         self.close(event)

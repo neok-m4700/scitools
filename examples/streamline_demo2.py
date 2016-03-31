@@ -8,16 +8,12 @@ from time import sleep
 from scipy import io
 
 wind = io.loadmat('wind_matlab_v6.mat')
-x = wind['x']
-y = wind['y']
-z = wind['z']
-u = wind['u']
-v = wind['v']
-w = wind['w']
+
+x, y, z = wind['x'], wind['y'], wind['z']
+u, v, w = wind['u'], wind['v'], wind['w']
 
 # Determine the Range of the Coordinates:
-xmin = x.min()
-xmax = x.max()
+xmin, xmax = x.min(), x.max()
 ymax = y.max()
 zmin = z.min()
 ymax = ymax - .1
@@ -25,21 +21,22 @@ zmin = 0  # bug in slice_ and contourslice
 
 setp(interactive=False)
 
-# Add Slice Planes for Visual Context:
+# add slice planes for visual context
 wind_speed = sqrt(u**2 + v**2 + w**2)
 hsurfaces = slice_(x, y, z, wind_speed, [xmin, 100, xmax], ymax, zmin)
+
 # set(hsurfaces,'FaceColor','interp','EdgeColor','none')
 hold('on')
 shading('interp')
 
-# Add Contour Lines to Slice Planes:
+# add contour lines to slice planes
 hcont = contourslice(x, y, z, wind_speed, [xmin, 100, xmax], ymax, zmin, 8)
 
 # What is the default number of contour lines in contourslice? 8?
 # set(hcont,'EdgeColor',[.7,.7,.7],'LineWidth',.5)
 hcont.setp(linecolor=[.7, .7, .7], linewidth=2)
 
-# Define the Starting Points for the Stream Lines:
+# define the starting points for the stream lines
 sx, sy, sz = ndgrid([80] * 4, seq(20, 50, 10), seq(0, 15, 5), sparse=False)
 
 ax = gca()
@@ -57,6 +54,7 @@ daspect([2, 2, 1])
 axis('tight')
 
 show()
+savefig('tmp1.pdf')
 
 # input('Press Return key to quit: ')
 # close()
