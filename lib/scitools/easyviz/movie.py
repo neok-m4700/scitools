@@ -1,12 +1,16 @@
 
 #!/usr/bin/env python
 
-import os, glob, re
+import os
+import glob
+import re
 
 from scitools.misc import findprograms
 from .misc import _check_type
 
+
 class MovieEncoder(object):
+
     """
     Class for turning a series of filenames with frames in a movie into
     a movie file.
@@ -34,7 +38,7 @@ class MovieEncoder(object):
         'gop_size': None,            # size of GOP (group of pictures)
         'force_conversion': False,   # force conversion (to png) if True
         'cleanup': True,             # clean up temporary files
-        }
+    }
     _legal_encoders = 'convert mencoder ffmpeg avconv mpeg_encode ppmtompeg '\
                       'mpeg2enc html'.split()
     _legal_file_types = 'png gif jpg ps eps bmp tif tga pnm'.split()
@@ -47,7 +51,7 @@ class MovieEncoder(object):
             if key in self._prop:
                 self._prop[key] = kwargs[key]
 
-        print('\n\n') # provide some space before print statements
+        print('\n\n')  # provide some space before print statements
 
         # Determine which encoder to be used
         encoder = self._prop['encoder']
@@ -66,17 +70,17 @@ class MovieEncoder(object):
                 raise ValueError("encoder must be %s, not '%s'" %
                                  (self._legal_encoders, encoder))
             if not encoder.startswith('html') and not findprograms(encoder):
-                raise Exception("The selected encoder (%s) is not installed" \
+                raise Exception("The selected encoder (%s) is not installed"
                                 % encoder)
 
         # Determine the file type of the input files
-        if isinstance(input_files, (tuple,list)):
+        if isinstance(input_files, (tuple, list)):
             file_ = input_files[0]
         elif isinstance(input_files, str):
             file_ = input_files
         else:
-            raise ValueError("The input files must be given as either a "\
-                             "list/tuple of strings or a string, not '%s'" % \
+            raise ValueError("The input files must be given as either a "
+                             "list/tuple of strings or a string, not '%s'" %
                              type(input_files))
 
         # Check that the input files do exist
@@ -92,8 +96,8 @@ class MovieEncoder(object):
             if not all_input_files:
                 print('No files of the form %s exist.' % input_files)
             else:
-                print('Found %d files of the format %s.' % \
-                (len(all_input_files), input_files))
+                print('Found %d files of the format %s.' %
+                      (len(all_input_files), input_files))
         else:  # list of specific filenames
             all_input_files = input_files
         error_encountered = False
@@ -107,9 +111,9 @@ class MovieEncoder(object):
         fname, ext = os.path.splitext(file_)
         if not ext:
             raise ValueError("Unable to determine file type from file name.")
-        file_type = ext[1:] # remove the . (dot)
+        file_type = ext[1:]  # remove the . (dot)
         if not file_type in self._legal_file_types:
-            raise TypeError("File type must be %s, not '%s'" % \
+            raise TypeError("File type must be %s, not '%s'" %
                             (self._legal_file_types, file_type))
         self._prop['file_type'] = file_type
 
@@ -125,7 +129,7 @@ class MovieEncoder(object):
                 files.sort()
             print('\nMaking HTML code for displaying', ', '.join(files))
             fps = self._prop['fps']
-            interval_ms = 1000.0/fps
+            interval_ms = 1000.0 / fps
             outf = self._prop['output_file']
             if outf is None:
                 outf = 'movie.html'
@@ -136,18 +140,20 @@ class MovieEncoder(object):
             header, jscode, form, footer, files = \
                 html_movie(files, interval_ms, casename=casename)
 
-            f = open(outf, 'w')
-            f.write(header + jscode + form + footer)
-            f.close()
+            with open(outf, 'w') as f:
+                f.write(header + jscode + form + footer)
             print("\n\nmovie in output file", outf)
             return
 
         # Get command string (all other encoders are run as stand-alone apps)
-        exec('cmd=self._%s()' % encoder)
+        # print('cmd=self._{}()'.format(encoder))
+        # exec('cmd=self._{}()'.format(encoder))
+        cmd = eval('self._{}()'.format(encoder))
+        print(cmd)
 
         # Run command
         if not self._prop['quiet']:
-            print("\nscitools.easyviz.movie function runs the command: \n\n%s\n" % cmd)
+            print("\nscitools.easyviz.movie function runs the command: \n\n{}\n".format(cmd))
         failure = os.system(cmd)
         if failure:
             print('\n\nscitools.easyviz.movie could not make movie')
@@ -161,14 +167,13 @@ class MovieEncoder(object):
                 os.remove(tmp_file)
 
     def _convert(self):
-        """Return a string with commands for making a movie with the convert
-        tool (from ImageMagick)."""
+        """Return a string with commands for making a movie with the convert tool (from ImageMagick)."""
         encoder = self._prop['encoder']
         cmd = encoder
 
         # set number of frames per second:
-        #cmd += ' -delay 1x%s' % self._prop['fps']
-        cmd += ' -delay %d' % (1.0/self._prop['fps']*100)
+        # cmd += ' -delay 1x%s' % self._prop['fps']
+        cmd += ' -delay %d' % (1.0 / self._prop['fps'] * 100)
 
         # set size:
         size = self._get_size()
@@ -184,12 +189,12 @@ class MovieEncoder(object):
                 pre = match.group(1)
                 num = int(match.group(2))
                 ext = match.group(3)
-                files = pre + '[0-9]'*num + ext
+                files = pre + '[0-9]' * num + ext
             files = glob.glob(files)
             files.sort()
         if not files:
             raise ValueError(
-                "'%s' is not a valid file specification or the files " \
+                "'%s' is not a valid file specification or the files "
                 "does not exist." % files)
         if isinstance(self._prop['input_files'], str):
             cmd += ' ' + self._prop['input_files']
@@ -203,10 +208,8 @@ class MovieEncoder(object):
         if output_file[-4:] != '.gif':
             output_file += '.gif'
         if os.path.isfile(output_file) and not self._prop['overwrite_output']:
-            raise Exception("Output file '%s' already exist. Use" \
-                            " 'overwrite_output=True' to overwrite the file." \
-                            % output_file)
-        cmd += ' %s' % output_file
+            raise Exception("Output file {} already exist. Use overwrite_output=True to overwrite the file." .format(output_file))
+        cmd += ' {}'.format(output_file)
 
         return cmd
 
@@ -225,21 +228,21 @@ class MovieEncoder(object):
                 pre = match.group(1)
                 num = int(match.group(2))
                 ext = match.group(3)
-                files = pre + '[0-9]'*num + ext
+                files = pre + '[0-9]' * num + ext
             files = glob.glob(files)
             files.sort()
             if not files:
                 raise ValueError(
-                    "'%s' is not a valid file specification or the files "\
+                    "'%s' is not a valid file specification or the files "
                     "does not exist." % self._prop['input_files'])
-        if isinstance(files, (list,tuple)):
+        if isinstance(files, (list, tuple)):
             if not file_type in ['jpg', 'png'] or \
-                   self._prop['force_conversion']:
+                    self._prop['force_conversion']:
                 # since mencoder only supports jpg and png files, we have to
                 # create copies of the input files and convert them to jpg.
                 files = self._any2any(files, ofile_ext='.png')
                 file_type = 'png'
-                self._tmp_files = files[:] # store files for later removal
+                self._tmp_files = files[:]  # store files for later removal
             # give the files as a comma separated string to mencoder:
             files = ','.join(files)
         cmd += ' "mf://%s" -mf' % files
@@ -277,7 +280,7 @@ class MovieEncoder(object):
         aspect = self._prop['aspect']
         if aspect is not None:
             cmd += ':aspect=%s' % aspect
-        #cmd += ' -oac copy' # audio
+        # cmd += ' -oac copy' # audio
         size = self._get_size()
         if size is not None:
             cmd += ' -vf scale=%s:%s' % (size[0], size[1])
@@ -286,8 +289,8 @@ class MovieEncoder(object):
             self._prop['output_file'] = 'movie.avi'
         output_file = self._prop['output_file']
         if os.path.isfile(output_file) and not self._prop['overwrite_output']:
-            raise Exception("Output file '%s' already exist. Use" \
-                            " 'overwrite_output=True' to overwrite the file." \
+            raise Exception("Output file '%s' already exist. Use"
+                            " 'overwrite_output=True' to overwrite the file."
                             % output_file)
         cmd += ' -o %s' % output_file
         if self._prop['quiet']:
@@ -307,17 +310,17 @@ class MovieEncoder(object):
             match = re.search(pattern, files)
             if match:
                 if file_type not in ['jpg', 'png'] or \
-                       self._prop['force_conversion']:
+                        self._prop['force_conversion']:
                     pre = match.group(1)
                     num = int(match.group(2))
                     ext = match.group(3)
-                    files = pre + '[0-9]'*num + ext
+                    files = pre + '[0-9]' * num + ext
                     files = glob.glob(files)
                     files.sort()
             else:
                 files = glob.glob(files)
                 files.sort()
-        if isinstance(files, (list,tuple)):
+        if isinstance(files, (list, tuple)):
             basename = 'tmp_easyviz_'
             files = self._any2any(files, basename=basename, ofile_ext='.png')
             file_type = 'png'
@@ -374,7 +377,7 @@ class MovieEncoder(object):
         if self._prop['fps'] in legal_frame_rates:
             fps = self._prop['fps']
         else:
-            raise ValueError("%s only supports the these frame rates: %s" % \
+            raise ValueError("%s only supports the these frame rates: %s" %
                              (encoder, legal_frame_rates))
 
         # set aspect ratio:
@@ -398,16 +401,16 @@ class MovieEncoder(object):
                 pre = match.group(1)
                 num = int(match.group(2))
                 ext = match.group(3)
-                files = pre + '[0-9]'*num + ext
+                files = pre + '[0-9]' * num + ext
             files = glob.glob(files)
             files.sort()
         if not files:
             raise ValueError(
-                "'%s' is not a valid file specification or the files " \
+                "'%s' is not a valid file specification or the files "
                 "does not exist." % files)
         size = self._get_size()
         if size is not None or self._prop['file_type'] != 'pnm' or \
-               self._prop['force_conversion']:
+                self._prop['force_conversion']:
             files = self._any2any(files, basename=basename, size=size)
             self._tmp_files = files[:]
         files = '\n'.join(files)
@@ -422,8 +425,8 @@ class MovieEncoder(object):
             self._prop['output_file'] = 'movie.mpeg'
         mpeg_file = self._prop['output_file']
         if os.path.isfile(mpeg_file) and not self._prop['overwrite_output']:
-            raise Exception("Output file '%s' already exist. Use" \
-                            " 'overwrite_output=True' to overwrite the file." \
+            raise Exception("Output file '%s' already exist. Use"
+                            " 'overwrite_output=True' to overwrite the file."
                             % mpeg_file)
 
         # set pattern (sequence of I, P, and B frames):
@@ -440,13 +443,19 @@ class MovieEncoder(object):
         pqscale = self._prop['pqscale']
         bqscale = self._prop['bqscale']
         if qscale is not None:
-            if iqscale is None: iqscale = qscale
-            if pqscale is None: pqscale = qscale
-            if bqscale is None: bqscale = qscale
+            if iqscale is None:
+                iqscale = qscale
+            if pqscale is None:
+                pqscale = qscale
+            if bqscale is None:
+                bqscale = qscale
         else:
-            if iqscale is None: iqscale = 8
-            if pqscale is None: pqscale = 10
-            if bqscale is None: bqscale = 25
+            if iqscale is None:
+                iqscale = 8
+            if pqscale is None:
+                pqscale = 10
+            if bqscale is None:
+                bqscale = 25
 
         # set gop size:
         gop_size = self._prop['gop_size']
@@ -459,7 +468,7 @@ class MovieEncoder(object):
         mpeg_encode_file = "%s.mpeg_encode-input" % basename
         f = open(mpeg_encode_file, "w")
         f.write("""
-PATTERN	         %(pattern)s
+PATTERN          %(pattern)s
 OUTPUT           %(mpeg_file)s
 BASE_FILE_FORMAT PNM
 INPUT_CONVERT    *
@@ -475,9 +484,9 @@ PIXEL            FULL
 RANGE            10
 PSEARCH_ALG      LOGARITHMIC
 BSEARCH_ALG      CROSS2
-IQSCALE	         %(iqscale)d
-PQSCALE	         %(pqscale)d
-BQSCALE	         %(bqscale)d
+IQSCALE          %(iqscale)d
+PQSCALE          %(pqscale)d
+BQSCALE          %(bqscale)d
 REFERENCE_FRAME  ORIGINAL
 FRAME_RATE       %(fps)d
 ASPECT_RATIO     %(aspect)s
@@ -486,11 +495,11 @@ FORCE_ENCODE_LAST_FRAME
 
         # set video bit rate and buffer size:
         vbitrate = self._prop['vbitrate']
-        if isinstance(vbitrate, (float,int)):
-            f.write("BIT_RATE         %d" % (int(vbitrate)*1000))
+        if isinstance(vbitrate, (float, int)):
+            f.write("BIT_RATE         %d" % (int(vbitrate) * 1000))
         vbuffer = self._prop['vbuffer']
-        if isinstance(vbuffer, (float,int)):
-            f.write("BUFFER_SIZE      %d" % (int(vbuffer)*1000))
+        if isinstance(vbuffer, (float, int)):
+            f.write("BUFFER_SIZE      %d" % (int(vbuffer) * 1000))
         f.close()
 
         if not hasattr(self, '_tmp_files'):
@@ -523,17 +532,17 @@ FORCE_ENCODE_LAST_FRAME
             match = re.search(pattern, files)
             if match:
                 if file_type not in ['jpg', 'png'] or \
-                       self._prop['force_conversion']:
+                        self._prop['force_conversion']:
                     pre = match.group(1)
                     num = int(match.group(2))
                     ext = match.group(3)
-                    files = pre + '[0-9]'*num + ext
+                    files = pre + '[0-9]' * num + ext
                     files = glob.glob(files)
                     files.sort()
             else:
                 files = glob.glob(files)
                 files.sort()
-        if isinstance(files, (list,tuple)):
+        if isinstance(files, (list, tuple)):
             basename = 'tmp_easyviz_'
             files = self._any2any(files, basename=basename, ofile_ext='.png')
             file_type = 'png'
@@ -548,16 +557,16 @@ FORCE_ENCODE_LAST_FRAME
             cmd += png2yuv
         else:
             raise Exception("png2yuv or jpeg2yuv is not installed")
-        cmd += ' -f 25' # frame rate
+        cmd += ' -f 25'  # frame rate
         cmd += ' -I p'  # interlacing mode: p = none / progressive
-        cmd += ' -j "%s"' % files # set image files
+        cmd += ' -j "%s"' % files  # set image files
         # find start image:
         for i in range(9999):
             if os.path.isfile(files % i):
                 cmd += ' -b %d' % i
                 break
         if self._prop['quiet']:
-            cmd += ' -v 0' # verbosity level 0
+            cmd += ' -v 0'  # verbosity level 0
 
         # set size of movie (by using the yuvscaler tool):
         size = self._get_size()
@@ -570,16 +579,16 @@ FORCE_ENCODE_LAST_FRAME
             self._prop['output_file'] = 'movie.mpeg'
         output_file = self._prop['output_file']
         if os.path.isfile(output_file) and not self._prop['overwrite_output']:
-            raise Exception("Output file '%s' already exist. Use" \
-                            " 'overwrite_output=True' to overwrite the file." \
+            raise Exception("Output file '%s' already exist. Use"
+                            " 'overwrite_output=True' to overwrite the file."
                             % output_file)
 
         cmd += ' | '
         cmd += encoder
         if self._prop['vcodec'] == 'mpeg2video':
-            cmd += ' -f 3' # generic mpeg-2 video
+            cmd += ' -f 3'  # generic mpeg-2 video
         else:
-            cmd += ' -f 0' # generic mpeg-1 video
+            cmd += ' -f 0'  # generic mpeg-1 video
         if self._prop['vbitrate'] is not None:
             cmd += ' -b %d' % int(self._prop['vbitrate'])
         if self._prop['vbuffer'] is not None:
@@ -592,10 +601,10 @@ FORCE_ENCODE_LAST_FRAME
                      '30': 5, '50': 6, '59.94': 7, '60': 8}
         fps = str(self._prop['fps'])
         if not fps in legal_fps:
-            raise ValueError("fps must be %s, not %s" % \
+            raise ValueError("fps must be %s, not %s" %
                              (list(fps_convert.keys()), fps))
         cmd += ' -F %s' % legal_fps[fps]
-        #cmd += ' --cbr' # constant bit rate
+        # cmd += ' --cbr' # constant bit rate
         gop_size = self._prop['gop_size']
         if gop_size is not None:
             # set min (-g) and max (-G) gop size to the same value:
@@ -613,14 +622,14 @@ FORCE_ENCODE_LAST_FRAME
                         break
                 if aspect not in list(legal_aspects.values()):
                     raise ValueError(
-                        "aspect must be either 1:1, 4:3, 16:9, or 2.21:1," \
+                        "aspect must be either 1:1, 4:3, 16:9, or 2.21:1,"
                         " not '%s'" % aspect)
             cmd += ' -a %s' % aspect
 
         # set output file:
         cmd += ' -o %s' % self._prop['output_file']
         if self._prop['quiet']:
-            cmd += ' -v 0' # verbosity level 0 (warnings and errors only)
+            cmd += ' -v 0'  # verbosity level 0 (warnings and errors only)
         return cmd
 
     def _any2any(self, files, basename='tmp_easyviz_',
@@ -630,16 +639,16 @@ FORCE_ENCODE_LAST_FRAME
         (from the ImageMagick package).
         """
         netpbm_converters = {'.png': ('pngtopnm', 'pnmtopng'),
-                             '.gif': ('giftopnm',  'ppmtogif'),
+                             '.gif': ('giftopnm', 'ppmtogif'),
                              '.jpg': ('jpegtopnm', 'pnmtojpeg'),
-                             '.ps':  ('pstopnm', 'pnmtops'),
+                             '.ps': ('pstopnm', 'pnmtops'),
                              '.eps': ('pstopnm', 'pnmtops'),
                              '.bmp': ('bmptopnm', 'ppmtobmp'),
                              '.tif': ('tifftopnm', 'pnmtotiff'),
                              '.tga': ('tgatopnm', 'ppmtotga'),
                              '.pnm': ('cat', ''),
                              }
-        _check_type(files, 'files', (list,tuple))
+        _check_type(files, 'files', (list, tuple))
         ifile_ext = os.path.splitext(files[0])[1]
         anytopnm = netpbm_converters[ifile_ext][0]
         pnmtoany = netpbm_converters[ofile_ext][1]
@@ -654,11 +663,11 @@ FORCE_ENCODE_LAST_FRAME
         elif findprograms(convert):
             app = convert
         elif not findprograms((anytopnm, pnmtoany)):
-            raise Exception("Neither %s nor %s was found" % (convert,anytopnm))
+            raise Exception("Neither %s nor %s was found" % (convert, anytopnm))
 
         quiet = self._prop['quiet']
         new_files = []
-        i = 1 # counter
+        i = 1  # counter
         for file_ in files:
             new_file = "%s%04d%s" % (basename, i, ofile_ext)
             if app == anytopnm:
@@ -677,7 +686,7 @@ FORCE_ENCODE_LAST_FRAME
                     if quiet:
                         options += '-quiet'
                     if pnmtoany == 'pnmtojpeg':
-                        options += ' -quality 100' # don't lose quality
+                        options += ' -quality 100'  # don't lose quality
                     cmd += " | %(pnmtoany)s %(options)s" % vars()
                 cmd += " > %s" % new_file
             else:
@@ -696,8 +705,8 @@ FORCE_ENCODE_LAST_FRAME
                 apps = app
                 if app != convert and pnmtoany != '':
                     apps += ' and %s' % pnmtoany
-                print("%s transformed via %s to %s (%d Kb)" % \
-                      (file_,apps,new_file,int(os.path.getsize(new_file)/1000)))
+                print("%s transformed via %s to %s (%d Kb)" %
+                      (file_, apps, new_file, int(os.path.getsize(new_file) / 1000)))
             i += 1
 
         return new_files
@@ -712,10 +721,14 @@ FORCE_ENCODE_LAST_FRAME
             elif aspect.find('/'):
                 aspect = aspect.split('/')
             else:
-                try: aspect = float(aspect)
-                except: aspect = None
-            try: aspect = float(aspect[0]) / float(aspect[1])
-            except: aspect = None
+                try:
+                    aspect = float(aspect)
+                except:
+                    aspect = None
+            try:
+                aspect = float(aspect[0]) / float(aspect[1])
+            except:
+                aspect = None
         return aspect
 
     def _get_size(self):
@@ -729,10 +742,11 @@ FORCE_ENCODE_LAST_FRAME
             if size in legal_sizes:
                 size = legal_sizes[size]
             else:
-                size = size.split('x') # wxh
-        if not (isinstance(size, (tuple,list)) and len(size) == 2):
+                size = size.split('x')  # wxh
+        if not (isinstance(size, (tuple, list)) and len(size) == 2):
             size = None
         return size
+
 
 def html_movie(plotfiles, interval_ms=300, width=800, height=600,
                casename=None):
@@ -790,7 +804,7 @@ def html_movie(plotfiles, interval_ms=300, width=800, height=600,
     # http://stackoverflow.com/questions/9486961/animated-image-with-javascript
 
     # Start with expanding plotfiles if it is a filename generator
-    if not isinstance(plotfiles, (tuple,list)):
+    if not isinstance(plotfiles, (tuple, list)):
         if not isinstance(plotfiles, str):
             raise TypeError('plotfiles must be list or filename generator, not %s' % type(plotfiles))
 
@@ -816,7 +830,7 @@ def html_movie(plotfiles, interval_ms=300, width=800, height=600,
                 raise ValueError('Filename generator %s has wrong syntax; must be like frame_%%04d.png:0->120' % filename_generator)
             p = p[-1].split('->')
             lo, hi = int(p[0]), int(p[1])
-            plotfiles = [filename % i for i in range(lo,hi+1,1)]
+            plotfiles = [filename % i for i in range(lo, hi + 1, 1)]
 
     # Check that the plot files really exist, if they are local on the computer
     if not plotfiles[0].startswith('http'):
@@ -840,7 +854,7 @@ def html_movie(plotfiles, interval_ms=300, width=800, height=600,
     if ext == '.png' or ext == '.jpg' or ext == '.jpeg' or ext == 'gif':
         pass
     else:
-        raise ValueError('Plotfiles (%s, ...) must be PNG, JPEG, or GIF files with '\
+        raise ValueError('Plotfiles (%s, ...) must be PNG, JPEG, or GIF files with '
                          'extension .png, .jpg/.jpeg, or .gif' % plotfiles[0])
 
     header = """\
@@ -871,7 +885,7 @@ function preload_images_%(casename)s()
    images_%(casename)s[%(i)s] = new Image(img_width_%(casename)s, img_height_%(casename)s);
    images_%(casename)s[%(i)s].src = "%(fname)s";
         """ % vars()
-        i = i+1
+        i = i + 1
     jscode += """
    t.innerHTML = "";
 }

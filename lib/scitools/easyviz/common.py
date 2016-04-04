@@ -1200,7 +1200,8 @@ class Camera(object):
         'camroll': None,  # angle
         'camzoom': 1,
         'campos': (0, 0, 0),
-        'camproj': 'orthographic'
+        'camproj': 'orthographic',
+        'unit': True # unit vectors
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))

@@ -6,12 +6,13 @@ in axis labels, titles, legends, and text.
 """
 from scitools.std import *
 
+
 def do_plot(latex='no'):
     tau_1 = linspace(0, 3, 151)
     tau_2 = linspace(0, 3, 11)
     alpha = 1
-    theta_1 = tau_1*exp(-alpha*tau_1**2)
-    theta_2 = sqrt(tau_2)*exp(-alpha*tau_2**2)
+    theta_1 = tau_1 * exp(-alpha * tau_1**2)
+    theta_2 = sqrt(tau_2) * exp(-alpha * tau_2**2)
     if latex == 'with $':
         # standard latex text in legends, labels, and title
         plot(tau_1, theta_1, 'r-',

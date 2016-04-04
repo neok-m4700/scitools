@@ -1,9 +1,12 @@
 #!/usr/bin/env python
+import scitools.globaldata; scitools.globaldata.DEBUG = 1
+from scitools.easyviz import *
+from scitools.easyviz.vtk_new_ import *
 
-from scitools.std import *
-
-from numpy import MachAr
+from numpy import MachAr, pi
 eps = MachAr().eps
+
+setp(interactive=False)
 
 mesh(peaks())
 title('Wireframe mesh of the peaks function')

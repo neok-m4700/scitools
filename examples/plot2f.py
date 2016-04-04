@@ -1,10 +1,12 @@
 from scitools.std import *   # for curve plotting
 
+
 def f1(t):
-    return t**2*exp(-t**2)
+    return t**2 * exp(-t**2)
+
 
 def f2(t):
-    return t**2*f1(t)
+    return t**2 * f1(t)
 
 t = linspace(0, 3, 51)
 y1 = f1(t)
@@ -17,5 +19,3 @@ plot(t, y1, 'r-', t, y2, 'bo',
      title='Plotting two curves in the same plot',
      savefig='plot2f.png',
      grid=True)
-
-input('Press Return key to quit: ')

@@ -1,13 +1,16 @@
 from scitools.std import *
-import os, glob
+import os
+import glob
 for filename in glob.glob('tmp.*'):
     os.remove(filename)
 
+
 def f1(t):
-    return t**2*exp(-t**2)
+    return t**2 * exp(-t**2)
+
 
 def f2(t):
-    return t**2*f1(t)
+    return t**2 * f1(t)
 
 t = linspace(0, 3, 51)
 y1 = f1(t)
@@ -27,8 +30,8 @@ figdata_png = savefig('.png')
 if figdata_svg is not None and figdata_png is not None:
     import base64
     figdata_png = base64.b64encode(figdata_png)
-    f = open('tmp.html', 'w')
-    f.write("""
+    with open('tmp.html', 'w') as f:
+        f.write("""
 <h1>Demo of
 <a href="http://msdn.microsoft.com/en-us/library/gg589526(v=vs.85).aspx">
 SVG file in HTML</a> (plot made by %(backend)s)</h1>
@@ -44,5 +47,4 @@ Using img tag for PNG file:<br>
 Using object embedding:<br>
 <object data="tmp.svg" type="image/svg+xml"></object>
 """ % vars())
-    f.close()
-input('Press Return key to quit: ')
+

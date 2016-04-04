@@ -120,7 +120,7 @@ class _VTKFigure(object):
         self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame,
                                                                            width=width,
                                                                            height=height)
-        self.is_in_mainloop = False
+        self.is_interactive = False
         self.tkw.pack(expand='true', fill='both')
 
         self.renwin = self.tkw.GetRenderWindow()
@@ -170,9 +170,9 @@ class _VTKFigure(object):
 
         self.renwin.Render()
 
-        if self.plt.getp('interactive') and not self.is_in_mainloop and self.plt.getp('show'):
+        if self.plt.getp('interactive') and not self.is_interactive and self.plt.getp('show'):
             print('--> calling interactive mode !')
-            self.is_in_mainloop = True
+            self.is_interactive = True
             self.tkw.Start()
 
             # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
@@ -187,7 +187,7 @@ class _VTKFigure(object):
         if DEBUG:
             print('<exit>')
         self.renwin.Finalize()
-        if self.is_in_mainloop:
+        if self.is_interactive:
             print('--> iren exit')
             iren = self.renwin.GetInteractor()
             iren.TerminateApp()
@@ -602,11 +602,12 @@ class VTKBackend(BaseClass):
         ax._camera = camera
 
         # unit axes
-        axes = vtk.vtkAxesActor()
-        axes.GetXAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
-        axes.GetYAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
-        axes.GetZAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
-        ax._renderer.AddActor(axes)
+        if cam.getp('unit'):
+            axes = vtk.vtkAxesActor()
+            axes.GetXAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
+            axes.GetYAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
+            axes.GetZAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
+            ax._renderer.AddActor(axes)
 
         ax._renderer.ResetCamera()
         # if self._ax.getp('camera').getp('view') == 2:
@@ -728,8 +729,7 @@ class VTKBackend(BaseClass):
             actor.GetProperty().SetSpecularPower(mat.getp('specularpower'))
 
     def _create_2D_scalar_data(self, item):
-        x = squeeze(item.getp('xdata'))  # grid component in x-direction
-        y = squeeze(item.getp('ydata'))  # grid component in y-direction
+        x, y= squeeze(item.getp('xdata')), squeeze(item.getp('ydata'))
         z = asarray(item.getp('zdata'))  # scalar field
         try:
             c = item.getp('cdata')       # pseudocolor data
@@ -798,12 +798,10 @@ for (int j=0; j<ny; j++) {
         return vtkStructuredGridAlgorithmSource(sgrid)
 
     def _create_2D_vector_data(self, item):
-        x = squeeze(item.getp('xdata'))  # grid component in x-direction
-        y = squeeze(item.getp('ydata'))  # grid component in y-direction
+        x, y = squeeze(item.getp('xdata')), squeeze(item.getp('ydata'))
         z = item.getp('zdata')           # scalar field
         # vector components:
-        u = asarray(item.getp('udata'))
-        v = asarray(item.getp('vdata'))
+        u, v = asarray(item.getp('udata')),  asarray(item.getp('vdata'))
         w = item.getp('wdata')
 
         if z is None:
@@ -868,9 +866,7 @@ for (int j=0; j<ny; j++) {
         return vtkStructuredGridAlgorithmSource(sgrid)
 
     def _create_3D_scalar_data(self, item):
-        x = squeeze(item.getp('xdata'))  # grid component in x-direction
-        y = squeeze(item.getp('ydata'))  # grid component in y-direction
-        z = squeeze(item.getp('zdata'))  # grid component in z-direction
+        x, y, z = squeeze(item.getp('xdata')), squeeze(item.getp('ydata')), squeeze(item.getp('zdata'))
         v = asarray(item.getp('vdata'))  # scalar data
         c = item.getp('cdata')           # pseudocolor data
         # FIXME: What about pseudocolor data?
@@ -926,13 +922,10 @@ for (int k=0; k<nz; k++) {
         return vtkStructuredGridAlgorithmSource(sgrid)
 
     def _create_3D_vector_data(self, item):
-        x = squeeze(item.getp('xdata'))  # grid component in x-direction
-        y = squeeze(item.getp('ydata'))  # grid component in y-direction
-        z = squeeze(item.getp('zdata'))  # grid component in z-direction
-        # vector components:
-        u = asarray(item.getp('udata'))
-        v = asarray(item.getp('vdata'))
-        w = asarray(item.getp('wdata'))
+        # grid components
+        x, y, z = squeeze(item.getp('xdata')), squeeze(item.getp('ydata')), squeeze(item.getp('zdata'))
+        # vector components
+        u, v, w = asarray(item.getp('udata')),  asarray(item.getp('vdata')), asarray(item.getp('wdata'))
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
@@ -1002,6 +995,30 @@ for (int k=0; k<nz; k++) {
 
         return vtkStructuredGridAlgorithmSource(sgrid)
 
+
+    def _create_3D_line_data(self, item):
+        # TODO generate a polydata with lines see CylinderContour.py
+        x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
+
+        pdo = vtk.vtkPolyData()
+        pts = vtk.vtkPoints()
+
+        [pts.InsertPoint(row, x[row, 0], y[row, 1], z[row, 2]) for row in range(rows)]
+
+        lines = vtk.vtkCellArray()
+        lines.InsertNextCell(rows)
+
+        [lines.InsertCellPoint(row) for row in range(rows - 1)]
+        lines.InsertCellPoint(0)
+
+        sgrid = vtk.vtkStructuredGrid()
+        sgrid.SetDimensions(item.getp('dims'))
+        sgrid.SetPoints(points)
+        sgrid.GetPointData().SetScalars(scalars)
+        sgrid.GetPointData().SetVectors(vectors)
+
+        return vtkStructuredGridAlgorithmSource(sgrid)
+
     def _get_linespecs(self, item):
         '''
         Return the line marker, line color, line style, and
@@ -1017,17 +1034,32 @@ for (int k=0; k<nz; k++) {
         '''Add a 2D or 3D curve to the scene.'''
         if DEBUG:
             print('<line +>')
-        # get data:
-        x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # get line specifiactions:
         marker, color, style, width = self._get_linespecs(item)
 
-        if z is not None:
-            # zdata is given, add a 3D curve:
-            pass
-        else:
-            # no zdata, add a 2D curve:
-            pass
+        sgrid = self._create_3D_line_data(item)
+
+        # if z is not None:
+        #     # zdata is given, add a 3D curve:
+        #     pass
+        # else:
+        #     # no zdata, add a 2D curve:
+        #     pass
+
+        data = self._cut_data(line)
+        mapper = vtk.vtkDataSetMapper()
+        mapper.SetInputConnection(normals.GetOutputPort())
+        mapper.SetLookupTable(self._ax._colormap)
+        cax = self._ax._caxis
+        if cax is None:
+            data.Update()
+            cax = data.GetOutput().GetScalarRange()
+        mapper.SetScalarRange(cax)
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        self._set_actor_properties(item, actor)
+        self._ax._renderer.AddActor(actor)
+        self._ax._apd.AddInputConnection(normals.GetOutputPort())
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
@@ -1652,7 +1684,7 @@ for (int k=0; k<nz; k++) {
         if not self.getp('show'):  # don't render to screen
             self._g.renwin.OffScreenRenderingOn()
 
-        if replot:  #  and not self._g.is_in_mainloop # this is wrong, the pipeline isn't updated !
+        if replot:  #  and not self._g.is_interactive # this is wrong, the pipeline isn't updated !
             self._replot()
 
         basename, ext = os.path.splitext(filename)

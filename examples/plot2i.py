@@ -1,10 +1,12 @@
 from scitools.std import *   # for curve plotting
 
+
 def f1(t):
-    return t**2*exp(-t**2)
+    return t**2 * exp(-t**2)
+
 
 def f2(t):
-    return t**2*f1(t)
+    return t**2 * f1(t)
 
 t = linspace(0, 3, 51)
 y1 = f1(t)
@@ -22,7 +24,7 @@ plot(t, y1, 'r-', t, y2, 'bo',
 
 if backend == 'gnuplot':
     g = get_backend()
-    #g.__class__.__name__ == 'Gnuplot'
+    # g.__class__.__name__ == 'Gnuplot'
     # g is a Gnuplot object, work with Gnuplot commands directly:
     g('set label "global maximum" at 0.1,0.5 font "Times,18"')
     g('set arrow from 0.5,0.48 to 0.98,0.37 linewidth 2')
@@ -32,4 +34,3 @@ if backend == 'gnuplot':
 
 fig = gcf(); print(fig.dump())
 
-input('Press Return key to quit: ')

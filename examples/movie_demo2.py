@@ -1,14 +1,20 @@
 from scitools.std import *
 # Clean up tmp_*.eps files:
-import glob, os
+import glob
+import os
+
+setp(interactive=False)
+setp(show=False)
+
 for name in glob.glob('tmp_*.png'):
     os.remove(name)
 # Clean up movie files
 for name in glob.glob('tmpmovie*.*'):
     os.remove(name)
 
+
 def f(x, t):
-    return exp(-(x-3*t)**2)*sin(3*pi*(x-t))
+    return exp(-(x - 3 * t)**2) * sin(3 * pi * (x - t))
 
 xmax = 6
 x = linspace(-xmax, xmax, 1001)
@@ -23,9 +29,8 @@ for t in t_values:
 
 # Make movie file the simplest possible way
 movie('tmp_*.png')
-import glob, os
 print('generated the file', glob.glob('movie.*')[0])
-#os.remove(glob.glob('movie.*')[0])
+# os.remove(glob.glob('movie.*')[0])
 
 # Make animated GIF movie in the file tmpmovie.gif
 movie('tmp_*.png', encoder='convert', fps=2,
@@ -39,13 +44,13 @@ movie('tmp_*.png', encoder='html', fps=3,
       output_file='tmpmovie.html')  # play in HTML file
 
 movie('tmp_*.png', encoder='ppmtompeg', fps=24,
-      output_file='tmpmovie1.mpeg') # requires netpbm package
+      output_file='tmpmovie1.mpeg')  # requires netpbm package
 
 movie('tmp_*.png', encoder='ffmpeg', fps=4,
-      output_file='tmpmovie1b.mpeg') # requires ffmpeg package
+      output_file='tmpmovie1b.mpeg')  # requires ffmpeg package
 
 movie('tmp_*.png', encoder='ffmpeg', fps=4,
-      output_file='tmpmovie1.avi') # requires ffmpeg package
+      output_file='tmpmovie1.avi')  # requires ffmpeg package
 
 movie('tmp_*.png', encoder='ffmpeg',
       output_file='tmpmovie1c.mpeg', vodec='mpeg2video')

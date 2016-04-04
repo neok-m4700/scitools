@@ -3,8 +3,8 @@ from scitools.std import *
 
 # plot two curves in the same plot:
 t = linspace(0, 3, 51)  # 51 points between 0 and 3
-y1 = t**2*exp(-t**2)
-y2 = t**4*exp(-t**2)
+y1 = t**2 * exp(-t**2)
+y2 = t**4 * exp(-t**2)
 # pick out each 4 points and add random noise:
 t3 = t[::4]
 random.seed(11)
@@ -24,4 +24,3 @@ savefig('tmp0.eps')  # this one can be included in latex
 savefig('tmp0.png')  # this one can be included in HTML
 show()
 
-input('Press Return key to quit: ')

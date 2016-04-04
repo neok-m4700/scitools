@@ -110,8 +110,6 @@ NOTES:
 """
 
 
-
-
 from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
 from scitools.misc import findprograms
@@ -125,6 +123,7 @@ has_matlab = findprograms('matlab')
 
 
 class Matlab2Backend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -140,7 +139,7 @@ class Matlab2Backend(BaseClass):
     def _set_scale(self, ax):
         """Set linear or logarithmic (base 10) axis scale."""
         if DEBUG:
-            print("Setting scales")
+            print('<scales>')
         scale = ax.getp('scale')
         if scale == 'loglog':
             # use logarithmic scale on both x- and y-axis
@@ -159,17 +158,30 @@ class Matlab2Backend(BaseClass):
             xscale = 'lin'
             yscale = 'lin'
         self._script += "set(gca, 'XScale', '%s', 'YScale', '%s'),...\n" % \
-                        (xscale,yscale)
+                        (xscale, yscale)
 
     def _set_labels(self, ax):
         """Add text labels for x-, y-, and z-axis."""
         if DEBUG:
-            print("Setting labels")
+            print('<labels>')
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
         self._script += "xlabel('%s'),ylabel('%s'),zlabel('%s'),...\n" % \
-                        (xlabel,ylabel,zlabel)
+                        (xlabel, ylabel, zlabel)
+
+    def _fix_latex(self, legend):
+        """Remove latex syntax a la $, \, {, } etc."""
+        legend = legend.strip()
+        # General fix of latex syntax (more readable)
+        legend = legend.replace('**', '^')
+        #legend = legend.replace('*', '')
+        legend = legend.replace('$', '')
+        legend = legend.replace('{', '')
+        legend = legend.replace('}', '')
+        legend = legend.replace('\\', '')
+        return legend
+
 
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
@@ -181,7 +193,7 @@ class Matlab2Backend(BaseClass):
     def _set_limits(self, ax):
         """Set axis limits in x, y, and z direction."""
         if DEBUG:
-            print("Setting axis limits")
+            print('<axes lims>')
         mode = ax.getp('mode')
         if mode == 'auto':
             # let plotting package set 'nice' axis limits in the x, y,
@@ -195,39 +207,39 @@ class Matlab2Backend(BaseClass):
             xmax = ax.getp('xmax')
             if xmin is not None and xmax is not None:
                 # set x-axis limits
-                self._script += "xlim([%s,%s]),...\n" % (xmin,xmax)
+                self._script += "xlim([%s,%s]),...\n" % (xmin, xmax)
             else:
                 # let plotting package set x-axis limits or use
-                #xmin, xmax = ax.getp('xlim')
-                #self._script += "xlim auto,...\n" % (xmin,xmax)
+                # xmin, xmax = ax.getp('xlim')
+                # self._script += "xlim auto,...\n" % (xmin,xmax)
                 pass
 
             ymin = ax.getp('ymin')
             ymax = ax.getp('ymax')
             if ymin is not None and ymax is not None:
                 # set y-axis limits
-                self._script += "ylim([%s,%s]),...\n" % (ymin,ymax)
+                self._script += "ylim([%s,%s]),...\n" % (ymin, ymax)
             else:
                 # let plotting package set y-axis limits or use
-                #ymin, ymax = ax.getp('ylim')
-                #self._script += "ylim auto,...\n"
+                # ymin, ymax = ax.getp('ylim')
+                # self._script += "ylim auto,...\n"
                 pass
 
             zmin = ax.getp('zmin')
             zmax = ax.getp('zmax')
             if zmin is not None and zmax is not None:
                 # set z-axis limits
-                self._script += "zlim([%s,%s]),...\n" % (zmin,zmax)
+                self._script += "zlim([%s,%s]),...\n" % (zmin, zmax)
             else:
                 # let plotting package set z-axis limits or use
-                #zmin, zmax = ax.getp('zlim')
-                #self._script += "zlim auto,..."
+                # zmin, zmax = ax.getp('zlim')
+                # self._script += "zlim auto,..."
                 pass
         elif mode == 'tight':
             # set the limits on the axis to the range of the data. If
             # this is not automated in the plotting package, one can
             # use the following limits:
-            #xmin, xmax, ymin, ymax, zmin, zmax = ax.get_limits()
+            # xmin, xmax, ymin, ymax, zmin, zmax = ax.get_limits()
             self._script += "axis tight,...\n"
         elif mode == 'fill':
             # not sure about this
@@ -250,7 +262,7 @@ class Matlab2Backend(BaseClass):
             dar = ax.getp('daspect')  # dar is a list (len(dar) is 3).
             self._script += "daspect([%s,%s,%s]),...\n" % tuple(dar)
         else:
-            #self._script += "daspect auto,...\n"
+            # self._script += "daspect auto,...\n"
             pass
 
     def _set_axis_method(self, ax):
@@ -294,7 +306,7 @@ class Matlab2Backend(BaseClass):
     def _set_box(self, ax):
         """Turn box around axes boundary on or off."""
         if DEBUG:
-            print("Setting box")
+            print('<Setting box>')
         if ax.getp('box'):
             # display box
             self._script += "box on,...\n"
@@ -305,7 +317,7 @@ class Matlab2Backend(BaseClass):
     def _set_grid(self, ax):
         """Turn grid lines on or off."""
         if DEBUG:
-            print("Setting grid")
+            print('<grid>')
         if ax.getp('grid'):
             # turn grid lines on
             self._script += "grid on,...\n"
@@ -316,7 +328,7 @@ class Matlab2Backend(BaseClass):
     def _set_hidden_line_removal(self, ax):
         """Turn on/off hidden line removal for meshes."""
         if DEBUG:
-            print("Setting hidden line removal")
+            print('<hidden lines removal>')
         if ax.getp('hidden'):
             # turn hidden line removal on
             self._script += "hidden on,...\n"
@@ -327,7 +339,7 @@ class Matlab2Backend(BaseClass):
     def _set_colorbar(self, ax):
         """Add a colorbar to the axis."""
         if DEBUG:
-            print("Setting colorbar")
+            print('<colorbar>')
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             # turn on colorbar
@@ -342,12 +354,12 @@ class Matlab2Backend(BaseClass):
     def _set_caxis(self, ax):
         """Set the color axis scale."""
         if DEBUG:
-            print("Setting caxis")
+            print('<caxis>')
         if ax.getp('caxismode') == 'manual':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                #cmin, cmax = [0,1]
+                # cmin, cmax = [0,1]
                 self._script += "caxis manual,...\n"
             else:
                 # set color axis scaling according to cmin and cmax
@@ -359,18 +371,18 @@ class Matlab2Backend(BaseClass):
     def _set_colormap(self, ax):
         """Set the colormap."""
         if DEBUG:
-            print("Setting colormap")
+            print('<cmap>')
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
         if cmap is not None:
             self._script += "colormap %s,...\n" % cmap
         else:
-            pass  #self._script += "colormap default,...\n"
+            pass  # self._script += "colormap default,...\n"
 
     def _set_view(self, ax):
         """Set viewpoint specification."""
         if DEBUG:
-            print("Setting view")
+            print('<view>')
         cam = ax.getp('camera')
         view = cam.getp('view')
         if view == 2:
@@ -386,25 +398,25 @@ class Matlab2Backend(BaseClass):
                 self._script += "view(3),...\n"
             else:
                 # set a 3D view according to az and el
-                self._script += "view([%s,%s]),...\n" % (az,el)
+                self._script += "view([%s,%s]),...\n" % (az, el)
 
             if cam.getp('cammode') == 'manual':
                 # for advanced camera handling:
                 roll = cam.getp('camroll')
-                #if roll is not None:
+                # if roll is not None:
                 #    self._g.camroll(roll, nout=0)
                 zoom = cam.getp('camzoom')
-                #if zoom != 1:  # FIXME: Is this the right way?
+                # if zoom != 1:  # FIXME: Is this the right way?
                 #    self._g.camzoom(zoom, nout=0)
                 dolly = cam.getp('camdolly')
-                #if dolly != (0,0,0):
+                # if dolly != (0,0,0):
                 #    self._g.camdolly(list(dolly), nout=0)
                 target = cam.getp('camtarget')
                 position = cam.getp('campos')
                 up_vector = cam.getp('camup')
                 view_angle = cam.getp('camva')
                 projection = cam.getp('camproj')
-                #self._axargs.extend(['CameraTarget', target,
+                # self._axargs.extend(['CameraTarget', target,
                 #                     'CameraPosition', position,
                 #                     'CameraPosition', position,
                 #                     'CamearUpVector', up_vector,
@@ -413,7 +425,7 @@ class Matlab2Backend(BaseClass):
 
     def _set_axis_props(self, ax):
         if DEBUG:
-            print("Setting axis properties")
+            print('<axes props>')
         self._set_title(ax)
         self._set_scale(ax)
         self._set_axis_method(ax)  # should be called before _set_limits.
@@ -449,7 +461,7 @@ class Matlab2Backend(BaseClass):
     def _add_line(self, item):
         """Add a 2D or 3D curve to the scene."""
         if DEBUG:
-            print("Adding a line")
+            print('<line +>')
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
@@ -484,7 +496,7 @@ class Matlab2Backend(BaseClass):
 
     def _add_bar_graph(self, item, shading='faceted'):
         if DEBUG:
-            print("Adding a bar graph")
+            print('<bar graph +>')
         # get data:
         x = item.getp('xdata')
         y = item.getp('ydata')
@@ -530,7 +542,7 @@ class Matlab2Backend(BaseClass):
 
     def _add_surface(self, item, shading='faceted'):
         if DEBUG:
-            print("Adding a surface")
+            print('<surface +>')
         x = squeeze(item.getp('xdata'))  # grid component in x-direction
         y = squeeze(item.getp('ydata'))  # grid component in y-direction
         z = asarray(item.getp('zdata'))  # scalar field
@@ -538,8 +550,8 @@ class Matlab2Backend(BaseClass):
 
         cmd = ""
         if item.getp('indexing') == 'ij' and \
-               (shape(x) != shape(z) and shape(y) != shape(z)):
-            x,y = ndgrid(x,y,sparse=False)
+                (shape(x) != shape(z) and shape(y) != shape(z)):
+            x, y = ndgrid(x, y, sparse=False)
         if shape(x) != shape(z) and shape(y) != shape(z):
             cmd += "x = %s;\n" % list(x)
             cmd += "y = %s;\n" % list(y)
@@ -579,7 +591,7 @@ class Matlab2Backend(BaseClass):
         if contours:
             # the current item is produced by meshc or surfc and we
             # should therefore add contours at the bottom:
-            #self._add_contours(contours, placement='bottom')
+            # self._add_contours(contours, placement='bottom')
             pass
 
         if item.getp('wireframe'):
@@ -599,7 +611,7 @@ class Matlab2Backend(BaseClass):
                 else:
                     func = 'surf'
 
-        if func in ['pcolor','meshc']:
+        if func in ['pcolor', 'meshc']:
             # pcolor needs special treatment since it has no support for
             # parameter/value pairs.
             cmd += "h = %s(X,Y,Z);\n" % func
@@ -610,7 +622,7 @@ class Matlab2Backend(BaseClass):
         else:
             if c is not None:
                 args = ",C" + args
-            cmd += "%s(X,Y,Z%s),...\n" % (func,args)
+            cmd += "%s(X,Y,Z%s),...\n" % (func, args)
 
         self._script += cmd
 
@@ -619,15 +631,14 @@ class Matlab2Backend(BaseClass):
         # latter specifies that the contours should be placed at the
         # bottom (as in meshc or surfc).
         if DEBUG:
-            print("Adding contours")
+            print('<contours +>')
         x = squeeze(item.getp('xdata'))  # grid component in x-direction
         y = squeeze(item.getp('ydata'))  # grid component in y-direction
         z = asarray(item.getp('zdata'))  # scalar field
 
         cmd = ""
-        if item.getp('indexing') == 'ij' and \
-               (shape(x) != shape(z) and shape(y) != shape(z)):
-            x,y = ndgrid(x,y,sparse=False)
+        if item.getp('indexing') == 'ij' and (shape(x) != shape(z) and shape(y) != shape(z)):
+            x, y = ndgrid(x, y, sparse=False)
         if shape(x) != shape(z) and shape(y) != shape(z):
             cmd += "x = %s;\n" % list(x)
             cmd += "y = %s;\n" % list(y)
@@ -647,7 +658,7 @@ class Matlab2Backend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             args += ",%s" % clevels
         else:
             args += ",%s" % list(cvector)
@@ -673,7 +684,7 @@ class Matlab2Backend(BaseClass):
 
         if item.getp('function') == 'contour3':
             # contour3 does not allow property-value pairs
-            cmd += "[cs,h] = %s(X,Y,Z%s);\n" % (func,args)
+            cmd += "[cs,h] = %s(X,Y,Z%s);\n" % (func, args)
             if color:
                 extra_args += ",'EdgeColor', '%s'" % color
                 # FIXME: What if color is a three-tuple [r,g,b]?
@@ -686,7 +697,7 @@ class Matlab2Backend(BaseClass):
                 extra_args += ",'Color', '%s'" % color
                 # FIXME: What if color is a three-tuple [r,g,b]?
             args += extra_args
-            cmd += "[cs,h] = %s(X,Y,Z%s);\n" % (func,args)
+            cmd += "[cs,h] = %s(X,Y,Z%s);\n" % (func, args)
 
         if item.getp('clabels'):
             # add labels on the contour curves
@@ -696,10 +707,10 @@ class Matlab2Backend(BaseClass):
 
     def _add_vectors(self, item):
         if DEBUG:
-            print("Adding vectors")
+            print('<vectors +>')
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x = squeeze(item.getp('xdata'))
@@ -716,7 +727,7 @@ class Matlab2Backend(BaseClass):
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         cmd = ""
         if z is not None and w is not None:
@@ -725,9 +736,9 @@ class Matlab2Backend(BaseClass):
             # draw velocity vectors as arrows with components (u,v,w) at
             # points (x,y,z):
             if item.getp('indexing') == 'ij' and \
-                   (shape(x) != shape(u) and shape(y) != shape(u) and \
+                (shape(x) != shape(u) and shape(y) != shape(u) and
                     shape(z) != shape(u)):
-                x,y,z = ndgrid(x,y,z,sparse=False)
+                x, y, z = ndgrid(x, y, z, sparse=False)
             if shape(x) != shape(u) and shape(y) != shape(u) and \
                shape(z) != shape(u):
                 cmd += "x = %s;\n" % list(x)
@@ -750,8 +761,8 @@ class Matlab2Backend(BaseClass):
             # draw velocity vectors as arrows with components (u,v) at
             # points (x,y):
             if item.getp('indexing') == 'ij' and \
-                   (shape(x) != shape(u) and shape(y) != shape(u)):
-                x,y = ndgrid(x,y,sparse=False)
+                    (shape(x) != shape(u) and shape(y) != shape(u)):
+                x, y = ndgrid(x, y, sparse=False)
             if shape(x) != shape(u) and shape(y) != shape(u):
                 cmd += "x = %s;\n" % list(x)
                 cmd += "y = %s;\n" % list(y)
@@ -778,12 +789,12 @@ class Matlab2Backend(BaseClass):
             args += ",'Marker','%s','ShowArrowHead','off'" % marker
         if width:
             args += ",'LineWidth', %s" % float(width)
-        cmd += "%s(%s),...\n" % (func,args)
+        cmd += "%s(%s),...\n" % (func, args)
         self._script += cmd
 
     def _add_streams(self, item):
         if DEBUG:
-            print("Adding streams")
+            print('<streams +>')
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         # vector components:
@@ -796,32 +807,32 @@ class Matlab2Backend(BaseClass):
         marker, color, style, width = self._get_linespecs(item)
         # TODO: implement linepecs
 
-        args = [x,y,z,u,v,w,sx,sy,sz]
+        args = [x, y, z, u, v, w, sx, sy, sz]
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             args.append([scale, n])
-            #func = self._g.streamtube
+            # func = self._g.streamtube
         elif item.getp('ribbons'):
             # draw stream ribbons from vector data (u,v,w) at points (x,y,z)
             width = item.getp('ribbonwidth')
             args.append(width)
-            #func = self._g.streamribbon
+            # func = self._g.streamribbon
         else:
             if z is not None and w is not None:
                 # draw stream lines from vector data (u,v,w) at points (x,y,z)
                 pass
             else:
                 # draw stream lines from vector data (u,v) at points (x,y)
-                args = [x,y,u,v,sx,sy]
-            #func = self._g.streamline
+                args = [x, y, u, v, sx, sy]
+            # func = self._g.streamline
         kwargs = {'nout': 0}
-        #func(*args, **kwargs)
+        # func(*args, **kwargs)
 
     def _add_isosurface(self, item):
         if DEBUG:
-            print("Adding a isosurface")
+            print('<isosurface +>')
         # grid components:
         x = squeeze(item.getp('xdata'))
         y = squeeze(item.getp('ydata'))
@@ -832,11 +843,11 @@ class Matlab2Backend(BaseClass):
 
         cmd = ""
         if item.getp('indexing') == 'ij' and \
-               (shape(x) != shape(v) and shape(y) != shape(v) and \
+            (shape(x) != shape(v) and shape(y) != shape(v) and
                 shape(z) != shape(v)):
-            x,y,z = ndgrid(x,y,z,sparse=False)
+            x, y, z = ndgrid(x, y, z, sparse=False)
         if shape(x) != shape(v) and shape(y) != shape(v) and \
-               shape(z) != shape(v):
+                shape(z) != shape(v):
             cmd += "x = %s;\n" % list(x)
             cmd += "y = %s;\n" % list(y)
             cmd += "z = %s;\n" % list(z)
@@ -865,15 +876,15 @@ class Matlab2Backend(BaseClass):
 
     def _add_slices(self, item):
         if DEBUG:
-            print("Adding slices in a volume")
+            print('wvol slice +>')
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
 
         if item.getp('indexing') == 'ij' and \
-               (shape(x) != shape(v) and shape(y) != shape(v) and \
+            (shape(x) != shape(v) and shape(y) != shape(v) and
                 shape(z) != shape(v)):
-            x,y,z = ndgrid(x,y,z,sparse=False)
+            x, y, z = ndgrid(x, y, z, sparse=False)
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
             # sx, sy, and sz defines a surface
@@ -881,11 +892,11 @@ class Matlab2Backend(BaseClass):
         else:
             # sx, sy, and sz is either numbers or vectors with numbers
             pass
-        #self._g.slice_(x,y,z,v,sx,sy,sz,nout=0)
+        # self._g.slice_(x,y,z,v,sx,sy,sz,nout=0)
 
     def _add_contourslices(self, item):
         if DEBUG:
-            print("Adding contours in slice planes")
+            print('<contour slice +>')
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         v = item.getp('vdata')  # volume
@@ -899,10 +910,10 @@ class Matlab2Backend(BaseClass):
             pass
 
         if item.getp('indexing') == 'ij' and \
-               (shape(x) != shape(v) and shape(y) != shape(v) and \
+            (shape(x) != shape(v) and shape(y) != shape(v) and
                 shape(z) != shape(v)):
-            x,y,z = ndgrid(x,y,z,sparse=False)
-        args = [x,y,z,v,sx,sy,sz]
+            x, y, z = ndgrid(x, y, z, sparse=False)
+        args = [x, y, z, v, sx, sy, sz]
 
         cvector = item.getp('cvector')
         clevels = item.getp('clevels')  # number of contour levels per plane
@@ -911,11 +922,11 @@ class Matlab2Backend(BaseClass):
             args.append(clevels)
         else:
             args.append(cvector)
-        #self._g.contourslice(*args, **kwargs)
+        # self._g.contourslice(*args, **kwargs)
 
     def _set_figure_size(self, fig):
         if DEBUG:
-            print("Setting figure size")
+            print('<figure size>')
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
@@ -965,12 +976,12 @@ class Matlab2Backend(BaseClass):
                 # create axes in tiled position
                 # this is subplot(nrows,ncolumns,axnr)
                 self._script += "ax%d = subplot(%d,%d,%d);\n" % \
-                                (axnr,nrows,ncolumns,axnr)
+                                (axnr, nrows, ncolumns, axnr)
             else:
                 rect = ax.getp('viewport')
                 if rect and ax.getp('pth') is None:
                     self._script += "ax%d = axes('position', %s);\n" % \
-                                    (axnr,rect)
+                                    (axnr, rect)
                 else:
                     self._script += "ax%d = gca;\n" % axnr
             if ax.getp('numberofitems') > 0:
@@ -1026,8 +1037,8 @@ class Matlab2Backend(BaseClass):
             fname = "easyviz_tmp_mfile.m"
             self.save_m(fname)
             basename, ext = os.path.splitext(fname)
-            os.system('xterm -e "%s -r %s"' % (MATLAB_CMD_STR,basename))
-            #os.remove(fname)
+            os.system('xterm -e "%s -r %s"' % (MATLAB_CMD_STR, basename))
+            # os.remove(fname)
 
     def hardcopy(self, filename, **kwargs):
         """
@@ -1102,9 +1113,9 @@ class Matlab2Backend(BaseClass):
 
         # convert table (extension --> device):
         ext2dev = {
-            '': '-dps%s%s' % (pscolor,pslevel),
-            '.ps': '-dps%s%s' % (pscolor,pslevel),
-            '.eps': '-deps%s%s' % (pscolor,pslevel),
+            '': '-dps%s%s' % (pscolor, pslevel),
+            '.ps': '-dps%s%s' % (pscolor, pslevel),
+            '.eps': '-deps%s%s' % (pscolor, pslevel),
             '.jpg': '-djpeg%d' % int(quality),
             '.jpeg': '-djpeg%d' % int(quality),
             '.jpe': '-djpeg%d' % int(quality),
@@ -1120,13 +1131,13 @@ class Matlab2Backend(BaseClass):
             '.pcx': '-dpcx24b',
             '.bmp': '-dbmp',
             '.dib': '-dbmp',
-            }
+        }
         basename, ext = os.path.splitext(filename)
         device = ext2dev[ext]
 
         if renderer:
             renderer = "-%s" % renderer
-        self._script += "print %s %s %s\n" % (device,filename,renderer)
+        self._script += "print %s %s %s\n" % (device, filename, renderer)
 
         if False and has_matlab:
             fname = tempfile.mktemp(suffix='.m')
@@ -1134,14 +1145,16 @@ class Matlab2Backend(BaseClass):
             path, fname = os.path.split(fname)
             basename, ext = os.path.splitext(fname)
             statement = '"%s;quit"' % basename
-            os.system("xterm -e '%s -sd %s -r %s'" % \
-                      (MATLAB_CMD_STR,path,statement))
+            os.system("xterm -e '%s -sd %s -r %s'" %
+                      (MATLAB_CMD_STR, path, statement))
 
     def reset(self):
         """
         Reset the class variable _script where the current Matlab commands
         are stored.
         """
+        if debug:
+            print('reset script !')
         self._script = ""
 
     def save_m(self, filename):
@@ -1149,9 +1162,8 @@ class Matlab2Backend(BaseClass):
         Save the Matlab commands for the current figure(s) in a M-file
         script.
         """
-        f = open(filename, 'w')
-        f.write(self._script)
-        f.close()
+        with open(filename, 'w') as f:
+            f.write(self._script)
 
     def get_script(self):
         """Return a string with the currently stored Matlab commands."""
@@ -1240,7 +1252,6 @@ class Matlab2Backend(BaseClass):
 
     def summer(self, m=64):
         return "summer(%s)" % m
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

@@ -1,5 +1,6 @@
 from scitools.std import *   # for curve plotting
 
+
 def f(t):
     return exp(-t**2)
 
@@ -13,4 +14,3 @@ legend('exp(-t^2)')
 title('Logarithmic scale on the y axis')
 savefig('plot1d.eps')
 savefig('plot1d.png')
-input('Press Return key to quit: ')

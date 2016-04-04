@@ -1,10 +1,12 @@
 from scitools.std import *   # for curve plotting
 
+
 def f1(t):
-    return t**2*exp(-t**2)
+    return t**2 * exp(-t**2)
+
 
 def f2(t):
-    return t**2*f1(t)
+    return t**2 * f1(t)
 
 t = linspace(0, 3, 51)
 y1 = f1(t)
@@ -41,7 +43,5 @@ plot(t, y1, xlabel='t', ylabel='y')
 subplot(2, 1, 2)
 plot(t, y2, xlabel='t', ylabel='y')
 title('A figure with two plots')
-#savefig('tmp2_3.eps')  # illegal in multiplot mode
+# savefig('tmp2_3.eps')  # illegal in multiplot mode
 show()
-
-input('Press Return key to quit: ')

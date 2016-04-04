@@ -1,5 +1,6 @@
 from scitools.std import *   # for curve plotting
 
+
 def f(t):
     return exp(-t**2)
 
@@ -16,4 +17,3 @@ plot(t, y, 'r-2',
 
 savefig('plot1e.eps')
 
-input('Press Return key to quit: ')
