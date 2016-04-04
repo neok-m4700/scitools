@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-import glob, os, sys
+import glob
+import sys
+import subprocess as sp
 
 demos = glob.glob('*.py')
-avoid = 'runall.py',
+avoid = ('runall.py', 'demo_pyreport.py', 'grab_backend_demo.py')
 for filename in avoid:
     demos.remove(filename)
 
@@ -13,17 +15,18 @@ except IndexError:
     pass
 
 for filename in sorted(demos):
+    backend_old = backend
     answer = input(filename + '? ')
     if answer.lower() == 'n':
         continue
     if 'matlab' in filename and not backend.startswith('matlab'):
         continue
-    if ('isosurf' in filename or 'streamtube' in filename or \
-        'slice' in filename or 'contourslice' in filename) and \
-       backend in ('gnuplot', 'grace', 'matplotlib',):
-        continue
-    cmd = 'python %s --SCITOOLS_easyviz_backend %s' % (filename, backend)
-    failure = os.system(cmd)
+    if 'isosurf' in filename or 'streamtube' in filename or 'slice' in filename or 'contourslice' in filename:
+        backend_old = backend
+        backend = 'vtk_new'
+
+    cmd = ['python', filename, '--SCITOOLS_easyviz_backend', backend]
+    sp.check_call(cmd)
+    backend = backend_old  # restore backend
 
 # surf_demo2
-

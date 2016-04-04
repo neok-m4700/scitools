@@ -41,7 +41,6 @@ from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
 from .misc import _update_from_config_file
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
-# import numpy as np
 import os
 import sys
 
@@ -55,6 +54,7 @@ sys.path.extend(lib_dirs)
 
 check_if_module_exists('vtk', msg='You need to install the vtk package.', abort=False)
 import vtk
+# print(dir(vtk))
 
 # check_if_module_exists('tkinter', msg='You need to install the Tkinter package.')
 try:
@@ -120,12 +120,15 @@ class _VTKFigure(object):
         self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame,
                                                                            width=width,
                                                                            height=height)
+        self.is_in_mainloop = False
         self.tkw.pack(expand='true', fill='both')
 
         self.renwin = self.tkw.GetRenderWindow()
         self.renwin.SetSize(width, height)
 
     def reset(self):
+        if DEBUG:
+            print('<reset>')
         # remove all renderers:
         renderers = self.renwin.GetRenderers()
         ren = renderers.GetFirstRenderer()
@@ -134,6 +137,8 @@ class _VTKFigure(object):
             ren = renderers.GetNextItem()
 
     def close(self, event=None):
+        if DEBUG:
+            print('<close>')
         self.plt.clf()
         self.root.withdraw()
 
@@ -165,7 +170,9 @@ class _VTKFigure(object):
 
         self.renwin.Render()
 
-        if self.plt.getp('interactive'):
+        if self.plt.getp('interactive') and not self.is_in_mainloop and self.plt.getp('show'):
+            print('--> calling interactive mode !')
+            self.is_in_mainloop = True
             self.tkw.Start()
 
             # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
@@ -176,13 +183,19 @@ class _VTKFigure(object):
             self.master.mainloop()
 
     def exit(self):
+        self.close()
         if DEBUG:
             print('<exit>')
         self.renwin.Finalize()
-        self.renwin.GetInteractor().TerminateApp()
+        if self.is_in_mainloop:
+            print('--> iren exit')
+            iren = self.renwin.GetInteractor()
+            iren.TerminateApp()
+            del iren
+
         del self.renwin
         self.master.quit()
-        self.master.destroy()
+        # self.master.destroy  # do not destroy, in order to create other figures ...
 
     def set_size(self, width, height):
         self.root.geometry('{}x{}'.format(width, height))
@@ -214,6 +227,12 @@ class VTKBackend(BaseClass):
         self._master = tkinter.Tk()
         self._master.withdraw()
         self.figure(self.getp('curfig'))
+
+        def savefig_callback(e):
+            print('----> savefig_callback', repr(e.char))
+            self.hardcopy('fig.pdf')
+
+        self._g.tkw.bind('<Control-s>', savefig_callback)
 
         # conversion tables for format strings:
         self._markers = {
@@ -284,7 +303,7 @@ class VTKBackend(BaseClass):
         }
 
         if DEBUG:
-            print('Setting backend standard variables')
+            print('<backend standard variables>')
             for disp in 'self._markers self._colors self._line_styles'.split():
                 print(disp, eval(disp))
 
@@ -296,7 +315,7 @@ class VTKBackend(BaseClass):
         return color
 
     def _set_scale(self, ax):
-        '''Set linear or logarithmic (base 10) axis scale.'''
+        '''set linear or logarithmic (base 10) axis scale'''
         if DEBUG:
             print('<scales>')
         scale = ax.getp('scale')
@@ -331,7 +350,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_title(self, ax):
-        '''Add a title at the top of the axis.'''
+        '''Add a title at the top of the axis'''
         if DEBUG:
             print('<title>')
         title = self._fix_latex(ax.getp('title'))
@@ -403,7 +422,7 @@ class VTKBackend(BaseClass):
         ax._limits = (xmin, xmax, ymin, ymax, zmin, zmax)
 
     def _set_position(self, ax):
-        '''Set axes position.'''
+        '''set axes position'''
         rect = ax.getp('viewport')
         if rect:
             # axes position is defined. In Matlab rect is defined as
@@ -414,7 +433,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_daspect(self, ax):
-        '''Set data aspect ratio.'''
+        '''set data aspect ratio'''
         dar = ax.getp('daspect')  # dar is a list (len(dar) is 3).
         # the axis limits are stored as ax._limits
         l = list(ax._limits)
@@ -579,26 +598,23 @@ class VTKBackend(BaseClass):
                 else:
                     camera.ParallelProjectionOn()
 
-        self._ax._renderer.SetActiveCamera(camera)
-        self._ax._camera = camera
-
-        # make sure all actors are inside the current view:
-        ren = self._ax._renderer
+        ax._renderer.SetActiveCamera(camera)
+        ax._camera = camera
 
         # unit axes
         axes = vtk.vtkAxesActor()
         axes.GetXAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
         axes.GetYAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
         axes.GetZAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
-        ren.AddActor(axes)
+        ax._renderer.AddActor(axes)
 
-        ren.ResetCamera()
+        ax._renderer.ResetCamera()
         # if self._ax.getp('camera').getp('view') == 2:
-        #    ren.GetActiveCamera().Zoom(1.5)
+        #    ax._renderer.GetActiveCamera().Zoom(1.5)
         camera.Zoom(cam.getp('camzoom'))
 
         # set the camera in the vtkCubeAxesActor2D object:
-        # self._ax._vtk_axes.SetCamera(camera)
+        # ax._vtk_axes.SetCamera(camera)
 
     def _set_axis_props(self, ax):
         if DEBUG:
@@ -652,30 +668,31 @@ class VTKBackend(BaseClass):
         return clipper
 
     def _set_shading(self, item, source, actor):
+        '''shading + mesh contour'''
         shading = self._ax.getp('shading')
         if shading == 'interp':
             actor.GetProperty().SetInterpolationToGouraud()
         elif shading == 'flat':
             actor.GetProperty().SetInterpolationToFlat()
         else:
-            # use 'faceted' as the default shading
-            actor.GetProperty().SetInterpolationToFlat()
+            actor.GetProperty().SetInterpolationToPhong()
             edges = vtk.vtkExtractEdges()
             edges.SetInputConnection(source.GetOutputPort())
             mapper = vtk.vtkPolyDataMapper()
             mapper.SetInputConnection(edges.GetOutputPort())
             mapper.ScalarVisibilityOff()
             mapper.SetResolveCoincidentTopologyToPolygonOffset()
-            mesh = vtk.vtkActor()
-            mesh.SetMapper(mapper)
+
             edgecolor = self._colors.get(item.getp('edgecolor'), None)
             if edgecolor is None:
                 # try items linecolor property:
                 edgecolor = self._colors.get(item.getp('linecolor'), None)
-                if edgecolor is None:
-                    edgecolor = (0, 0, 0)  # use black as default edge color
-            mesh.GetProperty().SetColor(edgecolor)
-            self._ax._renderer.AddActor(mesh)
+
+            if edgecolor is not None:
+                mesh = vtk.vtkActor()
+                mesh.SetMapper(mapper)
+                mesh.GetProperty().SetColor(edgecolor)
+                self._ax._renderer.AddActor(mesh)
 
     def _set_actor_properties(self, item, actor):
         # set line properties:
@@ -746,6 +763,7 @@ class VTKBackend(BaseClass):
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(item.getp('numberofpoints'))
         scalars = vtk.vtkFloatArray()
+        scalars.SetName('vectors')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
         nx, ny = shape(z)
@@ -813,6 +831,7 @@ for (int j=0; j<ny; j++) {
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(n)
         vectors = vtk.vtkFloatArray()
+        vectors.SetName('vectors')
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
@@ -856,13 +875,11 @@ for (int j=0; j<ny; j++) {
         c = item.getp('cdata')           # pseudocolor data
         # FIXME: What about pseudocolor data?
 
-        if shape(x) != shape(v) and shape(y) != shape(v) \
-                and shape(z) != shape(v):
+        if shape(x) != shape(v) and shape(y) != shape(v) and shape(z) != shape(v):
             assert x.ndim == 1 and y.ndim == 1 and z.ndim == 1
             x, y, z = meshgrid(x, y, z, sparse=False, indexing=item.getp('indexing'))
             # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(v) and shape(y) == shape(v) \
-            and shape(z) == shape(v)
+        assert shape(x) == shape(v) and shape(y) == shape(v) and shape(z) == shape(v)
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
@@ -871,6 +888,7 @@ for (int j=0; j<ny; j++) {
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(item.getp('numberofpoints'))
         scalars = vtk.vtkFloatArray()
+        scalars.SetName('scalars')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
         nx, ny, nz = shape(v)
@@ -920,27 +938,24 @@ for (int k=0; k<nz; k++) {
         dx, dy, dz = self._ax.getp('daspect')
         x, y, z = x / dx, y / dy, z / dz
 
-        if shape(x) != shape(u) and shape(y) != shape(u) \
-                and shape(z) != shape(u):
+        if shape(x) != shape(u) and shape(y) != shape(u) and shape(z) != shape(u):
             assert x.ndim == 1 and y.ndim == 1 and z.ndim == 1
             x, y, z = meshgrid(x, y, z, sparse=False, indexing=item.getp('indexing'))
             # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(u) and shape(y) == shape(u) and \
-            shape(z) == shape(u) and shape(v) == shape(u) and \
-            shape(w) == shape(u)
+        assert shape(x) == shape(u) and shape(y) == shape(u) and shape(z) == shape(u) and shape(v) == shape(u) and shape(w) == shape(u)
 
         n = item.getp('numberofpoints')
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(n)
         vectors = vtk.vtkFloatArray()
-        vectors.SetName('vect')
+        vectors.SetName('vectors')
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
         nx, ny, nz = shape(u)
         nc = (nx - 1) * (ny - 1) * (nz - 1)
         scalars = vtk.vtkFloatArray()
-        scalars.SetName('scal')
+        scalars.SetName('scalars')
         scalars.SetNumberOfTuples(nc)
         scalars.SetNumberOfComponents(1)
         scalars.SetNumberOfValues(nc)
@@ -976,7 +991,7 @@ for (int k=0; k<nz; k++) {
             for k in range(nz - 1):
                 for j in range(ny - 1):
                     for i in range(nx - 1):
-                        scalars.SetTuple1(ind, sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
+                        scalars.SetValue(ind, sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
                         ind += 1
 
         sgrid = vtk.vtkStructuredGrid()
@@ -1044,6 +1059,7 @@ for (int k=0; k<nz; k++) {
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
+            data.Update()
             cax = data.GetOutput().GetScalarRange()
         mapper.SetScalarRange(cax)
         actor = vtk.vtkActor()
@@ -1096,9 +1112,9 @@ for (int k=0; k<nz; k++) {
         isoMapper = vtk.vtkPolyDataMapper()
         isoMapper.SetInputConnection(iso.GetOutputPort())
         cmap = self._ax._colormap
-        # if filled:
-        #    cmap.SetNumberOfColors(clevels)
-        #    cmap.Build()
+        if filled:
+            cmap.SetNumberOfColors(clevels)
+            cmap.Build()
         isoMapper.SetLookupTable(cmap)
         cax = self._ax._caxis
         if cax is None:
@@ -1106,7 +1122,7 @@ for (int k=0; k<nz; k++) {
         isoMapper.SetScalarRange(cax)
         if item.getp('linecolor'):  # linecolor is defined
             isoMapper.ScalarVisibilityOff()
-        # isoMapper.Update()
+
         isoActor = vtk.vtkActor()
         isoActor.SetMapper(isoMapper)
         self._set_actor_properties(item, isoActor)
@@ -1317,23 +1333,30 @@ for (int k=0; k<nz; k++) {
         isovalue = item.getp('isovalue')
 
         sgrid = self._create_3D_scalar_data(item)
+
         iso = vtk.vtkContourFilter()
-        iso.SetInputConnection(sgrid.GetOutputPort())
+        iso.SetInputData(sgrid.GetOutputDataObject(0))
         iso.SetValue(0, isovalue)
         data = self._cut_data(iso)
+
         normals = vtk.vtkPolyDataNormals()
         normals.SetInputConnection(data.GetOutputPort())
         normals.SetFeatureAngle(45)
+
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputConnection(normals.GetOutputPort())
+        # mapper.SetScalarModeToUsePointFieldData()
         mapper.SetLookupTable(self._ax._colormap)
+
         cax = self._ax._caxis
         if cax is None:
-            cax = sgrid.GetScalarRange()
+            print('cax is', cax)
+            cax = sgrid.GetOutputDataObject(0).GetScalarRange()
+
         mapper.SetScalarRange(cax)
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
-        self._set_shading(item, data, actor)
+        # self._set_shading(item, data, actor)
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
         self._ax._apd.AddInputConnection(normals.GetOutputPort())
@@ -1343,7 +1366,7 @@ for (int k=0; k<nz; k++) {
             print('<slices vol +>')
 
         sgrid = self._create_3D_scalar_data(item)
-        sgrid.Modified()
+        # sgrid.Modified()
 
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
@@ -1372,14 +1395,13 @@ for (int k=0; k<nz; k++) {
             mapper.SetScalarRange(cax)
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
-            self._set_shading(item, data, actor)
+            if not contours:
+                self._set_shading(item, data, actor)
             self._set_actor_properties(item, actor)
             self._ax._renderer.AddActor(actor)
             self._ax._apd.AddInputConnection(cut.GetOutputPort())
             self._ax._apd.AddInputConnection(data.GetOutputPort())
-            pass
         else:
-            print('there')
             # sx, sy, and sz is either numbers or vectors with numbers
             origins, normals = [], []
             sgrido = sgrid.GetOutputDataObject(0)
@@ -1473,7 +1495,7 @@ for (int k=0; k<nz; k++) {
 
     def _setup_axis(self, ax):
         if DEBUG:
-            print('Setting up axis')
+            print('<axis>')
         self._set_limits(ax)
         self._set_daspect(ax)
         self._set_colormap(ax)
@@ -1566,8 +1588,9 @@ for (int k=0; k<nz; k++) {
             # display plot on the screen
             if DEBUG:
                 print('\n<plot data to screen>\n')
-                debug(self)
+                debug(self, level=0)
             pass
+
         self._g.display(show=self.getp('show'))
 
     def hardcopy(self, filename, **kwargs):
@@ -1616,6 +1639,9 @@ for (int k=0; k<nz; k++) {
                          compression). This option only has effect when
                          vector_file is True.
         '''
+        if DEBUG:
+            print('----> hardcopy to', filename)
+
         if filename.startswith('.'):
             filename = 'tmp' + filename
 
@@ -1626,11 +1652,8 @@ for (int k=0; k<nz; k++) {
         if not self.getp('show'):  # don't render to screen
             self._g.renwin.OffScreenRenderingOn()
 
-        if replot:
+        if replot:  #  and not self._g.is_in_mainloop # this is wrong, the pipeline isn't updated !
             self._replot()
-
-        if DEBUG:
-            print('Hardcopy to {}'.format(filename))
 
         basename, ext = os.path.splitext(filename)
         if not ext:
@@ -1643,7 +1666,11 @@ for (int k=0; k<nz; k++) {
         vector_file = bool(kwargs.get('vector_file', True))
         orientation = kwargs.get('orientation', 'portrait')
         raster3d = bool(kwargs.get('raster3d', False))
-        compression = bool(kwargs.get('compression', False))
+        compression = bool(kwargs.get('compression', True))
+
+        if DEBUG:
+            print('jpeg_quality, progressive, vector_file', jpeg_quality, progressive, vector_file)
+            print('orientation, raster3d, compression', orientation, raster3d, compression)
 
         landscape = False
         if orientation.lower() == 'landscape':
@@ -1652,6 +1679,7 @@ for (int k=0; k<nz; k++) {
         vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3}
         if vector_file and ext.lower() in vector_file_formats:
             exp = vtk.vtkGL2PSExporter()
+            exp.SetBufferSize(50 * 1024 * 1024)  #  50MB
             exp.SetRenderWindow(self._g.renwin)
             exp.SetFilePrefix(basename)
             exp.SetFileFormat(vector_file_formats[ext.lower()])

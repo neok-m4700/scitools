@@ -4,7 +4,6 @@
 # www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3796.html
 import scitools.globaldata; scitools.globaldata.DEBUG = 1
 from scitools.easyviz.vtk_new_ import *
-from time import sleep
 from scipy import io
 
 wind = io.loadmat('wind_matlab_v6.mat')

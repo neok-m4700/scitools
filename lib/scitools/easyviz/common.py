@@ -1056,9 +1056,7 @@ class Volume(PlotProperties):
 
         if nargs in (3, 6):  # isosurface(...,COLORS)
             cdata = asarray(args[-1])
-            assert v.shape == cdata.shape, \
-                'COLORS must have shape %s (as V), not %s' % \
-                (v.shape, cdata.shape)
+            assert v.shape == cdata.shape, 'COLORS must have shape {} (as V), not {}'.format(v.shape, cdata.shape)
             self._prop['cdata'] = cdata
 
         self._set_data(x, y, z, v, isovalue=isovalue)
@@ -1112,8 +1110,7 @@ class Colorbar(object):
             if kwargs['cblocation'] in self._locations:
                 self._prop['cblocation'] = kwargs['cblocation']
             else:
-                print('colorbar location must be one of %s, not %s' %
-                      (self._locations, kwargs['cblocation']))
+                print('colorbar location must be one of {}, not {}'.format(self._locations, kwargs['cblocation']))
 
         if 'cbtitle' in kwargs:
             self._prop['cbtitle'] = str(kwargs['cbtitle'])
@@ -1125,8 +1122,7 @@ class Colorbar(object):
         try:
             return self._prop[prm_name]
         except:
-            raise KeyError('%s.getp: no parameter with name %s' %
-                           (self.__class__.__name__, prm_name))
+            raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, prm_name))
 
     def reset(self):
         self._prop = self._defaults.copy()
@@ -1181,8 +1177,7 @@ class Light(object):
         try:
             return self._prop[name]
         except:
-            raise KeyError('%s.getp: no parameter with name %s.' %
-                           (self.__class__.__name__, name))
+            raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
     def reset(self):
         self._prop = self._defaults.copy()
@@ -1231,8 +1226,7 @@ class Camera(object):
             if kwargs['cammode'] in self._modes:
                 self._prop['cammode'] = kwargs['cammode']
             else:
-                raise ValueError('Camera.setp: cammode must be %s, not %s' %
-                                 (self._modes, kwargs['cammode']))
+                raise ValueError('Camera.setp: cammode must be {}, not {}'.format(self._modes, kwargs['cammode']))
 
         if 'view' in kwargs:
             view = kwargs['view']
@@ -1248,8 +1242,7 @@ class Camera(object):
             if kwargs['camproj'] in self._camprojs:
                 self._prop['camproj'] = kwargs['camproj']
             else:
-                raise ValueError('projection must one of %s, not %s' %
-                                 (self._camprojs, kwargs['camproj']))
+                raise ValueError('projection must one of {}, not {}'.format(self._camprojs, kwargs['camproj']))
 
         for prop in 'camzoom camva camroll'.split():
             if prop in kwargs:
@@ -1282,8 +1275,7 @@ class Camera(object):
         try:
             return self._prop[name]
         except:
-            raise KeyError('%s.getp: no parameter with name %s.' %
-                           (self.__class__.__name__, name))
+            raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
     def reset(self):
         '''Reset camera to defaults.'''
@@ -1392,22 +1384,19 @@ class Axis(object):
                     for r in self._ranges:
                         self._prop[r] = None
             else:
-                raise ValueError('Axis.setp: mode must be %s, not %s' %
-                                 (self._modes, mode))
+                raise ValueError('Axis.setp: mode must be {}, not {}'.format(self._modes, mode))
 
         if 'method' in kwargs:
             if kwargs['method'] in self._methods:
                 self._prop['method'] = kwargs['method']
             else:
-                raise ValueError('Axis.setp: method must be %s, not %s' %
-                                 (self._methods, kwargs['method']))
+                raise ValueError('Axis.setp: method must be {}, not {}'.format(self._methods, kwargs['method']))
 
         if 'direction' in kwargs:
             if kwargs['direction'] in self._directions:
                 self._prop['direction'] = kwargs['direction']
             else:
-                raise ValueError('Axis.setp: direction must be %s, not %s' %
-                                 (self._directions, kwargs['direction']))
+                raise ValueError('Axis.setp: direction must be {}, not {}'.format(self._directions, kwargs['direction']))
 
         for key in 'hold hidden box grid'.split():
             if key in kwargs:
@@ -1431,9 +1420,7 @@ class Axis(object):
                 self._prop['caxis'] = ca
                 self._prop['caxismode'] = 'manual'
             else:
-                raise ValueError('%s.setp: caxis must be a two element vector'
-                                 ' [cmin,cmax], not %s.'
-                                 % (self.__class__.__name__, ca))
+                raise ValueError('{}.setp: caxis must be a two element vector [cmin,cmax], not {}'  .format(self.__class__.__name__, ca))
 
         if 'caxismode' in kwargs:
             mode = kwargs['caxismode']
@@ -1449,23 +1436,20 @@ class Axis(object):
                         else:
                             self._prop['caxis'] = (0, 1)
             else:
-                raise ValueError('Axis.setp: caxismode must be %s, not %s'
-                                 (self._modes, mode))
+                raise ValueError('Axis.setp: caxismode must be {}, not {}'.format(self._modes, mode))
 
         if 'shading' in kwargs:
             if kwargs['shading'] in self._shadings:
                 self._prop['shading'] = kwargs['shading']
                 # self._update_shading()
             else:
-                raise ValueError('Axis.setp: %s not a valid shading mode'
-                                 % kwargs['shading'])
+                raise ValueError('Axis.setp: {} not a valid shading mode'                                .format(kwargs['shading']))
 
         if 'light' in kwargs:
             if isinstance(kwargs['light'], Light):
                 self._prop['lights'].append(kwargs['light'])
             else:
-                raise ValueError('Axis.setp: light must be %s, not %s' %
-                                 (type(Light), type(self._prop['light'])))
+                raise ValueError('Axis.setp: light must be {}, not {}'.format(type(Light), type(self._prop['light'])))
 
         # Set scale
         if 'log' in kwargs:
@@ -1565,8 +1549,7 @@ class Axis(object):
         try:
             return self._prop[name]
         except:
-            raise KeyError('%s.getp: no parameter with name %s' %
-                           (self.__class__.__name__, name))
+            raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
     def get_next_color(self):
         '''Return the next color defined in the 'colororder' property.'''
@@ -1602,8 +1585,7 @@ class Axis(object):
             items = (items,)
         for item in items:
             if not isinstance(item, PlotProperties):
-                raise ValueError('item must be %s (or a subclass), not %s' %
-                                 (type(PlotProperties), type(item)))
+                raise ValueError('item must be {} (or a subclass), not {}'.format(type(PlotProperties), type(item)))
             self._prop['plotitems'].append(item)
         self.update()
 
@@ -2339,7 +2321,8 @@ class BaseClass(object):
 
     def clf(self):
         '''Clear the current figure.'''
-        # self.gcf().reset()
+        self.gcf().reset()
+        print('$ fig num', self._attrs['curfig'])
         del self._figs[self._attrs['curfig']]
         self.figure(self._attrs['curfig'])
 

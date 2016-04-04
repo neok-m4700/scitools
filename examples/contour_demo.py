@@ -42,5 +42,3 @@ values = peaks(201)
 contourf(values, 10, caxis=[-20, 20], title='Filled Contour Plot', savefig='out.pdf')
 
 show()
-
-input('Press Return key to quit: ')

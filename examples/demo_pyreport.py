@@ -1,4 +1,5 @@
 from scipy.integrate import ode
+import sys
 
 # Demo of "scitools pyreport", a modification of the original
 # pyreport code to work with both matplotlib and scitools.easyviz.

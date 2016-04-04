@@ -8,24 +8,23 @@ legend_demo.py file from Matplotlib.
 
 from scitools.std import *
 
-a = linspace(0,3,150)
-b = linspace(0,3,150)
+a = linspace(0, 3, 150)
+b = linspace(0, 3, 150)
 c = exp(a)
 d = c.tolist()
 d.reverse()
 d = array(d)
 
 setp(interactive=False)
-plot(a,c,'k--',a,d,'k:',a,c+d,'k')
+plot(a, c, 'k--', a, d, 'k:', a, c + d, 'k')
 legend('Model length', 'Data length', 'Total message length')
-ylim([-1,20])
+ylim([-1, 20])
 xlabel('Model complexity --->')
 ylabel('Message length --->')
 title('Minimum Message Length')
 show()
 
 print("Let us now tune the plot by grabbing the backend.")
-input('Press Return key to continue:')
 
 # Grab the backend and fine tune the plot:
 if backend == 'matplotlib':
@@ -58,7 +57,7 @@ elif backend == 'gnuplot':
     g('set border 1+2+4+8+16 linetype -1 linewidth 2')
     g.replot()
 
-elif backend == 'veusz': 
+elif backend == 'veusz':
     g = get_backend()
     # Remove tick labels:
     g.Set('/page1/graph1/x/TickLabels/hide', True)
@@ -75,8 +74,8 @@ elif backend == 'veusz':
     g.window.showNormal()
     # We could also have done the changes interactively by saving the
     # session to a native Veusz file (.vsz) and open the file in Veusz:
-    #save('tmp1.vsz')
-    #os.system('veusz tmp1.vsz')
+    # save('tmp1.vsz')
+    # os.system('veusz tmp1.vsz')
 
 elif backend == 'grace':
     # In Grace we can do the changes interactively in the GUI.
@@ -100,7 +99,7 @@ elif backend == 'matlab2':
     # Save the Matlab commands to a Matlab .m file:
     save('tmp1.m')
     # We can now open this file in Matlab (if Matlab is available):
-    #os.system('matlab -r tmp1')
+    # os.system('octave -r tmp1')
 
 elif backend == 'pyx':
     # There is currently no way to change properties in the PyX backend
@@ -113,8 +112,8 @@ elif backend == 'blt':
 print("Now we store a savefig of the tuned plot.")
 input('Press Return key to continue:')
 
-#savefig('grab_backend1.eps')  # Will destroy all changes!
-#savefig('grab_backend1.png')  # Will destroy all changes!
+# savefig('grab_backend1.eps')  # Will destroy all changes!
+# savefig('grab_backend1.png')  # Will destroy all changes!
 
 # We have made changes in the backend directly and a call to savefig in
 # Easyviz would normally destroy all these changes. However, setting the
