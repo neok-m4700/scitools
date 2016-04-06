@@ -15,9 +15,8 @@ show()
 
 figure()
 t = linspace(-5, 5, 501)
-x = (2 + t**2) * sin(10 * t)
-y = (2 + t**2) * cos(10 * t)
-z = t
+x, y, z = (2 + t**2) * sin(10 * t), (2 + t**2) * cos(10 * t), t
+
 plot3(x, y, z)
 grid('on')
 xlabel('x(t)')
@@ -30,9 +29,8 @@ show()
 
 figure()
 t = linspace(0, 15 * pi, 301)
-x = exp(-t / 10) * cos(t)
-y = exp(-t / 10) * sin(t)
-z = t
+x, y, z = exp(-t / 10) * cos(t),  exp(-t / 10) * sin(t), t
+
 subplot(221); plot3(x, y, z)
 subplot(222); plot3(x, y, z, view=2)
 subplot(223); plot3(x, y, z, view=[90, 90])

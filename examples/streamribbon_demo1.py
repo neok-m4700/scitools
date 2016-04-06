@@ -16,25 +16,25 @@ v = wind['v']
 w = wind['w']
 
 setp(show=False)
-sx,sy,sz = ndgrid([80]*4,seq(20,50,10),seq(0,15,5),sparse=False)
-streamribbon(x,y,z,u,v,w,sx,sy,sz,ribbonwidth=5)
+sx, sy, sz = ndgrid([80] * 4, seq(20, 50, 10), seq(0, 15, 5), sparse=False)
+streamribbon(x, y, z, u, v, w, sx, sy, sz, ribbonwidth=5)
 view(3)
-daspect([1,1,1])
+daspect([1, 1, 1])
 axis('tight')
 shading('interp')
-#camlight(); lighting('gouraud')
+# camlight(); lighting('gouraud')
 setp(show=True)
 show()
-#sleep(3)
+# sleep(3)
 
-#savefig('tmp_streamribbon1a_hq.eps')
-#savefig('tmp_streamribbon1a_lq.eps', vector_file=False)
-#savefig('tmp_streamribbon1a.png')
+# savefig('tmp_streamribbon1a_hq.eps')
+# savefig('tmp_streamribbon1a_lq.eps', vector_file=False)
+# savefig('tmp_streamribbon1a.png')
 
 figure()
 # alternative syntax:
-streamribbon(x,y,z,u,v,w,sx,sy,sz,
-             daspect=[1,1,1],
+streamribbon(x, y, z, u, v, w, sx, sy, sz,
+             daspect=[1, 1, 1],
              view=3,
              axis='tight',
              shading='interp',
@@ -43,6 +43,6 @@ streamribbon(x,y,z,u,v,w,sx,sy,sz,
 
 input('Press Return key to quit: ')
 
-#savefig('tmp_streamribbon1b_hq.eps')
-#savefig('tmp_streamribbon1b_lq.eps', vector_file=False)
-#savefig('tmp_streamribbon1b.png')
+# savefig('tmp_streamribbon1b_hq.eps')
+# savefig('tmp_streamribbon1b_lq.eps', vector_file=False)
+# savefig('tmp_streamribbon1b.png')

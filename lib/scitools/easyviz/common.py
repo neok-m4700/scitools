@@ -418,11 +418,9 @@ class Line(PlotProperties):
 
             # Consitency check
             assert size(x) == size(y), \
-                'Line.setp: x has size %d, expected y to have size %d, ' \
-                'not %d' % (size(x), size(x), size(y))
+                'Line.setp: x has size %d, expected y to have size %d, not %d' % (size(x), size(x), size(y))
             assert size(x) == size(z), \
-                'Line.setp: x has size %d, expected z to have size %d, ' \
-                'not %d' % (size(x), size(x), size(z))
+                'Line.setp: x has size %d, expected z to have size %d, not %d' % (size(x), size(x), size(z))
 
             self._set_data(x, y, z)
 
@@ -444,9 +442,7 @@ class Line(PlotProperties):
                     x = kwargs['x']
 
             # Consitency check
-            assert size(x) == size(y), \
-                'Line.setp: x has size %d, expected y to have size %d, ' \
-                'not %d.' % (size(x), size(x), size(y))
+            assert size(x) == size(y), 'Line.setp: x has size %d, expected y to have size %d, not %d.' % (size(x), size(x), size(y))
 
             self._set_data(x, y)
 
@@ -819,16 +815,18 @@ class Streams(PlotProperties):
     vector field visualization techniques.
     '''
     _local_prop = {
-        'stepsize': 0.1,
+        'stepsize': .1,
         'numberofstreams': 0,
         'tubes': False,
-        'tubescale': 1.0,
+        'vorticity': True,
+        'radius': .1,
         'n': 20,  # number of points along the circumference of the tube
         'ribbons': False,
-        'ribbonwidth': 0.5,
+        'ribbonwidth': .5,
+        'maxlen': None,
         'xdata': None, 'ydata': None, 'zdata': None,    # grid components
         'udata': None, 'vdata': None, 'wdata': None,    # vector components
-        'startx': None, 'starty': None, 'startz': None,  # starting points
+        'startx': None, 'starty': None, 'startz': None,  # starting points (seeds)
     }
     __doc__ += docadd('Keywords for the setp method',
                       list(PlotProperties._local_prop.keys()),
@@ -843,17 +841,22 @@ class Streams(PlotProperties):
     def setp(self, **kwargs):
         PlotProperties.setp(self, **kwargs)
 
-        for key in 'stepsize tubescale ribbonwidth'.split():
+        for key in 'stepsize radius ribbonwidth maxlen'.split():
             if key in kwargs:
                 _check_type(kwargs[key], key, (float, int))
                 self._prop[key] = float(kwargs[key])
 
+        if 'vorticity' in kwargs:
+            self._prop['vorticity'] = kwargs.get['vorticity']
+
         # set whether we should use lines, tubes, or ribbons:
+
         func = self._prop['function']
         self._prop['tubes'] = func == 'streamtube'
         self._prop['ribbons'] = func == 'streamribbon'
 
     def _parseargs(self, *args):
+        '''parsing remaining arguments after issuing setp() in __init__'''
         # TODO: do more error checking and add support for indexing='ij'.
         z, w, sz, option = [None] * 4
         # kwargs = {'indexing': self._prop['indexing']}
@@ -893,7 +896,7 @@ class Streams(PlotProperties):
             options = args[-1]
             if isinstance(options, (tuple, list)) and len(options) in (1, 2):
                 if func == 'streamtube':
-                    self._prop['tubescale'] = float(options[0])
+                    self._prop['radius'] = float(options[0])
                 else:
                     self._prop['stepsize'] = float(options[0])
                 if len(options) == 2:
@@ -903,7 +906,7 @@ class Streams(PlotProperties):
                         maxverts = float(options[1])
             elif isinstance(options, (float, int)):
                 if func == 'streamtube':
-                    self._prop['tubescale'] = float(options)
+                    self._prop['radius'] = float(options)
                 elif func == 'streamribbon':
                     self._prop['ribbonwidth'] = float(options)
                 else:
@@ -916,17 +919,17 @@ class Streams(PlotProperties):
                     msg = 'options must be a [width], not %s' % options
                 raise ValueError(msg)
 
-# if len(u.shape) == 3:
-# assert shape(x) == shape(y) == shape(z) == \
-##                    shape(u) == shape(v) == shape(w), \
-##                    'x, y, z, u, v, and z must be 3D arrays and of same shape'
-# assert shape(sx) == shape(sy) == shape(sz), \
-##                    'startx, starty, and startz must all be of same shape'
-# else:
-# assert shape(x) == shape(y) == shape(u) == shape(v), \
-##                    'x, y, u, and v must be 2D arrays and of same shape'
-# assert shape(sx) == shape(sy), \
-##                    'startx and starty must be of same shape'
+        # if len(u.shape) == 3:
+        # assert shape(x) == shape(y) == shape(z) == \
+        #                     shape(u) == shape(v) == shape(w), \
+        #                     'x, y, z, u, v, and z must be 3D arrays and of same shape'
+        # assert shape(sx) == shape(sy) == shape(sz), \
+        #                     'startx, starty, and startz must all be of same shape'
+        # else:
+        # assert shape(x) == shape(y) == shape(u) == shape(v), \
+        #                     'x, y, u, and v must be 2D arrays and of same shape'
+        # assert shape(sx) == shape(sy), \
+        #                    'startx and starty must be of same shape'
             z = w = zeros(shape(u))
             sz = zeros(shape(sx))
 
@@ -1201,7 +1204,6 @@ class Camera(object):
         'camzoom': 1,
         'campos': (0, 0, 0),
         'camproj': 'orthographic',
-        'unit': True # unit vectors
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1322,9 +1324,7 @@ class Axis(object):
         'xmin': None, 'xmax': None,
         'ymin': None, 'ymax': None,
         'zmin': None, 'zmax': None,
-        'xlim': [None] * 2,
-        'ylim': [None] * 2,
-        'zlim': [None] * 2,
+        'xlim': [None] * 2, 'ylim': [None] * 2, 'zlim': [None] * 2,
         'title': '',
         'xlabel': '', 'ylabel': '', 'zlabel': '',
         'center': (0, 0, 0),
@@ -1338,6 +1338,7 @@ class Axis(object):
         'pth': None,  # this is the p-th axis in subplot(m,n,p)
         'colororder': 'b r g m c y k'.split(),
         'curcolor': 0,
+        'unit': False  # unit vectors
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1537,6 +1538,9 @@ class Axis(object):
             self._prop['legend_loc'] = kwargs['legend_loc']
         if 'legend_fancybox' in kwargs:
             self._prop['legend_fancybox'] = kwargs['legend_fancybox']
+
+        if 'unit' in kwargs:
+            self._prop['unit'] = kwargs['unit']
 
         # set properties for camera and colorbar:
         self._prop['camera'].setp(**kwargs)
@@ -1974,8 +1978,7 @@ class BaseClass(object):
                 try:
                     return self._attrs[prm_name]
                 except:
-                    raise KeyError('%s.getp: no parameter with name %s' %
-                                   (self.__class__.__name__, prm_name))
+                    raise KeyError('%s.getp: no parameter with name %s' % (self.__class__.__name__, prm_name))
         else:
             raise TypeError('getp: wrong number of arguments')
 

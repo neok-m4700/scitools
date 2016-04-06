@@ -209,7 +209,7 @@ class VtkBackend(BaseClass):
         if not hasattr(self._axis, '_vtk_camera'):
             camera = self._initialize_camera()
         else:
-            #camera = self._update_camera()
+            # camera = self._update_camera()
             camera = self._initialize_camera()
 
         if ax_cam.getp('camroll') is not None:
