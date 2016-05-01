@@ -2326,7 +2326,7 @@ class BaseClass(object):
     def clf(self):
         '''Clear the current figure.'''
         self.gcf().reset()
-        print('$ fig num', self._attrs['curfig'])
+        # print('$ fig num', self._attrs['curfig'])
         del self._figs[self._attrs['curfig']]
         self.figure(self._attrs['curfig'])
 
@@ -5334,7 +5334,7 @@ def use(plt, namespace=globals(), neutralize=False):
     for item in plt_orig.__dict__:
         plt_dict[item] = eval('plt.' + item)
     for item in dir(plt_orig.__class__):
-        if not '__' in item:
+        if '__' not in item:
             plt_dict[item] = eval('plt.' + item)
     namespace.update(plt_dict)  # Add to global namespace
     namespace['savefig'] = namespace['hardcopy']   # synonym

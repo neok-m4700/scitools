@@ -166,7 +166,7 @@ class _VTKFigure(object):
         self.renwin.Render()
 
         if self.plt.getp('interactive') and not self.is_interactive and self.plt.getp('show'):
-            print('--> calling interactive mode !')
+            print('--> interactive mode !') if DEBUG else None
             self.is_interactive = True
             self.tkw.Start()
 
@@ -175,7 +175,7 @@ class _VTKFigure(object):
             self.tkw.event_generate('<KeyPress-t>')
             self.tkw.update()
 
-            self.master.mainloop()
+        self.master.mainloop()
 
     def exit(self):
         print('<exit>') if DEBUG else None
@@ -184,7 +184,7 @@ class _VTKFigure(object):
 
         self.renwin.Finalize()
         if self.is_interactive:
-            print('--> iren exit')
+            print('--> iren exit') if DEBUG else None
             iren = self.renwin.GetInteractor()
             iren.TerminateApp()
             del iren
@@ -223,7 +223,6 @@ class VTKBackend(BaseClass):
         self._master = tkinter.Tk()
         self._master.withdraw()
         self.figure(self.getp('curfig'))
-
 
         def savefig_cb(e):
             print('----> savefig_callback', repr(e.char))
@@ -525,9 +524,10 @@ class VTKBackend(BaseClass):
             axes = vtk.vtkCubeAxesActor2D()
             axes.SetInputConnection(normals.GetOutputPort())
             axes.SetCamera(self._ax._renderer.GetActiveCamera())
-            axes.SetLabelFormat("%6.4g")
-            axes.SetFlyModeToOuterEdges()
-            axes.SetFontFactor(.8)
+            axes.SetLabelFormat('%6.4g')
+            # axes.SetFlyModeToOuterEdges()
+            axes.SetFlyModeToClosestTriad()
+            axes.SetFontFactor(.9)
             axes.SetAxisTitleTextProperty(tprop)
             axes.SetAxisLabelTextProperty(tprop)
 
