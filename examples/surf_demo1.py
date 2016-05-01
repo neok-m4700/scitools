@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import scitools.globaldata; scitools.globaldata.DEBUG = 1
 from scitools.std import *
 from scitools.easyviz import *
 from scitools.easyviz.vtk_new_ import *

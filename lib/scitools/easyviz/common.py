@@ -2314,7 +2314,7 @@ class BaseClass(object):
                 num = max(list(self._figs.keys())) + 1
                 # print 'Active figure is %d.' % num
 
-        if not num in self._figs:
+        if num not in self._figs:
             # Points to class Figure or other convenient function
             # In gnuplot backend this should instantiate a new pipe instead
             kwargs['number'] = num

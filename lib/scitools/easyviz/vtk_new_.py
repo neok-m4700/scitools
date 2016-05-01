@@ -175,7 +175,7 @@ class _VTKFigure(object):
             self.tkw.event_generate('<KeyPress-t>')
             self.tkw.update()
 
-        self.master.mainloop()
+            self.master.mainloop()
 
     def exit(self):
         print('<exit>') if DEBUG else None
@@ -223,30 +223,6 @@ class VTKBackend(BaseClass):
         self._master = tkinter.Tk()
         self._master.withdraw()
         self.figure(self.getp('curfig'))
-
-        def savefig_cb(e):
-            print('----> savefig_callback', repr(e.char))
-            self.hardcopy('fig.pdf', replot=False)
-        self._g.tkw.bind('<Control-s>', savefig_cb)
-
-        def toggle_axes_cb(e):
-            # for axnr, ax in list(self.gcf().getp('axes').items()):
-                # if ax.getp('numberofitems') == 0:
-                #     continue
-            if self._ax.getp('unit'):
-                self._ax.setp(unit=False)
-            else:
-                self._ax.setp(unit=True)
-            self._replot()
-        self._g.tkw.bind('<Control-a>', toggle_axes_cb)
-
-        def toggle_box_cb(e):
-            if self._ax.getp('box'):
-                self._ax.setp(box=False)
-            else:
-                self._ax.setp(box=True)
-            self._replot()
-        self._g.tkw.bind('<Control-b>', toggle_box_cb)
 
         # conversion tables for format strings:
         self._markers = {
@@ -1501,7 +1477,7 @@ class VTKBackend(BaseClass):
             pass
 
     def figure(self, *args, **kwargs):
-        # Extension of BaseClass.figure: dd a plotting package figure instance as fig._g and create a ink to it as self._g
+        # Extension of BaseClass.figure: dd a plotting package figure instance as fig._g and create a link to it as self._g
         fig = BaseClass.figure(self, *args, **kwargs)
         try:
             fig._g
@@ -1515,6 +1491,29 @@ class VTKBackend(BaseClass):
             fig._g = _VTKFigure(self, title=name)
 
         self._g = fig._g  # link for faster access
+
+        # create the custom callback functions for this figure
+        def savefig_cb(e):
+            print('----> savefig_callback', repr(e.char))
+            self.hardcopy('fig.pdf', replot=False)
+        self._g.tkw.bind('<Control-s>', savefig_cb)
+
+        def toggle_axes_cb(e):
+            if self._ax.getp('unit'):
+                self._ax.setp(unit=False)
+            else:
+                self._ax.setp(unit=True)
+            self._replot()
+        self._g.tkw.bind('<Control-a>', toggle_axes_cb)
+
+        def toggle_box_cb(e):
+            if self._ax.getp('box'):
+                self._ax.setp(box=False)
+            else:
+                self._ax.setp(box=True)
+            self._replot()
+        self._g.tkw.bind('<Control-b>', toggle_box_cb)
+
         return fig
 
     def closefig(self, arg=None):
