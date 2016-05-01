@@ -35,7 +35,7 @@ print('..... before save')
 savefig('tmp_contourslice2a.eps')
 
 exit(0)
-# buggy script !!, exit for now ...
+# buggy script !!, exit for now ...
 # problem with vtkOpenGLTexture
 # vtkOpenGLTexture
 

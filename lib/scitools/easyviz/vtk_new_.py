@@ -224,11 +224,30 @@ class VTKBackend(BaseClass):
         self._master.withdraw()
         self.figure(self.getp('curfig'))
 
-        def savefig_callback(e):
+
+        def savefig_cb(e):
             print('----> savefig_callback', repr(e.char))
             self.hardcopy('fig.pdf', replot=False)
+        self._g.tkw.bind('<Control-s>', savefig_cb)
 
-        self._g.tkw.bind('<Control-s>', savefig_callback)
+        def toggle_axes_cb(e):
+            # for axnr, ax in list(self.gcf().getp('axes').items()):
+                # if ax.getp('numberofitems') == 0:
+                #     continue
+            if self._ax.getp('unit'):
+                self._ax.setp(unit=False)
+            else:
+                self._ax.setp(unit=True)
+            self._replot()
+        self._g.tkw.bind('<Control-a>', toggle_axes_cb)
+
+        def toggle_box_cb(e):
+            if self._ax.getp('box'):
+                self._ax.setp(box=False)
+            else:
+                self._ax.setp(box=True)
+            self._replot()
+        self._g.tkw.bind('<Control-b>', toggle_box_cb)
 
         # conversion tables for format strings:
         self._markers = {
@@ -465,25 +484,55 @@ class VTKBackend(BaseClass):
 
         direction = ax.getp('direction')
         if direction == 'ij':
-            # Use matrix coordinates. The origin of the coordinate
-            # system is the upper-left corner. The i-axis should be
-            # vertical and numbered from top to bottom, while the j-axis
-            # should be horizontal and numbered from left to right.
+            # Use matrix coordinates. The origin of the coordinate system is the upper-left corner. The i-axis should be vertical and numbered from top to bottom, while the j-axis should be horizontal and numbered from left to right.
+            # o---j--->
+            # |
+            # i
+            # |
+            # v
             pass
         elif direction == 'xy':
-            # use the default Cartesian axes form. The origin is at the
-            # lower-left corner. The x-axis is vertical and numbered
-            # from left to right, while the y-axis is vertical and
-            # numbered from bottom to top.
+            # use the default Cartesian axes form. The origin is at the lower-left corner. The x-axis is horizontal and numbered from left to right, while the y-axis is vertical and numbered from bottom to top.
+            # ^
+            # |
+            # y
+            # |
+            # o---x--->
             pass
 
     def _set_box(self, ax):
-        '''turn box around axes boundary on or off'''
+        '''turn box around axes boundary on or off, for vtk we use it to plot the axes'''
+        # see cubeAxes.py
         print('<box>') if DEBUG else None
 
         if ax.getp('box'):
-            # display box
-            pass
+            normals = vtk.vtkPolyDataNormals()
+            normals.SetInputConnection(self._ax._apd.GetOutputPort())
+            foheMapper = vtk.vtkPolyDataMapper()
+            foheMapper.SetInputConnection(normals.GetOutputPort())
+            foheActor = vtk.vtkLODActor()
+            foheActor.SetMapper(foheMapper)
+            outline = vtk.vtkOutlineFilter()
+            outline.SetInputConnection(normals.GetOutputPort())
+            mapOutline = vtk.vtkPolyDataMapper()
+            mapOutline.SetInputConnection(outline.GetOutputPort())
+            outlineActor = vtk.vtkActor()
+            outlineActor.SetMapper(mapOutline)
+            outlineActor.GetProperty().SetColor(0, 0, 0)
+            tprop = vtk.vtkTextProperty()
+            tprop.SetColor(1, 1, 1)
+            tprop.ShadowOn()
+            axes = vtk.vtkCubeAxesActor2D()
+            axes.SetInputConnection(normals.GetOutputPort())
+            axes.SetCamera(self._ax._renderer.GetActiveCamera())
+            axes.SetLabelFormat("%6.4g")
+            axes.SetFlyModeToOuterEdges()
+            axes.SetFontFactor(.8)
+            axes.SetAxisTitleTextProperty(tprop)
+            axes.SetAxisLabelTextProperty(tprop)
+
+            self._ax._renderer.AddViewProp(outlineActor)
+            self._ax._renderer.AddViewProp(axes)
         else:
             # do not display box
             pass
@@ -752,7 +801,7 @@ class VTKBackend(BaseClass):
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
-        x = x / dx; y = y / dy; z = z / dz
+        x, y, z = x / dx, y / dy, z / dz
 
         function = item.getp('function')
         if function in ['contour', 'contourf', 'pcolor']:
