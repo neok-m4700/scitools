@@ -6,8 +6,8 @@ import scitools.globaldata; scitools.globaldata.DEBUG = 1
 from scitools.easyviz.vtk_new_ import *
 import numpy as np
 
-setp(interactive=False)
-setp(show=False)
+setp(interactive=True)
+setp(show=True)
 
 BUG = 0.0001  # bug somewhere in _add_slice in vtk_.py
 x, y, z = ndgrid(seq(-2, 2, .2), seq(-2, 2, .25), seq(-2, 2, .16), sparse=True)

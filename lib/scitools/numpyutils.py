@@ -61,18 +61,19 @@ Functionality of this module that extends Numerical Python
 if __name__.find('numpyutils') != -1:
     from numpy import *
 
-#else if name is some other module name:
+# else if name is some other module name:
 # this file is included in numpytools.py (through a preprocessing step)
 # and the code below then relies on previously imported Numerical Python
 # modules (Numeric, numpy, numarray)
 
 import operator
 from .FloatComparison import float_eq, float_ne, float_lt, float_le, \
-     float_gt, float_ge
+    float_gt, float_ge
 import collections
 from functools import reduce
 from .Heaviside import *
 import numpy
+
 
 def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
              memoryorder=None):
@@ -87,6 +88,7 @@ def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
     if z is not None:
         args.append(z)
     return numpy.meshgrid(*args, indexing=indexing, sparse=sparse)
+
 
 def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
                       memoryorder=None):
@@ -222,6 +224,7 @@ def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
     """
 
     import types
+
     def fixed(coor):
         return isinstance(coor, (float, complex, int, type(None)))
 
@@ -253,9 +256,12 @@ def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
 
     # if x,y,z are identical, make copies:
     try:
-        if y is x: y = x.copy()
-        if z is x: z = x.copy()
-        if z is y: z = y.copy()
+        if y is x:
+            y = x.copy()
+        if z is x:
+            z = x.copy()
+        if z is y:
+            z = y.copy()
     except AttributeError:  # x, y, or z not numpy array
         pass
 
@@ -279,65 +285,65 @@ def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
     if arr1D(x) and arr1D(y) and fixed(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(x),len(y)))
+                mult_fact = ones((len(x), len(y)))
             if z is None:
-                return x[:,newaxis]*mult_fact, y[newaxis,:]*mult_fact
+                return x[:, newaxis] * mult_fact, y[newaxis, :] * mult_fact
             else:
-                return x[:,newaxis]*mult_fact, y[newaxis,:]*mult_fact, z
+                return x[:, newaxis] * mult_fact, y[newaxis, :] * mult_fact, z
         else:
             if not sparse:
-                mult_fact = ones((len(y),len(x)))
+                mult_fact = ones((len(y), len(x)))
             if z is None:
-                return x[newaxis,:]*mult_fact, y[:,newaxis]*mult_fact
+                return x[newaxis, :] * mult_fact, y[:, newaxis] * mult_fact
             else:
-                return x[newaxis,:]*mult_fact, y[:,newaxis]*mult_fact, z
+                return x[newaxis, :] * mult_fact, y[:, newaxis] * mult_fact, z
 
     if arr1D(x) and fixed(y) and arr1D(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(x),len(z)))
+                mult_fact = ones((len(x), len(z)))
             if y is None:
-                return x[:,newaxis]*mult_fact, z[newaxis,:]*mult_fact
+                return x[:, newaxis] * mult_fact, z[newaxis, :] * mult_fact
             else:
-                return x[:,newaxis]*mult_fact, y, z[newaxis,:]*mult_fact
+                return x[:, newaxis] * mult_fact, y, z[newaxis, :] * mult_fact
         else:
             if not sparse:
-                mult_fact = ones((len(z),len(x)))
+                mult_fact = ones((len(z), len(x)))
             if y is None:
-                return x[newaxis,:]*mult_fact, z[:,newaxis]*mult_fact
+                return x[newaxis, :] * mult_fact, z[:, newaxis] * mult_fact
             else:
-                return x[newaxis,:]*mult_fact, y, z[:,newaxis]*mult_fact
+                return x[newaxis, :] * mult_fact, y, z[:, newaxis] * mult_fact
 
     if fixed(x) and arr1D(y) and arr1D(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(y),len(z)))
+                mult_fact = ones((len(y), len(z)))
             if x is None:
-                return y[:,newaxis]*mult_fact, z[newaxis,:]*mult_fact
+                return y[:, newaxis] * mult_fact, z[newaxis, :] * mult_fact
             else:
-                return x, y[:,newaxis]*mult_fact, z[newaxis,:]*mult_fact
+                return x, y[:, newaxis] * mult_fact, z[newaxis, :] * mult_fact
         else:
             if not sparse:
-                mult_fact = ones((len(z),len(y)))
+                mult_fact = ones((len(z), len(y)))
             if x is None:
-                return y[newaxis,:]*mult_fact, z[:,newaxis]*mult_fact
+                return y[newaxis, :] * mult_fact, z[:, newaxis] * mult_fact
             else:
-                return x, y[newaxis,:]*mult_fact, z[:,newaxis]*mult_fact
+                return x, y[newaxis, :] * mult_fact, z[:, newaxis] * mult_fact
 
     # or maybe we have a full 3D grid:
     if arr1D(x) and arr1D(y) and arr1D(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(x),len(y),len(z)))
-            return x[:,newaxis,newaxis]*mult_fact, \
-                   y[newaxis,:,newaxis]*mult_fact, \
-                   z[newaxis,newaxis,:]*mult_fact
+                mult_fact = ones((len(x), len(y), len(z)))
+            return x[:, newaxis, newaxis] * mult_fact, \
+                y[newaxis, :, newaxis] * mult_fact, \
+                z[newaxis, newaxis, :] * mult_fact
         else:
             if not sparse:
-                mult_fact = ones((len(y),len(x),len(z)))
-            return x[newaxis,:,newaxis]*mult_fact, \
-                   y[:,newaxis,newaxis]*mult_fact, \
-                   z[newaxis,newaxis,:]*mult_fact
+                mult_fact = ones((len(y), len(x), len(z)))
+            return x[newaxis, :, newaxis] * mult_fact, \
+                y[:, newaxis, newaxis] * mult_fact, \
+                z[newaxis, newaxis, :] * mult_fact
 
     # at this stage we assume that we just have scalars:
     l = []
@@ -353,13 +359,14 @@ def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
         return tuple(l)
 
 
-def ndgrid(*args,**kwargs):
+def ndgrid(*args, **kwargs):
     """
     Same as calling ``meshgrid`` with *indexing* = ``'ij'`` (see
     ``meshgrid`` for documentation).
     """
     kwargs['indexing'] = 'ij'
-    return meshgrid(*args,**kwargs)
+    return meshgrid(*args, **kwargs)
+
 
 def approximate_Jacobian(f, x, f_args, h=1.0E-4):
     """
@@ -371,14 +378,16 @@ def approximate_Jacobian(f, x, f_args, h=1.0E-4):
     J = np.zeros((len(x), len(f0)))
     dx = np.zeros_like(x)
     for i in range(len(x)):
-       dx[i] = h
-       J[i] = (np.asarray(f(x+dx, *f_args)) - f0)/h
-       dx[i] = 0.0
+        dx[i] = h
+        J[i] = (np.asarray(f(x + dx, *f_args)) - f0) / h
+        dx[i] = 0.0
     return J.transpose()
+
 
 def length(a):
     """Return the length of the largest dimension of array a."""
     return max(a.shape)
+
 
 def cut_noise(a, tol=1E-10):
     """
@@ -410,10 +419,10 @@ def Gram_Schmidt1(vecs, row_wise_storage=True):
     basis = array(transpose(vecs))
     eye = identity(n).astype(float)
 
-    basis[:,0] /= sqrt(dot(basis[:,0], basis[:,0]))
+    basis[:, 0] /= sqrt(dot(basis[:, 0], basis[:, 0]))
     for i in range(1, m):
-        v = basis[:,i]/sqrt(dot(basis[:,i], basis[:,i]))
-        U = basis[:,:i]
+        v = basis[:, i] / sqrt(dot(basis[:, i], basis[:, i]))
+        U = basis[:, :i]
         P = eye - dot(U, dot(inv(dot(transpose(U), U)), transpose(U)))
         basis[:, i] = dot(P, v)
         basis[:, i] /= sqrt(dot(basis[:, i], basis[:, i]))
@@ -459,25 +468,25 @@ def Gram_Schmidt(vecs, row_wise_storage=True, tol=1E-10,
         A = vecs.copy()
 
     m, n = A.shape
-    V = zeros((m,n))
+    V = zeros((m, n))
 
     for j in range(n):
-        v0 = A[:,j]
+        v0 = A[:, j]
         v = v0.copy()
         for i in range(j):
-            vi = V[:,i]
+            vi = V[:, i]
 
             if (abs(vi) > tol).any():
-                v -= (vdot(v0,vi)/vdot(vi,vi))*vi
-        V[:,j] = v
+                v -= (vdot(v0, vi) / vdot(vi, vi)) * vi
+        V[:, j] = v
 
     if remove_null_vectors:
-        indices = [i for i in range(n) if (abs(V[:,i]) < tol).all()]
+        indices = [i for i in range(n) if (abs(V[:, i]) < tol).all()]
         V = V[ix_(list(range(m)), indices)]
 
     if normalize:
         for j in range(V.shape[1]):
-            V[:,j] /= linalg.norm(V[:,j])
+            V[:, j] /= linalg.norm(V[:, j])
 
     if remove_noise:
         V = cut_noise(V, tol)
@@ -494,7 +503,7 @@ def matrix_rank(A):
     u, s, v = svd(A)
     maxabs = norm(x)
     maxdim = max(A.shape)
-    tol = maxabs*maxdim*1E-13
+    tol = maxabs * maxdim * 1E-13
     r = s > tol
     return sum(r)
 
@@ -514,11 +523,11 @@ def orth(A):
 
     see also svd (singular value decomposition of a matrix in scipy.linalg)
     """
-    u,s,vh = svd(A)
-    M,N = A.shape
-    tol = max(M,N)*numpy.amax(s)*eps
-    num = numpy.sum(s > tol,dtype=int)
-    Q = u[:,:num]
+    u, s, vh = svd(A)
+    M, N = A.shape
+    tol = max(M, N) * numpy.amax(s) * eps
+    num = numpy.sum(s > tol, dtype=int)
+    Q = u[:, :num]
     return Q
 
 
@@ -532,7 +541,7 @@ def null(A, tol=1e-10, row_wise_storage=True):
     Code by Bastian Weber based on code by Robert Kern and Ryan Krauss.
     """
     n, m = A.shape
-    if n > m :
+    if n > m:
         return transpose(null(transpose(A), tol))
 
     u, s, vh = linalg.svd(A)
@@ -555,6 +564,7 @@ def norm_l2(u):
     """
     return linalg.norm(u.ravel())
 
+
 def norm_L2(u):
     """
     L2 norm of a multi-dimensional array u viewed as a vector
@@ -564,15 +574,17 @@ def norm_L2(u):
     approximate an integral (L2 norm) of the function, this (and
     not norm_l2) is the right norm function to use.
     """
-    return norm_l2(u)/sqrt(float(u.size))
+    return norm_l2(u) / sqrt(float(u.size))
+
 
 def norm_l1(u):
     """
     l1 norm of a multi-dimensional array u viewed as a vector:
     ``linalg.norm(u.ravel(),1)``.
     """
-    #return sum(abs(u.ravel()))
-    return linalg.norm(u.ravel(),1)
+    # return sum(abs(u.ravel()))
+    return linalg.norm(u.ravel(), 1)
+
 
 def norm_L1(u):
     """
@@ -583,11 +595,12 @@ def norm_L1(u):
     approximate an integral (L1 norm) of the function, this (and
     not norm_l1) is the right norm function to use.
     """
-    return norm_l1(u)/float(u.size)
+    return norm_l1(u) / float(u.size)
+
 
 def norm_inf(u):
     """Infinity/max norm of a multi-dimensional array u viewed as a vector."""
-    #return abs(u.ravel()).max()
+    # return abs(u.ravel()).max()
     return linalg.norm(u.ravel(), inf)
 
 
@@ -610,11 +623,11 @@ def solve_tridiag_linear_system(A, b):
     is stored in A[:-1,2].
     """
 
-    #The storage is not memory friendly in Python/C (diagonals stored
-    #columnwise in A), but if A is sent to F77 for high-performance
-    #computing, a copy is taken and the F77 routine works with the
-    #same algorithm and hence optimal (columnwise traversal)
-    #Fortran storage.
+    # The storage is not memory friendly in Python/C (diagonals stored
+    # columnwise in A), but if A is sent to F77 for high-performance
+    # computing, a copy is taken and the F77 routine works with the
+    # same algorithm and hence optimal (columnwise traversal)
+    # Fortran storage.
 
     c, d = factorize_tridiag_matrix(A)
     return solve_tridiag_factored_system(b, A, c, d)
@@ -632,15 +645,15 @@ def factorize_tridiag_matrix(A):
     """
     n = len(b)
     # scratch arrays:
-    d = zeros(n, 'd');  c = zeros(n, 'd');  m = zeros(n, 'd')
+    d = zeros(n, 'd'); c = zeros(n, 'd'); m = zeros(n, 'd')
 
-    d[0] = A[0,1]
+    d[0] = A[0, 1]
     c[0] = b[0]
 
-    for k in iseq(start=1, stop=n-1, inc=1):
-        m[k] = A[k,0]/d[k-1]
-        d[k] = A[k,1] - m[k]*A[k-1,2]
-        c[k] = b[k] - m[k]*c[k-1]
+    for k in iseq(start=1, stop=n - 1, inc=1):
+        m[k] = A[k, 0] / d[k - 1]
+        d[k] = A[k, 1] - m[k] * A[k - 1, 2]
+        c[k] = b[k] - m[k] * c[k - 1]
     return c, d
 
 
@@ -655,15 +668,15 @@ def solve_tridiag_factored_system(b, A, c, d):
     x = zeros(n, 'd')  # solution
 
     # back substitution:
-    x[n-1] = c[n-1]/d[n-1]
-    for k in iseq(start=n-2, stop=0, inc=-1):
-        x[k] = (c[k] - A[k,2]*x[k+1])/d[k]
+    x[n - 1] = c[n - 1] / d[n - 1]
+    for k in iseq(start=n - 2, stop=0, inc=-1):
+        x[k] = (c[k] - A[k, 2] * x[k + 1]) / d[k]
     return x
-
 
 
 try:
     import Pmw
+
     class NumPy2BltVector(Pmw.Blt.Vector):
         """
         Copy a numpy array to a BLT vector:
@@ -672,11 +685,13 @@ try:
         g = Pmw.Blt.Graph(someframe)
         # send b to g for plotting
         """
+
         def __init__(self, array):
             Pmw.Blt.Vector.__init__(self, len(array))
             self.set(tuple(array))  # copy elements
 except:
     class NumPy2BltVector:
+
         def __init__(self, array):
             raise ImportError("Python is not working properly with BLT")
 
@@ -688,6 +703,7 @@ except:
 
 class WrapNo2Callable:
     """Turn a number (constant) into a callable function."""
+
     def __init__(self, constant):
         self.constant = constant
         self._array_shape = None
@@ -723,11 +739,11 @@ class WrapNo2Callable:
             # (operator.isNumberType(args[0]) cannot be used as it is
             # true also for numpy arrays
             return self.constant
-        else: # assume numpy array
+        else:  # assume numpy array
             if self._array_shape is None:
                 self._set_array_shape()
             else:
-                r = self.constant*ones(self._array_shape, 'd')
+                r = self.constant * ones(self._array_shape, 'd')
                 # could store r (allocated once) and just return reference
                 return r
 
@@ -750,8 +766,10 @@ class WrapNo2Callable:
     # of grids, the shape may change so the next implementation is
     # slower and safer.
 
+
 class WrapNo2Callable:
     """Turn a number (constant) into a callable function."""
+
     def __init__(self, constant):
         self.constant = constant
 
@@ -812,6 +830,7 @@ class WrapDiscreteData2Callable:
     >>> f(0.5, 0.1)  # discrete data with extra time prm: f(x,t)
     1.5
     """
+
     def __init__(self, data):
         self.data = data  # (x,y,f) data for an f(x,y) function
 
@@ -823,11 +842,11 @@ class WrapDiscreteData2Callable:
         target = '2.9.1'
         if v < target:
             raise ImportError(
-                'ScientificPython is in (old) version %s, need %s' \
+                'ScientificPython is in (old) version %s, need %s'
                 % (v, target))
 
         self.interpolating_function = \
-             InterpolatingFunction(self.data[:-1], self.data[-1])
+            InterpolatingFunction(self.data[:-1], self.data[-1])
         self.ndims = len(self.data[:-1])  # no of spatial dim.
 
     def __call__(self, *args):
@@ -944,7 +963,7 @@ def wrap2callable(f, **kwargs):
         # return StringFunction(f, **kwargs).__call__
     elif isinstance(f, (float, int, complex)):
         return WrapNo2Callable(f)
-    elif isinstance(f, (list,tuple)):
+    elif isinstance(f, (list, tuple)):
         return WrapDiscreteData2Callable(f)
     elif isinstance(f, collections.Callable):
         return f
@@ -1062,7 +1081,7 @@ def NumPy_array_iterator(a, **kwargs):
     # elements are parameterized through len(a.shape))
     dims = list(range(len(a.shape)))
     offset_code1 = ['offset%d_start=0' % d for d in dims]
-    offset_code2 = ['offset%d_stop=0'  % d for d in dims]
+    offset_code2 = ['offset%d_stop=0' % d for d in dims]
     for d in range(len(a.shape)):
         key1 = 'offset%d_start' % d
         key2 = 'offset%d_stop' % d
@@ -1073,11 +1092,11 @@ def NumPy_array_iterator(a, **kwargs):
 
     for key in kwargs:
         if key == 'offset_start':
-            offset_code1.extend(['offset%d_start=%d' % (d, kwargs[key]) \
-                            for d in range(len(a.shape))])
+            offset_code1.extend(['offset%d_start=%d' % (d, kwargs[key])
+                                 for d in range(len(a.shape))])
         if key == 'offset_stop':
-            offset_code2.extend(['offset%d_stop=%d' % (d, kwargs[key]) \
-                            for d in range(len(a.shape))])
+            offset_code2.extend(['offset%d_stop=%d' % (d, kwargs[key])
+                                 for d in range(len(a.shape))])
 
     no_value = kwargs.get('no_value', False)
 
@@ -1086,13 +1105,13 @@ def NumPy_array_iterator(a, **kwargs):
     for line in offset_code2:
         exec(line)
     code = 'def nested_loops(a):\n'
-    indentation = ' '*4
+    indentation = ' ' * 4
     indent = '' + indentation
     for dim in range(len(a.shape)):
         code += indent + \
-        'for i%d in xrange(%d, a.shape[%d]-%d):\n' \
-                % (dim, eval('offset%d_start' % dim),
-                   dim, eval('offset%d_stop' % dim))
+            'for i%d in xrange(%d, a.shape[%d]-%d):\n' \
+            % (dim, eval('offset%d_start' % dim),
+               dim, eval('offset%d_stop' % dim))
         indent += indentation
     index = ', '.join(['i%d' % d for d in range(len(a.shape))])
     if no_value:
@@ -1101,6 +1120,7 @@ def NumPy_array_iterator(a, **kwargs):
         code += indent + 'yield ' + 'a[%s]' % index + ', (' + index + ')'
     exec(code)
     return nested_loops, code
+
 
 def compute_histogram(samples, nbins=50, piecewise_constant=True):
     """
@@ -1119,23 +1139,24 @@ def compute_histogram(samples, nbins=50, piecewise_constant=True):
         y0, bin_edges = histogram(samples, bins=nbins, normed=True)
     h = bin_edges[1] - bin_edges[0]  # bin width
     if piecewise_constant:
-        x = zeros(2*len(bin_edges), type(bin_edges[0]))
+        x = zeros(2 * len(bin_edges), type(bin_edges[0]))
         y = x.copy()
         x[0] = bin_edges[0]
         y[0] = 0
-        for i in range(len(bin_edges)-1):
-            x[2*i+1] = bin_edges[i]
-            x[2*i+2] = bin_edges[i+1]
-            y[2*i+1] = y0[i]
-            y[2*i+2] = y0[i]
+        for i in range(len(bin_edges) - 1):
+            x[2 * i + 1] = bin_edges[i]
+            x[2 * i + 2] = bin_edges[i + 1]
+            y[2 * i + 1] = y0[i]
+            y[2 * i + 2] = y0[i]
         x[-1] = bin_edges[-1]
         y[-1] = 0
     else:
-        x = zeros(len(bin_edges)-1, type(bin_edges[0]))
+        x = zeros(len(bin_edges) - 1, type(bin_edges[0]))
         y = y0.copy()
         for i in range(len(x)):
-            x[i] = (bin_edges[i] + bin_edges[i+1])/2.0
+            x[i] = (bin_edges[i] + bin_edges[i + 1]) / 2.0
     return x, y
+
 
 def _test_factorial(n=80):
     import timeit
@@ -1149,9 +1170,10 @@ def _test_factorial(n=80):
         #cpu[version] = t.timeit(100000)
         cpu[version] = t.timeit(10000)
     cpu_min = min(list(cpu.values()))
-    cpu = {version: cpu[version]/cpu_min for version in cpu}
+    cpu = {version: cpu[version] / cpu_min for version in cpu}
     for version in cpu:
         print('%-25s %5.1f' % (version, cpu[version]))
+
 
 def factorial(n, method='math'):
     """
@@ -1198,31 +1220,31 @@ def factorial(n, method='math'):
         except ImportError:
             print('numpyutils.factorial: scipy is not available')
             print('default method="reduce" is used instead')
-            return reduce(operator.mul, list(range(2, n+1)))
+            return reduce(operator.mul, list(range(2, n + 1)))
             # or return factorial(n)
     elif method == 'plain iterative':
         f = 1
-        for i in range(1, n+1):
+        for i in range(1, n + 1):
             f *= i
         return f
     elif method == 'plain recursive':
         if n == 1:
             return 1
         else:
-            return n*factorial(n-1, method)
+            return n * factorial(n - 1, method)
     elif method == 'lambda recursive':
-        fc = lambda n: n and fc(n-1)*n or 1
+        fc = lambda n: n and fc(n - 1) * n or 1
         return fc(n)
     elif method == 'lambda functional':
-        fc = lambda n: n<=0 or \
-             reduce(lambda a,b: a*b, list(range(1,n+1)))
+        fc = lambda n: n <= 0 or \
+            reduce(lambda a, b: a * b, list(range(1, n + 1)))
         return fc(n)
     elif method == 'lambda list comprehension':
-        fc = lambda n: [j for j in [1] for i in range(2,n+1) \
-                        for j in [j*i]] [-1]
+        fc = lambda n: [j for j in [1] for i in range(2, n + 1)
+                        for j in [j * i]][-1]
         return fc(n)
     elif method == 'reduce':
-        return reduce(operator.mul, list(range(2, n+1)))
+        return reduce(operator.mul, list(range(2, n + 1)))
     else:
         raise ValueError('factorial: method="%s" is not supported' % method)
 
@@ -1256,10 +1278,10 @@ def seq(min=0.0, max=None, inc=1.0, type=float,
     The return_type string governs the type of the returned
     sequence of numbers ('NumPyArray', 'list', or 'tuple').
     """
-    if max is None: # allow sequence(3) to be 0., 1., 2., 3.
+    if max is None:  # allow sequence(3) to be 0., 1., 2., 3.
         # take 1st arg as max, min as 0, and inc=1
         max = min; min = 0.0; inc = 1.0
-    r = arange(min, max + inc/2.0, inc, type)
+    r = arange(min, max + inc / 2.0, inc, type)
     if return_type == 'NumPyArray' or return_type == ndarray:
         return r
     elif return_type == 'list':
@@ -1273,10 +1295,10 @@ def iseq(start=0, stop=None, inc=1):
     Generate integers from start to (and including) stop,
     with increment of inc. Alternative to range/xrange.
     """
-    if stop is None: # allow isequence(3) to be 0, 1, 2, 3
+    if stop is None:  # allow isequence(3) to be 0, 1, 2, 3
         # take 1st arg as stop, start as 0, and inc=1
         stop = start; start = 0; inc = 1
-    return range(start, stop+inc, inc)
+    return range(start, stop + inc, inc)
 
 sequence = seq  # backward compatibility
 isequence = iseq  # backward compatibility
@@ -1371,19 +1393,19 @@ def arr(shape=None, element_type=float,
         if not isinstance(data, collections.Sequence):
             raise TypeError('arr: data argument is not a sequence type')
 
-        if isinstance(shape, (list,tuple)):
+        if isinstance(shape, (list, tuple)):
             # check that shape and data are compatible:
             if reduce(operator.mul, shape) != size(data):
                 raise ValueError(
-                    'arr: shape=%s is not compatible with %d '\
+                    'arr: shape=%s is not compatible with %d '
                     'elements in the provided data' % (shape, size(data)))
         elif isinstance(shape, int):
             if shape != size(data):
                 raise ValueError(
-                    'arr: shape=%d is not compatible with %d '\
+                    'arr: shape=%d is not compatible with %d '
                     'elements in the provided data' % (shape, size(data)))
         elif shape is None:
-            if isinstance(data, (list,tuple)) and copy == False:
+            if isinstance(data, (list, tuple)) and copy == False:
                 # cannot share data (data is list/tuple)
                 copy = True
             return array(data, dtype=element_type, copy=copy, order=order)
@@ -1402,7 +1424,7 @@ def arr(shape=None, element_type=float,
         file_.seek(0)
         # we assume that array data in file has element_type=float:
         if not (element_type == float or element_type == 'd'):
-            raise ValueError('element_type must be float_/"%s", not "%s"' % \
+            raise ValueError('element_type must be float_/"%s", not "%s"' %
                              ('d', element_type))
 
         d = array([float(word) for word in file_.read().split()])
@@ -1410,27 +1432,27 @@ def arr(shape=None, element_type=float,
             f.close()
         # shape array d:
         if ncolumns > 1:
-            suggested_shape = (int(len(d)/ncolumns), ncolumns)
-            total_size = suggested_shape[0]*suggested_shape[1]
+            suggested_shape = (int(len(d) / ncolumns), ncolumns)
+            total_size = suggested_shape[0] * suggested_shape[1]
             if total_size != len(d):
                 raise ValueError(
-                    'found %d array entries in file "%s", but first line\n'\
-                    'contains %d elements - no shape is compatible with\n'\
+                    'found %d array entries in file "%s", but first line\n'
+                    'contains %d elements - no shape is compatible with\n'
                     'these values' % (len(d), file, ncolumns))
             d.shape = suggested_shape
         if shape is not None:
             if shape != d.shape:
                 raise ValueError(
-                    'shape=%s is not compatible with shape %s found in "%s"' % \
+                    'shape=%s is not compatible with shape %s found in "%s"' %
                     (shape, d.shape, file))
         return d
 
     elif interval is not None and shape is not None:
         if not isinstance(shape, int):
-            raise TypeError('For array values in an interval, '\
+            raise TypeError('For array values in an interval, '
                             'shape must be an integer')
-        if not isinstance(interval, (list,tuple)):
-            raise TypeError('interval must be list or tuple, not %s' % \
+        if not isinstance(interval, (list, tuple)):
+            raise TypeError('interval must be list or tuple, not %s' %
                             type(interval))
         if len(interval) != 2:
             raise ValueError('interval must be a 2-tuple (or list)')
@@ -1456,11 +1478,12 @@ def arr(shape=None, element_type=float,
             # print more information (size of data):
             print(e, 'of size %s' % shape)
 
+
 def _test():
     _test_FloatComparison()
     # test norm functions for multi-dimensional arrays:
     a = array(list(range(27)))
-    a.shape = (3,3,3)
+    a.shape = (3, 3, 3)
     functions = [norm_l2, norm_L2, norm_l1, norm_L1, norm_inf]
     results = [78.7464284904401239, 15.1547572288924073, 351, 13, 26]
     for f, r in zip(functions, results):
@@ -1468,7 +1491,7 @@ def _test():
             print('%s failed: result=%g, not %g' % (f.__name__, f(a), r))
 
     # Gram-Schmidt:
-    A = array([[1,2,3], [3,4,5], [6,4,1]], float)
+    A = array([[1, 2, 3], [3, 4, 5], [6, 4, 1]], float)
     V1 = Gram_Schmidt(A, normalize=True)
     V2 = Gram_Schmidt1(A)
     if not float_eq(V1, V2):
@@ -1477,11 +1500,11 @@ def _test():
         print('Gram_Schmidt1:\n', V2)
 
     # Null space:
-    K = array([[1,2,3], [1,2,3], [0,0,0], [-1, -2, -3]], float)
-    #K = random.random(3*7).reshape(7,3) # does not work...
+    K = array([[1, 2, 3], [1, 2, 3], [0, 0, 0], [-1, -2, -3]], float)
+    # K = random.random(3*7).reshape(7,3) # does not work...
     print('K=\n', K)
     print('null(K)=\n', null(K))
-    r = K*null(K)
+    r = K * null(K)
     print('K*null(K):', r)
 
 

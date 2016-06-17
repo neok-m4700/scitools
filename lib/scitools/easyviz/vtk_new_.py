@@ -69,11 +69,14 @@ try:
     import vtkTkRenderWidget
 except:
     from vtk.tk import vtkTkRenderWidget
+    # print('from vtk.tk import vtkTkRenderWidget')
 
 try:
     import vtkTkRenderWindowInteractor
 except:
     from vtk.tk import vtkTkRenderWindowInteractor
+    # print('from vtk.tk import vtkTkRenderWindowInteractor')
+
 
 from vtk.util.vtkAlgorithm import VTKPythonAlgorithmBase
 
@@ -262,14 +265,16 @@ class VTKBackend(BaseClass):
 
         self._colors = {
             '': None,   # no color --> blue
-            'r': (1, 0, 0),  # red
-            'g': (0, 1, 0),  # green
-            'b': (0, 0, 1),  # blue
-            'c': (0, 1, 1),  # cyan
-            'm': (1, 0, 1),  # magenta
-            'y': (1, 1, 0),  # yellow
-            'k': (0, 0, 0),  # black
-            'w': (1, 1, 1),  # white
+            'r': (1, 0, 0),      # red
+            'g': (0, 1, 0),      # green
+            'b': (0, 0, 1),      # blue
+            'c': (0, 1, 1),      # cyan
+            'm': (1, 0, 1),      # magenta
+            'y': (1, 1, 0),      # yellow
+            'k': (0, 0, 0),      # black
+            'w': (1, 1, 1),      # white
+            'db': (.1, .2, .3),  # paraview dark blue
+            'lb': (.2, .3, .4)   # paraview light blue
         }
 
         self._line_styles = {
@@ -324,11 +329,8 @@ class VTKBackend(BaseClass):
 
     def _set_labels(self, ax):
         '''Add text labels for x-, y-, and z-axis.'''
-        print('<labels>') if DEBUG else None
-
-        xlabel = ax.getp('xlabel')
-        ylabel = ax.getp('ylabel')
-        zlabel = ax.getp('zlabel')
+        xlabel, ylabel, zlabel = ax.getp('xlabel'), ax.getp('ylabel'), ax.getp('zlabel')
+        print('<labels>') if DEBUG and (xlabel or ylabel or zlabel) else None
         if xlabel:
             # add a text label on x-axis
             pass
@@ -341,10 +343,9 @@ class VTKBackend(BaseClass):
 
     def _set_title(self, ax):
         '''Add a title at the top of the axis'''
-        print('<title>') if DEBUG else None
-
         title = self._fix_latex(ax.getp('title'))
         if title:
+            print('<title>') if DEBUG else None
             tprop = vtk.vtkTextProperty()
             tprop.BoldOff()
             tprop.SetFontSize(ax.getp('fontsize'))
@@ -453,8 +454,7 @@ class VTKBackend(BaseClass):
 
     def _set_coordinate_system(self, ax):
         '''
-        Use either the default Cartesian coordinate system or a
-        matrix coordinate system.
+        Use either the default Cartesian coordinate system or a matrix coordinate system.
         '''
 
         direction = ax.getp('direction')
@@ -478,9 +478,8 @@ class VTKBackend(BaseClass):
     def _set_box(self, ax):
         '''turn box around axes boundary on or off, for vtk we use it to plot the axes'''
         # see cubeAxes.py
-        print('<box>') if DEBUG else None
-
         if ax.getp('box'):
+            print('<box>') if DEBUG else None
             normals = vtk.vtkPolyDataNormals()
             normals.SetInputConnection(self._ax._apd.GetOutputPort())
             foheMapper = vtk.vtkPolyDataMapper()
@@ -515,17 +514,18 @@ class VTKBackend(BaseClass):
 
     def _set_grid(self, ax):
         '''turn grid lines on or off, for vtk we use this to plot the grid points'''
-        print('<grid>') if DEBUG else None
-
         if ax.getp('grid'):
+            print('<grid>') if DEBUG else None
             # turn grid lines on
             geom = vtk.vtkStructuredGridGeometryFilter()
             geom.SetInputConnection(self.sgrid.GetOutputPort())
             mapper = vtk.vtkPolyDataMapper()
             mapper.SetInputConnection(geom.GetOutputPort())
-            mapper.SetLookupTable(self._ax._colormap)
+            mapper.ScalarVisibilityOff()
+            # mapper.SetLookupTable(self._ax._colormap)  # why use a colormap on grid points
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
+            actor.GetProperty().SetColor(*ax.getp('axiscolor'))  # ax.getp('axiscolor')
             ax._renderer.AddActor(actor)
             ax._apd.AddInputConnection(geom.GetOutputPort())
         else:
@@ -534,9 +534,8 @@ class VTKBackend(BaseClass):
 
     def _set_hidden_line_removal(self, ax):
         '''turn on/off hidden line removal for meshes'''
-        print('<hidden line removal>') if DEBUG else None
-
         if ax.getp('hidden'):
+            print('<hidden line removal>') if DEBUG else None
             # turn hidden line removal on
             pass
         else:
@@ -545,10 +544,9 @@ class VTKBackend(BaseClass):
 
     def _set_colorbar(self, ax):
         '''add a colorbar to the axis'''
-        print('<colorbar>') if DEBUG else None
-
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
+            print('<colorbar>') if DEBUG else None
             # turn on colorbar
             cbar_title = cbar.getp('cbtitle')
             cbar_location = self._colorbar_locations[cbar.getp('cblocation')]
@@ -587,10 +585,8 @@ class VTKBackend(BaseClass):
         print('<view>') if DEBUG else None
 
         cam = ax.getp('camera')
+        view, fp = cam.getp('view'), cam.getp('camtarget')
 
-        view = cam.getp('view')
-
-        fp = cam.getp('camtarget')
         camera = vtk.vtkCamera()
         camera.SetFocalPoint(cam.getp('camtarget'))
         camera.SetViewUp(cam.getp('camup'))
@@ -614,14 +610,9 @@ class VTKBackend(BaseClass):
 
             if cam.getp('cammode') == 'manual':
                 # for advanced camera handling:
-                roll = cam.getp('camroll')
-                zoom = cam.getp('camzoom')
-                dolly = cam.getp('camdolly')
-                target = cam.getp('camtarget')
-                position = cam.getp('campos')
-                up_vector = cam.getp('camup')
-                view_angle = cam.getp('camva')
-                projection = cam.getp('camproj')
+                roll, zoom, dolly = cam.getp('camroll'), cam.getp('camzoom'), cam.getp('camdolly')
+                target, position, up_vector = cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
+                view_angle, projection = cam.getp('camva'), cam.getp('camproj')
                 if projection == 'perspective':
                     camera.ParallelProjectionOff()
                 else:
@@ -699,6 +690,8 @@ class VTKBackend(BaseClass):
     def _set_shading(self, item, source, actor):
         '''shading + mesh contour'''
         shading = self._ax.getp('shading')
+        print('<shading>') if DEBUG else None
+
         if shading == 'interp':
             actor.GetProperty().SetInterpolationToGouraud()
         elif shading == 'flat':
@@ -851,6 +844,7 @@ class VTKBackend(BaseClass):
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
         nx, ny = shape(u)
+
         if OPTIMIZATION == 'numba':
             pass
         else:
@@ -1180,8 +1174,7 @@ class VTKBackend(BaseClass):
     def _add_vectors(self, item):
         print('<vectors +>') if DEBUG else None
 
-        # uncomment the following command if there is no support for
-        # automatic scaling of vectors in the current plotting package:
+        # uncomment the following command if there is no support for automatic scaling of vectors in the current plotting package:
         item.scale_vectors()
 
         if item.getp('udata').ndim == 3:
@@ -1192,22 +1185,33 @@ class VTKBackend(BaseClass):
         # get line specifiactions (marker='.' means no marker):
         marker, color, style, width = self._get_linespecs(item)
 
-        # scale the vectors according to this variable (scale=0 should
-        # turn off automatic scaling):
-        scale = item.getp('arrowscale')
-        filled = item.getp('filledarrows')  # draw filled arrows if True
+        # scale the vectors according to this variable (scale=0 should turn off automatic scaling):
+        arrowscale = item.getp('arrowscale')
+        cone_resolution = item.getp('cone_resolution')
+        slice = item.getp('slice')
 
         marker, rotation = self._arrow_types[item.getp('linemarker')]
-        arrow = vtk.vtkGlyphSource2D()
-        arrow.SetGlyphType(marker)
-        arrow.SetFilled(item.getp('filledarrows'))
-        arrow.SetRotationAngle(rotation)
-        if arrow.GetGlyphType() != 9:  # not an arrow
-            arrow.DashOn()
-            arrow.SetCenter(.75, 0, 0)
+        if cone_resolution:
+            # tip_radius, shaft_radius, tip_length = .1, .03, .35  # default vtk values
+            tip_resolution, shaft_resolution = 6, 6
+            arrow = vtk.vtkArrowSource()
+            # arrow.SetTipLength(tip_length)
+            # arrow.SetTipRadius(tip_radius)
+            arrow.SetTipResolution(cone_resolution * tip_resolution)
+            # arrow.SetShaftRadius(shaft_radius)
+            arrow.SetShaftResolution(cone_resolution * shaft_resolution)
+
         else:
-            arrow.SetCenter(.5, 0, 0)
-        arrow.SetColor(self._get_color(item.getp('linecolor'), (1, 0, 0)))
+            arrow = vtk.vtkGlyphSource2D()
+            arrow.SetGlyphType(marker)
+            arrow.SetFilled(item.getp('filledarrows'))
+            arrow.SetRotationAngle(rotation)
+            if arrow.GetGlyphType() != 9:  # not an arrow
+                arrow.DashOn()
+                arrow.SetCenter(.75, 0, 0)
+            else:
+                arrow.SetCenter(.5, 0, 0)
+            arrow.SetColor(self._get_color(item.getp('linecolor'), (0, 0, 0)))
 
         plane = vtk.vtkStructuredGridGeometryFilter()
         plane.SetInputConnection(sgrid.GetOutputPort())
@@ -1217,23 +1221,65 @@ class VTKBackend(BaseClass):
         glyph = vtk.vtkGlyph3D()
         glyph.SetInputConnection(data.GetOutputPort())
         glyph.SetSourceConnection(arrow.GetOutputPort())
-        glyph.SetColorModeToColorByVector()
+        # glyph.SetColorModeToColorByVector()
+        glyph.SetColorModeToColorByScalar()
         glyph.SetRange(datao.GetScalarRange())
         glyph.ScalingOn()
         glyph.SetScaleModeToScaleByVector()
         glyph.OrientOn()
         glyph.SetVectorModeToUseVector()
+        glyph.SetScaleFactor(arrowscale)
+
+        selectActor = None
+        if slice:
+            # print('    // slice activated')
+            clipplane = vtk.vtkPlane()
+            clipper = vtk.vtkClipPolyData()
+            clipper.SetInputConnection(glyph.GetOutputPort())
+            clipper.SetClipFunction(clipplane)
+            clipper.InsideOutOn()
+
+            selectMapper = vtk.vtkPolyDataMapper()
+            selectMapper.SetInputConnection(clipper.GetOutputPort())
+
+            selectActor = vtk.vtkLODActor()
+            selectActor.SetMapper(selectMapper)
+            selectActor.GetProperty().SetColor(0, 1, 0)
+            selectActor.VisibilityOff()
+            selectActor.SetScale(1.01, 1.01, 1.01)
+
+            def pwidget_cb(obj, event):
+                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
+                nonlocal clipplane, selectActor, pwidget
+                obj.GetPlane(clipplane)
+                selectActor.VisibilityOn()
+
+            def pwidget_stop_cb(obj, event):
+                nonlocal selectActor
+                selectActor.VisibilityOff()
+
+            pwidget = vtk.vtkImplicitPlaneWidget()
+            pwidget.SetInteractor(self._g.renwin.GetInteractor())
+            pwidget.SetInputConnection(glyph.GetOutputPort())
+            pwidget.PlaceWidget()
+            pwidget.AddObserver('InteractionEvent', pwidget_cb)
+            pwidget.AddObserver('StopInteractionEvent', pwidget_stop_cb)
+
+            clip_or_glyph = clipper
+        else:
+            clip_or_glyph = glyph
+
         mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(glyph.GetOutputPort())
-        # vr = datao.GetPointData().GetVectors().GetRange()
-        # mapper.SetScalarRange(vr)
+        mapper.SetInputConnection(clip_or_glyph.GetOutputPort())
+        # mapper.SetInputConnection(glyph.GetOutputPort())
         mapper.ScalarVisibilityOff()
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
         # self._add_legend(item, arrow.GetOutput())
         self._ax._renderer.AddActor(actor)
-        self._ax._apd.AddInputConnection(glyph.GetOutputPort())
+        self._ax._renderer.AddActor(selectActor) if selectActor else None
+        self._ax._apd.AddInputConnection(clip_or_glyph.GetOutputPort())
 
     def _add_streams(self, item):
         print('<streams +>') if DEBUG else None
@@ -1493,26 +1539,34 @@ class VTKBackend(BaseClass):
         self._g = fig._g  # link for faster access
 
         # create the custom callback functions for this figure
-        def savefig_cb(e):
+        def cb_savefig(e):
             print('----> savefig_callback', repr(e.char))
             self.hardcopy('fig.pdf', replot=False)
-        self._g.tkw.bind('<Control-s>', savefig_cb)
+        self._g.tkw.bind('<Control-s>', cb_savefig)
 
-        def toggle_axes_cb(e):
+        def cb_toggle_axes(e):
             if self._ax.getp('unit'):
                 self._ax.setp(unit=False)
             else:
                 self._ax.setp(unit=True)
             self._replot()
-        self._g.tkw.bind('<Control-a>', toggle_axes_cb)
+        self._g.tkw.bind('<Control-a>', cb_toggle_axes)
 
-        def toggle_box_cb(e):
+        def cb_toggle_box(e):
             if self._ax.getp('box'):
                 self._ax.setp(box=False)
             else:
                 self._ax.setp(box=True)
             self._replot()
-        self._g.tkw.bind('<Control-b>', toggle_box_cb)
+        self._g.tkw.bind('<Control-b>', cb_toggle_box)
+
+        def cb_toggle_grid(e):
+            if self._ax.getp('grid'):
+                self._ax.setp(grid=False)
+            else:
+                self._ax.setp(grid=True)
+            self._replot()
+        self._g.tkw.bind('<Control-g>', cb_toggle_grid)
 
         return fig
 
@@ -1527,13 +1581,12 @@ class VTKBackend(BaseClass):
         self._set_colormap(ax)
         self._set_caxis(ax)
 
-        # Create a renderer for this axis and add it to the current
-        # figures renderer window:
+        # Create a renderer for this axis and add it to the current  figures renderer window:
         ax._renderer = vtk.vtkRenderer()
         self._g.renwin.AddRenderer(ax._renderer)
 
         # Set the renderers background color:
-        bgcolor = self._colors.get(ax.getp('bgcolor'), (1, 1, 1))
+        bgcolor = self._colors.get(ax.getp('bgcolor'), (1, 1, 1))  # white
 
         ax._renderer.SetBackground(bgcolor)
 
@@ -1541,7 +1594,6 @@ class VTKBackend(BaseClass):
         if not rect:
             rect = (0, 0, 1, 1)
         ax._renderer.SetViewport(rect)
-
         ax._renderer.RemoveAllViewProps()  # clear current scene
         # axshape = self.gcf().getp('axshape')
         # ax._renderer.SetPixelAspect(axshape[1], axshape[0])
@@ -2000,3 +2052,19 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 #     print('pressed', repr(event.char))
 #     if repr(event.char) == 'q':
 #         self.close(event)
+
+
+# glyph codes from vtkGlyphSource2D.h
+# VTK_NO_GLYPH 0
+# VTK_VERTEX_GLYPH 1
+# VTK_DASH_GLYPH 2
+# VTK_CROSS_GLYPH 3
+# VTK_THICKCROSS_GLYPH 4
+# VTK_TRIANGLE_GLYPH 5
+# VTK_SQUARE_GLYPH 6
+# VTK_CIRCLE_GLYPH 7
+# VTK_DIAMOND_GLYPH 8
+# VTK_ARROW_GLYPH 9
+# VTK_THICKARROW_GLYPH 10
+# VTK_HOOKEDARROW_GLYPH 11
+# VTK_EDGEARROW_GLYPH 12

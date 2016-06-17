@@ -31,8 +31,7 @@ def _toggle_state(state):
 
 def _check_type(var, name, type):
     if not isinstance(var, type):
-        raise TypeError('variable "%s"=%s is not of %s' %
-                        (name, var, str(type)))
+        raise TypeError('variable "%s"=%s is not of %s' % (name, var, str(type)))
     else:
         return True
 

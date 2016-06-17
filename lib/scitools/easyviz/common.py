@@ -669,9 +669,7 @@ class Contours(PlotProperties):
             elif isinstance(tmp, int):
                 self._prop['clevels'] = tmp
             else:
-                raise TypeError(
-                    'Contours._parseargs: expected array or integer for '
-                    ' argument %d, not %s' % (nargs, type(tmp)))
+                raise TypeError('Contours._parseargs: expected array or integer for argument %d, not %s' % (nargs, type(tmp)))
 
         self._set_data(x, y, z)
 
@@ -697,8 +695,10 @@ class VelocityVectors(PlotProperties):
     Information about velocity vectors in a vector plot.
     '''
     _local_prop = {
-        'arrowscale': 1.0,
+        'arrowscale': 1.,
         'filledarrows': False,
+        'cone_resolution': None,
+        'slice': False,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
         'udata': None, 'vdata': None, 'wdata': None,  # vector components
     }
@@ -719,6 +719,14 @@ class VelocityVectors(PlotProperties):
             _check_type(kwargs['arrowscale'], 'arrowscale', (int, float))
             self._prop['arrowscale'] = float(kwargs['arrowscale'])
 
+        if 'cone_resolution' in kwargs:
+            _check_type(kwargs['cone_resolution'], 'cone_resolution', int)
+            self._prop['cone_resolution'] = int(kwargs['cone_resolution'])
+
+        if 'slice' in kwargs:
+            _check_type(kwargs['slice'], 'slice', bool)
+            self._prop['slice'] = int(kwargs['slice'])
+
         if 'filledarrows' in kwargs:
             self._prop['filledarrows'] = _toggle_state(kwargs['filledarrows'])
 
@@ -735,7 +743,7 @@ class VelocityVectors(PlotProperties):
         func = self._prop['function']
         kwargs = {'indexing': self._prop['indexing']}
         nargs = len(args)
-        if nargs >= 6 and nargs <= 7:  # quiver3(X,Y,Z,U,V,W)
+        if nargs == 6 or nargs == 7:  # quiver3(X,Y,Z,U,V,W)
             x, y, z, u, v, w = _check_xyzuvw(*args[:6], **kwargs)
         elif nargs >= 4 and nargs <= 5:  # quiver(X,Y,U,V) or quiver3(Z,U,V,W)
             if func == 'quiver3':
@@ -748,8 +756,7 @@ class VelocityVectors(PlotProperties):
             raise TypeError(
                 'VelocityVectors._parseargs: wrong number of arguments')
 
-        if (func == 'quiver3' and nargs in (5, 7)) or \
-                (func == 'quiver' and nargs in (3, 5)):  # quiver?(...,arrowscale)
+        if (func == 'quiver3' and nargs in (5, 7)) or (func == 'quiver' and nargs in (3, 5)):  # quiver?(...,arrowscale)
             _check_type(args[-1], 'arrowscale', (float, int))
             self._prop['arrowscale'] = float(args[-1])
 
@@ -767,7 +774,7 @@ class VelocityVectors(PlotProperties):
             dy = (ymax - ymin) / dims[0]
             d = dx**2 + dy**2
             if w is not None:
-                dz = (zmax - zmin) / max(dims[0], dims[1])
+                # dz = (zmax - zmin) / max(dims[0], dims[1])
                 d += dx**2
             if d > 0:
                 if w is not None:
@@ -779,9 +786,9 @@ class VelocityVectors(PlotProperties):
                 maxlen = 0
 
             if maxlen > 0:
-                as_ = as_ * 0.9 / maxlen
+                as_ = as_ * .9 / maxlen
             else:
-                as_ = as_ * 0.9
+                as_ = as_ * .9
             self._prop['udata'] = u * as_
             self._prop['vdata'] = v * as_
             if w is not None:
@@ -3558,12 +3565,13 @@ class BaseClass(object):
         ax.add(h)
         if not ax.getp('hold'):
             if 'quiver3' in kwargs['description']:
-                if not 'grid' in kwargs:
-                    kwargs['grid'] = True
-                if not 'view' in kwargs:
+                # removed the mandatory grid, leave it False by default
+                # if 'grid' not in kwargs:
+                #     kwargs['grid'] = True
+                if 'view' not in kwargs:
                     kwargs['view'] = 3
             else:
-                if not 'box' in kwargs:
+                if 'box' not in kwargs:
                     kwargs['box'] = True
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)
@@ -3646,8 +3654,6 @@ class BaseClass(object):
         ax.add(h)
         if not ax.getp('hold'):
             if 'contour3' in kwargs['description']:
-                if not 'grid' in kwargs:
-                    kwargs['grid'] = True
                 if not 'view' in kwargs:
                     kwargs['view'] = 3
             else:  # contour or contourf
@@ -3895,8 +3901,6 @@ class BaseClass(object):
         h = Surface(*args, **kwargs)
         ax.add(h)
         if not ax.getp('hold'):
-            if not 'grid' in kwargs:
-                kwargs['grid'] = True
             if not 'view' in kwargs:
                 kwargs['view'] = 3
         ax.setp(**kwargs)
@@ -4136,8 +4140,9 @@ class BaseClass(object):
         ax.add(h)
         if not ax.getp('hold'):
             if 'slice_' in kwargs['description']:
-                if not 'grid' in kwargs:
-                    kwargs['grid'] = True
+                # removed the mandatory grid, leave it False by default
+                # if not 'grid' in kwargs:
+                #     kwargs['grid'] = True
                 if not 'view' in kwargs:
                     kwargs['view'] = 3
         ax.setp(**kwargs)
