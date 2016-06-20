@@ -201,16 +201,21 @@ class _VTKFigure(object):
         self.root.update()
 
 
-class vtkStructuredGridAlgorithmSource(VTKPythonAlgorithmBase):
+class vtkAlgorithmSource(VTKPythonAlgorithmBase):
 
-    def __init__(self, sgrid=None):
-        VTKPythonAlgorithmBase.__init__(self, nInputPorts=0, nOutputPorts=1, outputType='vtkStructuredGrid')
-        self.sgrid = sgrid
+    def __init__(self, data=None, outputType='vtkStructuredGrid'):
+        VTKPythonAlgorithmBase.__init__(self, nInputPorts=0, nOutputPorts=1, outputType=outputType)
+        self.data = data
+        self.outputType = outputType
         self.Update()
 
     def RequestData(self, request, inInfo, outInfo):
-        opt = vtk.vtkStructuredGrid.GetData(outInfo)
-        opt.ShallowCopy(self.sgrid)
+        if self.outputType == 'vtkStructuredGrid':
+            dset = vtk.vtkStructuredGrid
+        elif self.outputType == 'vtkPolyData':
+            dset = vtk.vtkPolyData
+        opt = dset.GetData(outInfo)
+        opt.ShallowCopy(self.data)
         return 1
 
 
@@ -537,7 +542,6 @@ class VTKBackend(BaseClass):
             # mapper.SetLookupTable(self._ax._colormap)  # why use a colormap on grid points
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
-            print('axiscolor', ax.getp('axiscolor'))
             actor.GetProperty().SetColor(*ax.getp('axiscolor'))
             ax._renderer.AddActor(actor)
             ax._apd.AddInputConnection(geom.GetOutputPort())
@@ -612,9 +616,7 @@ class VTKBackend(BaseClass):
             az = cam.getp('azimuth')
             el = cam.getp('elevation')
             if az is None or el is None:
-                # azimuth or elevation is not given. Set up a default
-                # 3D view (az=-37.5 and el=30 is the default 3D view in
-                # Matlab).
+                # azimuth or elevation is not given. Set up a default 3D view (az=-37.5 and el=30 is the default 3D view in Matlab).
                 az = -37.5
                 el = 30
             # set a 3D view according to az and el
@@ -637,9 +639,7 @@ class VTKBackend(BaseClass):
         # unit axes
         if ax.getp('unit'):
             axes = vtk.vtkAxesActor()
-            axes.GetXAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
-            axes.GetYAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
-            axes.GetZAxisCaptionActor2D().GetTextActor().SetTextScaleModeToNone()
+            [_.GetTextActor().SetTextScaleModeToNone() for _ in (axes.GetXAxisCaptionActor2D(), axes.GetYAxisCaptionActor2D(), axes.GetZAxisCaptionActor2D())]
             ax._renderer.AddActor(axes)
 
         ax._renderer.ResetCamera()
@@ -817,7 +817,7 @@ class VTKBackend(BaseClass):
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetScalars(scalars)
 
-        self.sgrid = vtkStructuredGridAlgorithmSource(sgrid)
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_2D_vector_data(self, item):
@@ -836,6 +836,10 @@ class VTKBackend(BaseClass):
         else:
             w = asarray(w)
 
+        print(z, w)
+        print(shape(u), shape(w))
+        print(shape(x) == shape(u), shape(y) == shape(u), shape(z) == shape(u), shape(v) == shape(u), shape(w) == shape(u))
+
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
         x = x / dx; y = y / dy; z = z / dz
@@ -844,9 +848,7 @@ class VTKBackend(BaseClass):
             assert x.ndim == 1 and y.ndim == 1
             x, y = meshgrid(x, y, sparse=False, indexing=item.getp('indexing'))
             # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(u) and shape(y) == shape(u) and \
-            shape(z) == shape(u) and shape(v) == shape(u) and \
-            shape(w) == shape(u)
+        assert shape(x) == shape(u) and shape(y) == shape(u) and shape(z) == shape(u) and shape(v) == shape(u) and shape(w) == shape(u)
 
         n = item.getp('numberofpoints')
         points = vtk.vtkPoints()
@@ -873,7 +875,7 @@ class VTKBackend(BaseClass):
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetVectors(vectors)
 
-        self.sgrid = vtkStructuredGridAlgorithmSource(sgrid)
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_3D_scalar_data(self, item):
@@ -916,7 +918,7 @@ class VTKBackend(BaseClass):
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetScalars(scalars)
 
-        self.sgrid = vtkStructuredGridAlgorithmSource(sgrid)
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_3D_vector_data(self, item):
@@ -952,7 +954,7 @@ class VTKBackend(BaseClass):
         scalars.SetNumberOfValues(nc)
 
         if OPTIMIZATION == 'numba':
-            # TODO
+            # TODO
             pass
         else:
             ind = 0
@@ -976,38 +978,35 @@ class VTKBackend(BaseClass):
         sgrid.GetPointData().SetScalars(scalars)
         sgrid.GetPointData().SetVectors(vectors)
 
-        self.sgrid = vtkStructuredGridAlgorithmSource(sgrid)
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_3D_line_data(self, item):
         # TODO generate a polydata with lines see CylinderContour.py
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
+        if z is None:
+            z = zeros(x.shape)
 
-        pdo = vtk.vtkPolyData()
-        pts = vtk.vtkPoints()
+        points = vtk.vtkPoints()
+        [points.InsertPoint(_, x[_], y[_], z[_]) for _ in range(len(x))]
 
-        [pts.InsertPoint(row, x[row, 0], y[row, 1], z[row, 2]) for row in range(rows)]
+        # lines = vtk.vtkCellArray()
+        # lines.InsertNextCell(len(x))
 
-        lines = vtk.vtkCellArray()
-        lines.InsertNextCell(rows)
-
-        [lines.InsertCellPoint(row) for row in range(rows - 1)]
-        lines.InsertCellPoint(0)
+        # [lines.InsertCellPoint(_) for _ in range(len(x) - 1)]
+        # lines.InsertCellPoint(0)
 
         sgrid = vtk.vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
-        sgrid.GetPointData().SetScalars(scalars)
-        sgrid.GetPointData().SetVectors(vectors)
+        # sgrid.GetPointData().SetScalars(points)
+        # sgrid.GetCellData().SetScalars(lines)
 
-        self.sgrid = vtkStructuredGridAlgorithmSource(sgrid)
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _get_linespecs(self, item):
-        '''
-        Return the line marker, line color, line style, and
-        line width of the item.
-        '''
+        '''Return the line marker, line color, line style, and line width of the item'''
         marker = self._markers[item.getp('linemarker')]
         color = self._colors[item.getp('linecolor')]
         style = self._line_styles[item.getp('linetype')]
@@ -1018,32 +1017,39 @@ class VTKBackend(BaseClass):
         '''Add a 2D or 3D curve to the scene.'''
         print('<line +>') if DEBUG else None
 
-        # get line specifiactions:
+        # get line specifications:
         marker, color, style, width = self._get_linespecs(item)
 
         sgrid = self._create_3D_line_data(item)
 
-        # if z is not None:
-        # zdata is given, add a 3D curve:
-        #     pass
-        # else:
-        # no zdata, add a 2D curve:
-        #     pass
+        size = sgrid.GetOutputDataObject(0).GetNumberOfPoints()
 
-        data = self._cut_data(line)
+        lines = vtk.vtkCellArray()
+        lines.InsertNextCell(size)
+
+        [lines.InsertCellPoint(_) for _ in range(size - 1)]
+        lines.InsertCellPoint(0)
+
+        line = vtk.vtkPolyData()
+        line.SetPoints(sgrid.GetOutputDataObject(0).GetPoints())
+        line.SetLines(lines)
+
+        data = vtkAlgorithmSource(data=line, outputType='vtkPolyData')
+
+        # data = self._cut_data(line_source)
         mapper = vtk.vtkDataSetMapper()
-        mapper.SetInputConnection(normals.GetOutputPort())
+        mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
             data.Update()
-            cax = data.GetOutput().GetScalarRange()
+            cax = data.GetOutputDataObject(0).GetScalarRange()
         mapper.SetScalarRange(cax)
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
-        self._ax._apd.AddInputConnection(normals.GetOutputPort())
+        self._ax._apd.AddInputConnection(data.GetOutputPort())
 
     def _add_surface(self, item, shading='faceted'):
         print('<surface +>') if DEBUG else None
@@ -1255,6 +1261,8 @@ class VTKBackend(BaseClass):
             pwidget = vtk.vtkImplicitPlaneWidget()
             pwidget.SetInteractor(self._g.renwin.GetInteractor())
             pwidget.SetInputConnection(glyph.GetOutputPort())
+            [_.SetColor(self._ax.getp('axiscolor')) for _ in (pwidget.GetOutlineProperty(), pwidget.GetPlaneProperty(), pwidget.GetEdgesProperty())]
+
             pwidget.PlaceWidget()
 
             clipplane = vtk.vtkPlane()
@@ -1268,8 +1276,13 @@ class VTKBackend(BaseClass):
             # clipper.InsideOutOn()
 
             # we have to call replot somewhere here
+            def pwidget_event_cb(obj, event):
+                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
+                nonlocal clipplane, pwidget  # strange, we have to add pwidget here ...
+                pwidget.GetPlane(clipplane)
+
             def pwidget_enable_cb(obj, event):
-                print('--> enable')
+                # print('--> enable')
                 nonlocal selectActor, mapper, clipper, glyph, pwidget
                 mapper.SetInputConnection(clipper.GetOutputPort())
                 selectActor.VisibilityOn()
@@ -1277,13 +1290,8 @@ class VTKBackend(BaseClass):
                 self._ax._apd.AddInputConnection(clipper.GetOutputPort())
                 self._ax._renderer.AddActor(selectActor)
 
-            def pwidget_event_cb(obj, event):
-                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-                nonlocal clipplane, pwidget  # strange, we have to add pwidget here ...
-                pwidget.GetPlane(clipplane)
-
             def pwidget_disable_cb(obj, event):
-                print('--> disable')
+                # print('--> disable')
                 nonlocal selectActor, glyph, clipper, pwidget
                 selectActor.VisibilityOff()
                 self._ax._apd.RemoveInputConnection(max(0, self._ax._apd.GetNumberOfInputPorts() - 1), clipper.GetOutputPort())
@@ -1630,7 +1638,7 @@ class VTKBackend(BaseClass):
         self._set_colormap(ax)
         self._set_caxis(ax)
 
-        # Create a renderer for this axis and add it to the current  figures renderer window:
+        # Create a renderer for this axis and add it to the current figures renderer window:
         ax._renderer = vtk.vtkRenderer()
         self._g.renwin.AddRenderer(ax._renderer)
 

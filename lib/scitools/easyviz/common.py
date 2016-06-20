@@ -3133,7 +3133,7 @@ class BaseClass(object):
         if 'legend_fancybox' in kwargs:
             ax.setp(legend_fancybox=kwargs['legend_fancybox'])
 
-        if not ax.getp('hold') and not 'box' in kwargs:
+        if not ax.getp('hold') and 'box' not in kwargs:
             kwargs['box'] = True
 
         # set keyword arguments in all the added lines
@@ -3248,9 +3248,9 @@ class BaseClass(object):
         >>> t = linspace(0,10*pi,301)
         >>> plot3(sin(t), cos(t), t, title='A helix', grid='on')
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'plot3: 3D line plot'
-        if not 'hidden' in kwargs:
+        if 'hidden' not in kwargs:
             kwargs['hidden'] = False
         ax, args, nargs = self._check_args(*args)
 

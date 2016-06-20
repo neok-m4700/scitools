@@ -5,6 +5,9 @@ Example on how to work with references to objects and the setp command.
 """
 
 from scitools.std import *
+import scitools.globaldata; scitools.globaldata.DEBUG = 1
+from scitools.easyviz import *
+from scitools.easyviz.vtk_new_ import *
 
 setp(interactive=False)
 
