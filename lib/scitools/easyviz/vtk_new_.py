@@ -993,20 +993,22 @@ class VTKBackend(BaseClass):
         points = vtk.vtkPoints()
         [points.InsertPoint(_, x[_], y[_], z[_]) for _ in range(len(x))]
 
-        # lines = vtk.vtkCellArray()
-        # lines.InsertNextCell(len(x))
+        lines = vtk.vtkCellArray()
+        lines.InsertNextCell(len(x))
 
-        # [lines.InsertCellPoint(_) for _ in range(len(x) - 1)]
-        # lines.InsertCellPoint(0)
+        [lines.InsertCellPoint(_) for _ in range(len(x) - 1)]
+        lines.InsertCellPoint(0)
+
+        polydata = vtk.vtkPolyData()
+        polydata.SetPoints(points)
+        polydata.SetLines(lines)
 
         sgrid = vtk.vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
-        # sgrid.GetPointData().SetScalars(points)
-        # sgrid.GetCellData().SetScalars(lines)
-
         self.sgrid = vtkAlgorithmSource(sgrid)
-        return self.sgrid
+
+        return vtkAlgorithmSource(polydata, outputType='vtkPolyData')
 
     def _get_linespecs(self, item):
         '''Return the line marker, line color, line style, and line width of the item'''
@@ -1020,26 +1022,12 @@ class VTKBackend(BaseClass):
         '''Add a 2D or 3D curve to the scene.'''
         print('<line +>') if DEBUG else None
 
-        # get line specifications:
+        # get line specifications, TODO: set them in VTK
         marker, color, style, width = self._get_linespecs(item)
 
-        sgrid = self._create_3D_line_data(item)
+        line3D = self._create_3D_line_data(item)
 
-        size = sgrid.GetOutput().GetNumberOfPoints()
-
-        lines = vtk.vtkCellArray()
-        lines.InsertNextCell(size)
-
-        [lines.InsertCellPoint(_) for _ in range(size - 1)]
-        lines.InsertCellPoint(0)
-
-        line = vtk.vtkPolyData()
-        line.SetPoints(sgrid.GetOutput().GetPoints())
-        line.SetLines(lines)
-
-        line_source = vtkAlgorithmSource(data=line, outputType='vtkPolyData')
-
-        data = self._cut_data(line_source)
+        data = self._cut_data(line3D)
         mapper = vtk.vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
