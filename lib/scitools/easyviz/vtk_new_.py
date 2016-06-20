@@ -218,6 +218,9 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
         opt.ShallowCopy(self.data)
         return 1
 
+    def GetOutput(self):
+        return self.GetOutputDataObject(0)
+
 
 class VTKBackend(BaseClass):
 
@@ -1022,7 +1025,7 @@ class VTKBackend(BaseClass):
 
         sgrid = self._create_3D_line_data(item)
 
-        size = sgrid.GetOutputDataObject(0).GetNumberOfPoints()
+        size = sgrid.GetOutput().GetNumberOfPoints()
 
         lines = vtk.vtkCellArray()
         lines.InsertNextCell(size)
@@ -1031,19 +1034,19 @@ class VTKBackend(BaseClass):
         lines.InsertCellPoint(0)
 
         line = vtk.vtkPolyData()
-        line.SetPoints(sgrid.GetOutputDataObject(0).GetPoints())
+        line.SetPoints(sgrid.GetOutput().GetPoints())
         line.SetLines(lines)
 
-        data = vtkAlgorithmSource(data=line, outputType='vtkPolyData')
+        line_source = vtkAlgorithmSource(data=line, outputType='vtkPolyData')
 
-        # data = self._cut_data(line_source)
+        data = self._cut_data(line_source)
         mapper = vtk.vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
             data.Update()
-            cax = data.GetOutputDataObject(0).GetScalarRange()
+            cax = data.GetOutput().GetScalarRange()
         mapper.SetScalarRange(cax)
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
@@ -1343,7 +1346,7 @@ class VTKBackend(BaseClass):
 
         streamer = vtk.vtkStreamTracer()
 
-        streamer.SetInputData(sgrid.GetOutputDataObject(0))
+        streamer.SetInputData(sgrid.GetOutput())
         streamer.SetSourceConnection(seeds.GetOutputPort())
         streamer.SetIntegrationDirectionToBoth()
         streamer.SetIntegratorTypeToRungeKutta45()
@@ -1410,7 +1413,7 @@ class VTKBackend(BaseClass):
         sgrid = self._create_3D_scalar_data(item)
 
         iso = vtk.vtkContourFilter()
-        iso.SetInputData(sgrid.GetOutputDataObject(0))
+        iso.SetInputData(sgrid.GetOutput())
         iso.SetValue(0, isovalue)
         data = self._cut_data(iso)
 
@@ -1426,7 +1429,7 @@ class VTKBackend(BaseClass):
         cax = self._ax._caxis
         if cax is None:
             print('cax is', cax)
-            cax = sgrid.GetOutputDataObject(0).GetScalarRange()
+            cax = sgrid.GetOutput().GetScalarRange()
 
         mapper.SetScalarRange(cax)
         actor = vtk.vtkActor()
@@ -1478,7 +1481,7 @@ class VTKBackend(BaseClass):
         else:
             # sx, sy, and sz is either numbers or vectors with numbers
             origins, normals = [], []
-            sgrido = sgrid.GetOutputDataObject(0)
+            sgrido = sgrid.GetOutput()
             # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
             dx, dy, dz = self._ax.getp('daspect')
