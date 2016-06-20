@@ -1470,7 +1470,7 @@ class Axis(object):
                 self._prop['scale'] = 'loglog'
             # Note: The only way to reset scale to linear after log is to
             # use plot(args,log=None)
-            elif kwargs['log'] == None:
+            elif kwargs['log'] is None:
                 self._prop['scale'] = 'linear'
 
         for key in self._ranges:
@@ -1523,6 +1523,9 @@ class Axis(object):
 
         if 'bgcolor' in kwargs:
             self._prop['bgcolor'] = kwargs['bgcolor']
+
+        if 'axiscolor' in kwargs:
+            self._prop['axiscolor'] = kwargs['axiscolor']
 
         if 'visible' in kwargs:
             self._toggle_state('visible', kwargs['visible'])
@@ -2072,7 +2075,7 @@ class BaseClass(object):
         elif nargs == 1:
             _check_type(args[0], 'ax', Axis)
             self.gcf().setp(curax=args[0])
-            #raise NotImplementedError('not yet implemented')
+            # raise NotImplementedError('not yet implemented')
         elif nargs == 2:
             pass
         else:
@@ -2771,7 +2774,7 @@ class BaseClass(object):
                             'legend: wrong value of loc=%s, '
                             'should be between 0 and 10' % value)
                 elif isinstance(value, str):
-                    if not value in Axis._legend_locs:
+                    if value not in Axis._legend_locs:
                         raise ValueError(
                             'legend: wrong value of loc=%s, '
                             'should be\n%s' %
@@ -2783,7 +2786,7 @@ class BaseClass(object):
 
             elif key == 'fancybox':
                 value = kwargs[key]
-                if not value in (True, False, None):
+                if value not in (True, False, None):
                     raise ValueError('legend: wrong value of fancybox=%s' % value)
                 ax.setp(legend_fancybox=value)
             else:
@@ -3724,7 +3727,7 @@ class BaseClass(object):
         ax, args, nargs = self._check_args(*args)
         h = Surface(*args, **kwargs)
         ax.add(h)
-        if not ax.getp('hold') and not 'box' in kwargs:
+        if not ax.getp('hold') and 'box' not in kwargs:
             kwargs['box'] = True
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)
@@ -3796,7 +3799,7 @@ class BaseClass(object):
 
         FIXME: Add streamline example.
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'streamline: 2D or 3D streamline'
         ax, args, nargs = self._check_args(*args)
         h = Streams(*args, **kwargs)
