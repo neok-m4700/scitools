@@ -698,7 +698,7 @@ class VelocityVectors(PlotProperties):
         'arrowscale': 1.,
         'filledarrows': False,
         'cone_resolution': None,
-        'slice': False,
+        'slice': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
         'udata': None, 'vdata': None, 'wdata': None,  # vector components
     }
@@ -724,8 +724,8 @@ class VelocityVectors(PlotProperties):
             self._prop['cone_resolution'] = int(kwargs['cone_resolution'])
 
         if 'slice' in kwargs:
-            _check_type(kwargs['slice'], 'slice', bool)
-            self._prop['slice'] = int(kwargs['slice'])
+            _check_type(kwargs['slice'], 'slice', (bool, str))
+            self._prop['slice'] = kwargs['slice']
 
         if 'filledarrows' in kwargs:
             self._prop['filledarrows'] = _toggle_state(kwargs['filledarrows'])
@@ -1676,11 +1676,11 @@ class Axis(object):
         xlim = item.getp('xlim')
         ylim = item.getp('ylim')
         zlim = item.getp('zlim')
-        if not None in self._prop['xlim']:
+        if None not in self._prop['xlim']:
             xlim = self._check_lim(self._prop['xlim'], xlim)
-        if not None in self._prop['ylim']:
+        if None not in self._prop['ylim']:
             ylim = self._check_lim(self._prop['ylim'], ylim)
-        if not None in self._prop['zlim']:
+        if None not in self._prop['zlim']:
             zlim = self._check_lim(self._prop['zlim'], zlim)
         self._prop['xlim'] = xlim
         self._prop['ylim'] = ylim
@@ -1691,17 +1691,17 @@ class Axis(object):
         xmin, xmax = self._prop['xmin'], self._prop['xmax']
         ymin, ymax = self._prop['ymin'], self._prop['ymax']
         zmin, zmax = self._prop['zmin'], self._prop['zmax']
-        if not None in [xmin, xmax]:
+        if None not in [xmin, xmax]:
             lim[0] = xmin
             lim[1] = xmax
-        if not None in [ymin, ymax]:
+        if None not in [ymin, ymax]:
             lim[2] = ymin
             lim[3] = ymax
-        if not None in [zmin, zmax]:
+        if None not in[zmin, zmax]:
             lim[4] = zmin
             lim[5] = zmax
         if self._prop['method'] == 'normal':
-            if not None in lim:  # limits are set
+            if None not in lim:  # limits are set
                 sx = float(lim[1] - lim[0])
                 sy = float(lim[3] - lim[2])
                 sz = float(lim[5] - lim[4])

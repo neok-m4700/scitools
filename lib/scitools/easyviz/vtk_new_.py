@@ -1201,6 +1201,70 @@ class VTKBackend(BaseClass):
         slice = item.getp('slice')
 
         marker, rotation = self._arrow_types[item.getp('linemarker')]
+
+        geom = vtk.vtkStructuredGridGeometryFilter()
+        geom.SetInputConnection(sgrid.GetOutputPort())
+        dataset = self._cut_data(geom)
+        dataset.Update(); datao = dataset.GetOutput()
+
+        if slice:
+            if slice == 'cube':
+                widget = vtk.vtkBoxWidget()
+                clipFunction = vtk.vtkPlanes()
+                widget.GetOutlineProperty().SetColor(self._ax.getp('axiscolor'))
+            else:
+                widget = vtk.vtkImplicitPlaneWidget()
+                [_.SetColor(self._ax.getp('axiscolor')) for _ in (widget.GetOutlineProperty(), widget.GetEdgesProperty())]
+                # , widget.GetPlaneProperty()
+                clipFunction = vtk.vtkPlane()
+
+            widget.SetInteractor(self._g.renwin.GetInteractor())
+            widget.SetInputConnection(dataset.GetOutputPort())
+            widget.PlaceWidget()
+            widget.SetPlaceFactor(1)
+            widget.SetHandleSize(widget.GetHandleSize() / 4)
+
+            clipper = vtk.vtkClipPolyData()
+            clipper.SetInputConnection(dataset.GetOutputPort())
+            clipper.SetClipFunction(clipFunction)
+            clipper.InsideOutOn()
+
+            # selectMapper = vtk.vtkPolyDataMapper()
+            # selectMapper.ScalarVisibilityOff()
+            # selectMapper.SetInputConnection(clipper.GetOutputPort())
+
+            selectActor = vtk.vtkActor()
+            # selectActor.SetMapper(selectMapper)
+            selectActor.VisibilityOff()
+
+            # we have to call replot somewhere here
+            def widget_event_cb(obj, event):
+                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
+                nonlocal clipFunction, widget  # strange, we have to add planeWidget here ...
+                if isinstance(widget, vtk.vtkBoxWidget):
+                    widget.GetPlanes(clipFunction)
+                elif isinstance(widget, vtk.vtkImplicitPlaneWidget):
+                    widget.GetPlane(clipFunction)
+
+            def widget_enable_cb(obj, event):
+                # print('--> enable')
+                nonlocal selectActor, clipper, widget
+                selectActor.VisibilityOn()
+                glyph.SetInputConnection(clipper.GetOutputPort())
+
+            def widget_disable_cb(obj, event):
+                # print('--> disable')
+                nonlocal selectActor, dataset, widget
+                selectActor.VisibilityOff()
+                glyph.SetInputConnection(dataset.GetOutputPort())
+
+            widget.AddObserver('InteractionEvent', widget_event_cb)
+            widget.AddObserver('EnableEvent', widget_enable_cb)
+            widget.AddObserver('DisableEvent', widget_disable_cb)
+
+            # print('self._ax._apd has now', self._ax._apd.GetTotalNumberOfInputConnections(), 'inputs')
+            # print('input ports after', self._ax._apd.GetNumberOfInputPorts())
+
         if cone_resolution:
             # tip_radius, shaft_radius, tip_length = .1, .03, .35  # default vtk values
             tip_resolution, shaft_resolution = 6, 6
@@ -1223,12 +1287,8 @@ class VTKBackend(BaseClass):
                 arrow.SetCenter(.5, 0, 0)
             arrow.SetColor(self._get_color(item.getp('linecolor'), (0, 0, 0)))
 
-        plane = vtk.vtkStructuredGridGeometryFilter()
-        plane.SetInputConnection(sgrid.GetOutputPort())
-        data = self._cut_data(plane)
-        data.Update(); datao = data.GetOutput()
         glyph = vtk.vtkGlyph3D()
-        glyph.SetInputConnection(data.GetOutputPort())
+        glyph.SetInputConnection(dataset.GetOutputPort())
         glyph.SetSourceConnection(arrow.GetOutputPort())
         glyph.SetColorModeToColorByVector()
         glyph.SetRange(datao.GetScalarRange())
@@ -1241,60 +1301,13 @@ class VTKBackend(BaseClass):
         mapper = vtk.vtkPolyDataMapper()
         mapper.ScalarVisibilityOff()
         mapper.SetInputConnection(glyph.GetOutputPort())
-        self._ax._apd.AddInputConnection(glyph.GetOutputPort())
 
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
+        self._ax._renderer.AddActor(selectActor)
         self._ax._renderer.AddActor(actor)
-
-        if slice:
-            pwidget = vtk.vtkImplicitPlaneWidget()
-            pwidget.SetInteractor(self._g.renwin.GetInteractor())
-            pwidget.SetInputConnection(glyph.GetOutputPort())
-            [_.SetColor(self._ax.getp('axiscolor')) for _ in (pwidget.GetOutlineProperty(), pwidget.GetPlaneProperty(), pwidget.GetEdgesProperty())]
-
-            pwidget.PlaceWidget()
-
-            clipplane = vtk.vtkPlane()
-            clipper = vtk.vtkClipPolyData()
-            clipper.SetInputConnection(glyph.GetOutputPort())
-            clipper.SetClipFunction(clipplane)
-
-            selectActor = vtk.vtkActor()
-            selectActor.SetMapper(mapper)
-            selectActor.VisibilityOff()
-            # clipper.InsideOutOn()
-
-            # we have to call replot somewhere here
-            def pwidget_event_cb(obj, event):
-                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-                nonlocal clipplane, pwidget  # strange, we have to add pwidget here ...
-                pwidget.GetPlane(clipplane)
-
-            def pwidget_enable_cb(obj, event):
-                # print('--> enable')
-                nonlocal selectActor, mapper, clipper, glyph, pwidget
-                mapper.SetInputConnection(clipper.GetOutputPort())
-                selectActor.VisibilityOn()
-                self._ax._apd.RemoveInputConnection(max(0, self._ax._apd.GetNumberOfInputPorts() - 1), glyph.GetOutputPort())
-                self._ax._apd.AddInputConnection(clipper.GetOutputPort())
-                self._ax._renderer.AddActor(selectActor)
-
-            def pwidget_disable_cb(obj, event):
-                # print('--> disable')
-                nonlocal selectActor, glyph, clipper, pwidget
-                selectActor.VisibilityOff()
-                self._ax._apd.RemoveInputConnection(max(0, self._ax._apd.GetNumberOfInputPorts() - 1), clipper.GetOutputPort())
-                self._ax._apd.AddInputConnection(glyph.GetOutputPort())
-                self._ax._renderer.RemoveActor(selectActor)
-
-            pwidget.AddObserver('InteractionEvent', pwidget_event_cb)
-            pwidget.AddObserver('EnableEvent', pwidget_enable_cb)
-            pwidget.AddObserver('DisableEvent', pwidget_disable_cb)
-
-            # print('self._ax._apd has now', self._ax._apd.GetTotalNumberOfInputConnections(), 'inputs')
-            # print('input ports after', self._ax._apd.GetNumberOfInputPorts())
+        self._ax._apd.AddInputConnection(glyph.GetOutputPort())
 
     def _add_streams(self, item):
         print('<streams +>') if DEBUG else None
@@ -1553,69 +1566,79 @@ class VTKBackend(BaseClass):
 
         self._g = fig._g  # link for faster access
 
-        # create the custom callback functions for this figure
-        def cb_savefig(e):
-            print('----> savefig_callback', repr(e.char))
-            self.hardcopy('fig.pdf', replot=False)
-        self._g.tkw.bind('<Control-s>', cb_savefig)
+        def control_callback(e):
+            '''
+            stackoverflow.com/a/16082411/5584077
+            infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
+            '''
+            def toggle_bool(obj, key):
+                boolean = obj.getp(key) 
+                if isinstance(boolean, bool):
+                    obj.setp(**{key: not boolean})
+                else:
+                    raise TypeError('not a boolean !')
 
-        def cb_toggle_axes(e):
-            if self._ax.getp('unit'):
-                self._ax.setp(unit=False)
-            else:
-                self._ax.setp(unit=True)
-            self._replot()
-        self._g.tkw.bind('<Control-a>', cb_toggle_axes)
 
-        def cb_toggle_box(e):
-            if self._ax.getp('box'):
-                self._ax.setp(box=False)
-            else:
-                self._ax.setp(box=True)
-            self._replot()
-        self._g.tkw.bind('<Control-b>', cb_toggle_box)
+            if e.keysym == 'r':
+                pass
+            elif e.keysym == 'i':
+                # print(self._ax)
+                plotitems = self._ax.getp('plotitems')
+                plotitems.sort(key=self._cmpPlotProperties)
+                for item in plotitems:
+                    for _ in ('linecolor', 'facecolor', 'edgecolor'):
+                        try:
+                            # _get_color takes a string and returns a rgb tuple
+                            color = item.getp(_)
+                            newcol = '_' + color.lstrip('_')
+                            # print(color, '>', newcol, {_: newcol})
+                            item.setp(**{_: newcol})
+                        except Exception as e:
+                            # print(e)
+                            pass
 
-        def cb_toggle_grid(e):
-            if self._ax.getp('grid'):
-                self._ax.setp(grid=False)
-            else:
-                self._ax.setp(grid=True)
-            self._replot()
-        self._g.tkw.bind('<Control-g>', cb_toggle_grid)
-
-        def cb_force_replot(e):
-            self._replot()
-        self._g.tkw.bind('<Control-r>', cb_force_replot)
-
-        def cb_invert_colors(e):
-            print(self._ax)
-            plotitems = self._ax.getp('plotitems')
-            plotitems.sort(key=self._cmpPlotProperties)
-            for item in plotitems:
-                for _ in ('linecolor', 'facecolor', 'edgecolor'):
+                for _ in ('bgcolor', 'fgcolor', 'axiscolor'):
                     try:
-                        # _get_color takes a string and returns a rgb tuple
-                        color = item.getp(_)
-                        newcol = '_' + color.lstrip('_')
+                        color = self._ax.getp(_)
+                        newcol = self.invertc(color)
                         # print(color, '>', newcol, {_: newcol})
-                        item.setp(**{_: newcol})
+                        self._ax.setp(**{_: newcol})
                     except Exception as e:
                         # print(e)
                         pass
+                # print(self._ax)
 
-            for _ in ('bgcolor', 'fgcolor', 'axiscolor'):
-                try:
-                    color = self._ax.getp(_)
-                    newcol = self.invertc(color)
-                    # print(color, '>', newcol, {_: newcol})
-                    self._ax.setp(**{_: newcol})
-                except Exception as e:
-                    # print(e)
-                    pass
-
-            print(self._ax)
+            elif e.keysym == 'g':
+                toggle_bool(self._ax, 'grid')
+            elif e.keysym == 'b':
+                toggle_bool(self._ax, 'box')
+            elif e.keysym == 'a':
+                toggle_bool(self._ax, 'unit')
+            elif e.keysym == 's':
+                self.hardcopy('fig.pdf', replot=False)
+                return
+            elif e.keysym == 'KP_4':
+                self.camup(1, 0, 0)
+                return
+            elif e.keysym == 'KP_5':
+                self.camup(0, 1, 0)
+                return
+            elif e.keysym == 'KP_6':
+                self.camup(0, 0, 1)
+                return
+            elif e.keysym == 'KP_7':
+                self.view(0, 0)
+                return
+            elif e.keysym == 'KP_2':
+                self.view(2)
+                return
+            elif e.keysym == 'KP_3':
+                self.view(3)
+                return
             self._replot()
-        self._g.tkw.bind('<Control-i>', cb_invert_colors)
+
+        self._g.tkw.bind('<Control-Key>', control_callback)
+
         return fig
 
     def closefig(self, arg=None):
