@@ -642,6 +642,7 @@ class VTKBackend(BaseClass):
                 else:
                     camera.ParallelProjectionOn()
 
+        print(camera.GetViewUp())
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
 
