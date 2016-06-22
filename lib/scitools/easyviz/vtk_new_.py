@@ -39,7 +39,7 @@ from .common import *
 from scitools.globaldata import DEBUG, VERBOSE, OPTIMIZATION
 from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
-from .misc import _update_from_config_file
+from .misc import _update_from_config_file, _toggle_state
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
 import os
 import sys
@@ -1596,11 +1596,11 @@ class VTKBackend(BaseClass):
                 # print(self._ax)
 
             elif e.keysym == 'g':
-                self._toggle_state(self._ax['grid'], 'grid')
+                _toggle_state(self._ax['grid'], 'grid')
             elif e.keysym == 'b':
-                self._toggle_state(self._ax['box'], 'box')
+                _toggle_state(self._ax['box'], 'box')
             elif e.keysym == 'a':
-                self._toggle_state(self._ax['unit'], 'unit')
+                _toggle_state(self._ax['unit'], 'unit')
             elif e.keysym == 's':
                 self.hardcopy('fig.pdf', replot=False)
                 return
