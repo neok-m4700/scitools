@@ -39,7 +39,7 @@ from .common import *
 from scitools.globaldata import DEBUG, VERBOSE, OPTIMIZATION
 from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
-from .misc import _update_from_config_file, _toggle_state
+from .misc import _update_from_config_file
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
 import os
 import sys
@@ -116,15 +116,20 @@ class _VTKFigure(object):
         self.root.geometry('{}x{}'.format(width, height))
         self.root.withdraw()
         self.frame = tkinter.Frame(self.root)  # relief='sunken', bd=2
-        self.frame.pack(side='top', fill='both', expand=1)
-        self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame,
-                                                                           width=width,
-                                                                           height=height)
+        self.frame.pack(side='top', fill='both', expand='true')
         self.is_interactive = False
-        self.tkw.pack(expand='true', fill='both')
+        self._init()
 
+    def _init(self):
+        self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame, width=self.width, height=self.height)
+        self.tkw.pack(expand='true', fill='both')
         self.renwin = self.tkw.GetRenderWindow()
-        self.renwin.SetSize(width, height)
+        self.renwin.SetSize(self.width, self.height)
+        self.iren = self.renwin.GetInteractor()
+        istyle = vtk.vtkInteractorStyleSwitch()
+        istyle.SetCurrentStyleToTrackballCamera()
+        self.iren.SetInteractorStyle(istyle)
+        self.tkw.focus_force() # needed for the callback to work
 
     def reset(self):
         print('<reset>') if DEBUG else None
@@ -133,12 +138,8 @@ class _VTKFigure(object):
         self.tkw.forget()
         self.tkw.destroy()
         del self.tkw
+        self._init()
         # recreative the vtkTkRenderWindowInteractor as in __init__
-        self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame, width=self.width, height=self.height)
-        self.tkw.pack(expand='true', fill='both')
-
-        self.renwin = self.tkw.GetRenderWindow()
-        self.renwin.SetSize(self.width, self.height)
         # remove all renderers:
         # renderers = self.renwin.GetRenderers()
         # ren = renderers.GetFirstRenderer()
@@ -164,7 +165,6 @@ class _VTKFigure(object):
 
         # full pipeline update (is it really necessary ?, tb added)
         self.plt._ax._apd.Update()
-
         self.tkw.Initialize()
 
         # First we render each of the axis renderers:
@@ -173,34 +173,29 @@ class _VTKFigure(object):
         while ren is not None:
             ren.Render()
             ren = renderers.GetNextItem()
-
         # then we render the complete scene:
-
         self.renwin.Render()
 
         if self.plt.getp('interactive') and not self.is_interactive and self.plt.getp('show'):
-            print('--> interactive mode !') if DEBUG else None
             self.is_interactive = True
             self.tkw.Start()
-
+            # self.tkw.focus_force()
+            # self.tkw.update()
+            # not needed anymore, instead use vtkInteractorStyleSwitch
             # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
-            self.tkw.focus_force()
-            self.tkw.event_generate('<KeyPress-t>')
-            self.tkw.update()
+            # self.tkw.event_generate('<KeyPress-t>')
 
-            self.master.mainloop()
+            self.master.mainloop()  # this is a blocking call
 
     def exit(self):
         print('<exit>') if DEBUG else None
 
         self.close()
-
         self.renwin.Finalize()
         if self.is_interactive:
             print('--> iren exit') if DEBUG else None
-            iren = self.renwin.GetInteractor()
-            iren.TerminateApp()
-            del iren
+            self.iren.TerminateApp()
+            del self.iren
 
         del self.renwin
         self.master.quit()
@@ -700,7 +695,7 @@ class VTKBackend(BaseClass):
 
     def _cut_data(self, data, item):
         '''return cutted data if limits is outside (scaled) axis limits'''
-        data.Update()  # because of GetOutput()
+        data.Update(); datao = data.GetOutput()
         islice = item.getp('islice')
 
         # data boundaries clipper
@@ -725,11 +720,11 @@ class VTKBackend(BaseClass):
             # , widget.GetPlaneProperty()
             clipFunction = vtk.vtkPlane()
 
-        widget.SetInteractor(self._g.renwin.GetInteractor())
+        widget.SetInteractor(self._g.iren)
         widget.SetInputConnection(data.GetOutputPort())
         widget.GetPlanes(clipFunction)  # in order to avoid 'Please define points and/or normals!' errors
+        widget.SetPlaceFactor(1.05)
         widget.PlaceWidget()
-        widget.SetPlaceFactor(1)
         widget.SetHandleSize(widget.GetHandleSize() / 4)
 
         iclipper = vtk.vtkClipPolyData()
@@ -738,11 +733,7 @@ class VTKBackend(BaseClass):
         iclipper.SetValue(0)
         iclipper.InsideOutOn()
 
-        selectActor = vtk.vtkActor()
-        selectActor.VisibilityOff()
-
-        # we have to call replot somewhere here
-        def widget_event_cb(obj, event):
+        def pw_interaction(obj, event):
             # see www.python.org/dev/peps/pep-3104 for nonlocal kw
             nonlocal clipFunction, widget  # strange, we have to add planeWidget here ...
             if isinstance(obj, vtk.vtkBoxWidget):
@@ -750,20 +741,31 @@ class VTKBackend(BaseClass):
             elif isinstance(obj, vtk.vtkImplicitPlaneWidget):
                 obj.GetPlane(clipFunction)
 
-        def widget_enable_cb(obj, event):
-            nonlocal selectActor, iclipper, clipper 
-            selectActor.VisibilityOn()
-            clipper.SetInputConnection(iclipper.GetOutputPort())
+        def pw_start_interaction(obj, event):
+            obj.OutlineCursorWiresOn()
+            obj.GetOutlineProperty().SetOpacity(.5)
 
-        def widget_disable_cb(obj, event):
-            nonlocal selectActor, data, clipper
-            selectActor.VisibilityOff()
+        def pw_end_interaction(obj, event):
+            obj.OutlineCursorWiresOff()
+            obj.GetOutlineProperty().SetOpacity(0)
+
+        def pw_enable(obj, event):
+            nonlocal iclipper, clipper
+            clipper.SetInputConnection(iclipper.GetOutputPort())
+            # for now this is working fine, maybe something simpler can be done using obj.InvokeEvent('InteractionEvent')
+            self._g.iren.LeftButtonPressEvent()
+            self._g.iren.MouseMoveEvent()
+            self._g.iren.LeftButtonReleaseEvent()
+
+        def pw_disable(obj, event):
+            nonlocal data, clipper
             clipper.SetInputConnection(data.GetOutputPort())
 
-        widget.AddObserver('InteractionEvent', widget_event_cb)
-        widget.AddObserver('EnableEvent', widget_enable_cb)
-        widget.AddObserver('DisableEvent', widget_disable_cb)
-        self._ax._renderer.AddActor(selectActor)
+        widget.AddObserver('InteractionEvent', pw_interaction)
+        widget.AddObserver('StartInteractionEvent', pw_start_interaction)
+        widget.AddObserver('EndInteractionEvent', pw_end_interaction)
+        widget.AddObserver('EnableEvent', pw_enable)
+        widget.AddObserver('DisableEvent', pw_disable)
 
         return clipper
 
@@ -1201,7 +1203,7 @@ class VTKBackend(BaseClass):
         isoActor = vtk.vtkActor()
         isoActor.SetMapper(isoMapper)
         self._set_actor_properties(item, isoActor)
-        # self._add_legend(item, iso.GetOutput())
+        # self.@_legend(item, iso.GetOutput())
         self._ax._renderer.AddActor(isoActor)
         self._ax._apd.AddInputConnection(data.GetOutputPort())
 
@@ -1306,10 +1308,11 @@ class VTKBackend(BaseClass):
         mapper.ScalarVisibilityOff()
         mapper.SetInputConnection(glyph.GetOutputPort())
 
-        actor = vtk.vtkActor()
-        actor.SetMapper(mapper)
-        self._set_actor_properties(item, actor)
-        self._ax._renderer.AddActor(actor)
+        # glyph are costly in terms of rendering, use a LODActor
+        LODActor = vtk.vtkLODActor()
+        LODActor.SetMapper(mapper)
+        self._set_actor_properties(item, LODActor)
+        self._ax._renderer.AddActor(LODActor)
         self._ax._apd.AddInputConnection(glyph.GetOutputPort())
 
     def _add_streams(self, item):
@@ -1554,17 +1557,18 @@ class VTKBackend(BaseClass):
             pass
 
     def register_bindings(self):
+        '''we must register the figure bindings in the backend because we have to have access to the backend properties'''
         def control_callback(e):
             '''
             stackoverflow.com/a/16082411/5584077
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
             '''
-            # def toggle_bool(obj, key):
-            #     boolean = obj.getp(key)
-            #     if isinstance(boolean, bool):
-            #         obj.setp(**{key: not boolean})
-            #     else:
-            #         raise TypeError('not a boolean !')
+            def _toggle_state(obj, key):
+                boolean = obj.getp(key)
+                if isinstance(boolean, bool):
+                    obj.setp(**{key: not boolean})
+                else:
+                    raise TypeError('not a boolean !')
 
             if e.keysym == 'r':
                 pass
@@ -1596,11 +1600,11 @@ class VTKBackend(BaseClass):
                 # print(self._ax)
 
             elif e.keysym == 'g':
-                _toggle_state(self._ax['grid'], 'grid')
+                _toggle_state(self._ax, 'grid')
             elif e.keysym == 'b':
-                _toggle_state(self._ax['box'], 'box')
+                _toggle_state(self._ax, 'box')
             elif e.keysym == 'a':
-                _toggle_state(self._ax['unit'], 'unit')
+                _toggle_state(self._ax, 'unit')
             elif e.keysym == 's':
                 self.hardcopy('fig.pdf', replot=False)
                 return
