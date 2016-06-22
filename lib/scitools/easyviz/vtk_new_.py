@@ -115,7 +115,7 @@ class _VTKFigure(object):
         self.root.minsize(200, 200)
         self.root.geometry('{}x{}'.format(width, height))
         self.root.withdraw()
-        self.frame = tkinter.Frame(self.root, relief='sunken', bd=2)
+        self.frame = tkinter.Frame(self.root)  # relief='sunken', bd=2
         self.frame.pack(side='top', fill='both', expand=1)
         self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame,
                                                                            width=width,
@@ -128,13 +128,23 @@ class _VTKFigure(object):
 
     def reset(self):
         print('<reset>') if DEBUG else None
+        # is calling del removing the window from memory, not only from namespace ?
+        del self.renwin
+        self.tkw.forget()
+        self.tkw.destroy()
+        del self.tkw
+        # recreative the vtkTkRenderWindowInteractor as in __init__
+        self.tkw = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame, width=self.width, height=self.height)
+        self.tkw.pack(expand='true', fill='both')
 
+        self.renwin = self.tkw.GetRenderWindow()
+        self.renwin.SetSize(self.width, self.height)
         # remove all renderers:
-        renderers = self.renwin.GetRenderers()
-        ren = renderers.GetFirstRenderer()
-        while ren is not None:
-            self.renwin.RemoveRenderer(ren)
-            ren = renderers.GetNextItem()
+        # renderers = self.renwin.GetRenderers()
+        # ren = renderers.GetFirstRenderer()
+        # while ren is not None:
+        #     self.renwin.RemoveRenderer(ren)
+        #     ren = renderers.GetNextItem()
 
     def close(self, event=None):
         print('<close>') if DEBUG else None
@@ -242,6 +252,7 @@ class VTKBackend(BaseClass):
         self._master = tkinter.Tk()
         self._master.withdraw()
         self.figure(self.getp('curfig'))
+        self.observers = []
 
         # conversion tables for format strings:
         self._markers = {
@@ -280,7 +291,7 @@ class VTKBackend(BaseClass):
         }
 
         self._colors = {
-            '': None,   # no color --> blue
+            '': None,            # no color --> blue
             'r': (1, 0, 0),      # red
             'g': (0, 1, 0),      # green
             'b': (0, 0, 1),      # blue
@@ -687,20 +698,73 @@ class VTKBackend(BaseClass):
                 return False
         return True
 
-    def _cut_data(self, data):
+    def _cut_data(self, data, item):
         '''return cutted data if limits is outside (scaled) axis limits'''
         data.Update()  # because of GetOutput()
-        if self._is_inside_limits(data.GetOutput()):
-            return data
+        islice = item.getp('islice')
+
+        # data boundaries clipper
         box = vtk.vtkBox()
         box.SetBounds(self._ax._scaled_limits)
+
         clipper = vtk.vtkClipPolyData()
         clipper.SetInputConnection(data.GetOutputPort())
         clipper.SetClipFunction(box)
-        # clipper.GenerateClipScalarsOn()
-        # clipper.GenerateClippedOutputOn()
         clipper.SetValue(0)
         clipper.InsideOutOn()
+
+        # interactive clipper
+        # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.py
+        if islice == 'cube':
+            widget = vtk.vtkBoxWidget()
+            clipFunction = vtk.vtkPlanes()
+            widget.GetOutlineProperty().SetColor(self._ax.getp('axiscolor'))
+        else:
+            widget = vtk.vtkImplicitPlaneWidget()
+            [_.SetColor(self._ax.getp('axiscolor')) for _ in (widget.GetOutlineProperty(), widget.GetEdgesProperty())]
+            # , widget.GetPlaneProperty()
+            clipFunction = vtk.vtkPlane()
+
+        widget.SetInteractor(self._g.renwin.GetInteractor())
+        widget.SetInputConnection(data.GetOutputPort())
+        widget.GetPlanes(clipFunction)  # in order to avoid 'Please define points and/or normals!' errors
+        widget.PlaceWidget()
+        widget.SetPlaceFactor(1)
+        widget.SetHandleSize(widget.GetHandleSize() / 4)
+
+        iclipper = vtk.vtkClipPolyData()
+        iclipper.SetInputConnection(data.GetOutputPort())
+        iclipper.SetClipFunction(clipFunction)
+        iclipper.SetValue(0)
+        iclipper.InsideOutOn()
+
+        selectActor = vtk.vtkActor()
+        selectActor.VisibilityOff()
+
+        # we have to call replot somewhere here
+        def widget_event_cb(obj, event):
+            # see www.python.org/dev/peps/pep-3104 for nonlocal kw
+            nonlocal clipFunction, widget  # strange, we have to add planeWidget here ...
+            if isinstance(obj, vtk.vtkBoxWidget):
+                obj.GetPlanes(clipFunction)
+            elif isinstance(obj, vtk.vtkImplicitPlaneWidget):
+                obj.GetPlane(clipFunction)
+
+        def widget_enable_cb(obj, event):
+            nonlocal selectActor, iclipper, clipper 
+            selectActor.VisibilityOn()
+            clipper.SetInputConnection(iclipper.GetOutputPort())
+
+        def widget_disable_cb(obj, event):
+            nonlocal selectActor, data, clipper
+            selectActor.VisibilityOff()
+            clipper.SetInputConnection(data.GetOutputPort())
+
+        widget.AddObserver('InteractionEvent', widget_event_cb)
+        widget.AddObserver('EnableEvent', widget_enable_cb)
+        widget.AddObserver('DisableEvent', widget_disable_cb)
+        self._ax._renderer.AddActor(selectActor)
+
         return clipper
 
     def _set_shading(self, item, source, actor):
@@ -1027,7 +1091,7 @@ class VTKBackend(BaseClass):
 
         line3D = self._create_3D_line_data(item)
 
-        data = self._cut_data(line3D)
+        data = self._cut_data(line3D, item)
         mapper = vtk.vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
@@ -1062,7 +1126,7 @@ class VTKBackend(BaseClass):
             pass
         plane = vtk.vtkStructuredGridGeometryFilter()
         plane.SetInputConnection(sgrid.GetOutputPort())
-        data = self._cut_data(plane)
+        data = self._cut_data(plane, item)
         normals = vtk.vtkPolyDataNormals()
         normals.SetInputConnection(data.GetOutputPort())
         normals.SetFeatureAngle(45)
@@ -1095,7 +1159,7 @@ class VTKBackend(BaseClass):
         sgrid = self._create_2D_scalar_data(item)
         plane = vtk.vtkStructuredGridGeometryFilter()
         plane.SetInputConnection(sgrid.GetOutputPort())
-        data = self._cut_data(plane)
+        data = self._cut_data(plane, item)
 
         filled = item.getp('filled')  # draw filled contour plot if True
         if filled:
@@ -1198,72 +1262,13 @@ class VTKBackend(BaseClass):
         # scale the vectors according to this variable (scale=0 should turn off automatic scaling):
         arrowscale = item.getp('arrowscale')
         cone_resolution = item.getp('cone_resolution')
-        slice = item.getp('slice')
-
         marker, rotation = self._arrow_types[item.getp('linemarker')]
 
         geom = vtk.vtkStructuredGridGeometryFilter()
         geom.SetInputConnection(sgrid.GetOutputPort())
-        dataset = self._cut_data(geom)
+        dataset = self._cut_data(geom, item)
         dataset.Update(); datao = dataset.GetOutput()
-
-        if slice:
-            if slice == 'cube':
-                widget = vtk.vtkBoxWidget()
-                clipFunction = vtk.vtkPlanes()
-                widget.GetOutlineProperty().SetColor(self._ax.getp('axiscolor'))
-            else:
-                widget = vtk.vtkImplicitPlaneWidget()
-                [_.SetColor(self._ax.getp('axiscolor')) for _ in (widget.GetOutlineProperty(), widget.GetEdgesProperty())]
-                # , widget.GetPlaneProperty()
-                clipFunction = vtk.vtkPlane()
-
-            widget.SetInteractor(self._g.renwin.GetInteractor())
-            widget.SetInputConnection(dataset.GetOutputPort())
-            widget.PlaceWidget()
-            widget.SetPlaceFactor(1)
-            widget.SetHandleSize(widget.GetHandleSize() / 4)
-
-            clipper = vtk.vtkClipPolyData()
-            clipper.SetInputConnection(dataset.GetOutputPort())
-            clipper.SetClipFunction(clipFunction)
-            clipper.InsideOutOn()
-
-            # selectMapper = vtk.vtkPolyDataMapper()
-            # selectMapper.ScalarVisibilityOff()
-            # selectMapper.SetInputConnection(clipper.GetOutputPort())
-
-            selectActor = vtk.vtkActor()
-            # selectActor.SetMapper(selectMapper)
-            selectActor.VisibilityOff()
-
-            # we have to call replot somewhere here
-            def widget_event_cb(obj, event):
-                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-                nonlocal clipFunction, widget  # strange, we have to add planeWidget here ...
-                if isinstance(widget, vtk.vtkBoxWidget):
-                    widget.GetPlanes(clipFunction)
-                elif isinstance(widget, vtk.vtkImplicitPlaneWidget):
-                    widget.GetPlane(clipFunction)
-
-            def widget_enable_cb(obj, event):
-                # print('--> enable')
-                nonlocal selectActor, clipper, widget
-                selectActor.VisibilityOn()
-                glyph.SetInputConnection(clipper.GetOutputPort())
-
-            def widget_disable_cb(obj, event):
-                # print('--> disable')
-                nonlocal selectActor, dataset, widget
-                selectActor.VisibilityOff()
-                glyph.SetInputConnection(dataset.GetOutputPort())
-
-            widget.AddObserver('InteractionEvent', widget_event_cb)
-            widget.AddObserver('EnableEvent', widget_enable_cb)
-            widget.AddObserver('DisableEvent', widget_disable_cb)
-
-            # print('self._ax._apd has now', self._ax._apd.GetTotalNumberOfInputConnections(), 'inputs')
-            # print('input ports after', self._ax._apd.GetNumberOfInputPorts())
+        glyph = vtk.vtkGlyph3D()
 
         if cone_resolution:
             # tip_radius, shaft_radius, tip_length = .1, .03, .35  # default vtk values
@@ -1271,8 +1276,8 @@ class VTKBackend(BaseClass):
             arrow = vtk.vtkArrowSource()
             # arrow.SetTipLength(tip_length)
             # arrow.SetTipRadius(tip_radius)
-            arrow.SetTipResolution(cone_resolution * tip_resolution)
             # arrow.SetShaftRadius(shaft_radius)
+            arrow.SetTipResolution(cone_resolution * tip_resolution)
             arrow.SetShaftResolution(cone_resolution * shaft_resolution)
 
         else:
@@ -1287,7 +1292,6 @@ class VTKBackend(BaseClass):
                 arrow.SetCenter(.5, 0, 0)
             arrow.SetColor(self._get_color(item.getp('linecolor'), (0, 0, 0)))
 
-        glyph = vtk.vtkGlyph3D()
         glyph.SetInputConnection(dataset.GetOutputPort())
         glyph.SetSourceConnection(arrow.GetOutputPort())
         glyph.SetColorModeToColorByVector()
@@ -1305,7 +1309,6 @@ class VTKBackend(BaseClass):
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
-        self._ax._renderer.AddActor(selectActor)
         self._ax._renderer.AddActor(actor)
         self._ax._apd.AddInputConnection(glyph.GetOutputPort())
 
@@ -1355,7 +1358,7 @@ class VTKBackend(BaseClass):
         if item.getp('maxlen') is not None:
             streamer.SetMaximumPropagation(item.getp('maxlen'))
 
-        data = self._cut_data(streamer)
+        data = self._cut_data(streamer, item)
 
         if item.getp('tubes'):
             ncirc = item.getp('n')
@@ -1416,7 +1419,7 @@ class VTKBackend(BaseClass):
         iso = vtk.vtkContourFilter()
         iso.SetInputData(sgrid.GetOutput())
         iso.SetValue(0, isovalue)
-        data = self._cut_data(iso)
+        data = self._cut_data(iso, item)
 
         normals = vtk.vtkPolyDataNormals()
         normals.SetInputConnection(data.GetOutputPort())
@@ -1453,7 +1456,7 @@ class VTKBackend(BaseClass):
             sgrid2 = self._create_2D_scalar_data(h)
             plane = vtk.vtkStructuredGridGeometryFilter()
             plane.SetInputConnection(sgrid2.GetOutputPort())
-            data = self._cut_data(plane)
+            data = self._cut_data(plane, item)
             data.Update()
             datao = data.GetOutput()
             implds = vtk.vtkImplicitDataSet()
@@ -1503,7 +1506,7 @@ class VTKBackend(BaseClass):
                 cut = vtk.vtkCutter()
                 cut.SetInputData(sgrido)
                 cut.SetCutFunction(plane)
-                data = self._cut_data(cut)
+                data = self._cut_data(cut, item)
                 datao = data.GetOutput()
                 # print('datao', datao.GetNumberOfCells(), datao.GetNumberOfPoints())
                 mapper = vtk.vtkPolyDataMapper()
@@ -1550,34 +1553,18 @@ class VTKBackend(BaseClass):
             self._g.set_size(800, 600)
             pass
 
-    def figure(self, *args, **kwargs):
-        # Extension of BaseClass.figure: dd a plotting package figure instance as fig._g and create a link to it as self._g
-        fig = BaseClass.figure(self, *args, **kwargs)
-        try:
-            fig._g
-        except:
-            # create plotting package figure and save figure instance
-            # as fig._g
-            name = 'Figure ' + str(fig.getp('number'))
-            if DEBUG:
-                print('creating figure {} in backend'.format(name))
-
-            fig._g = _VTKFigure(self, title=name)
-
-        self._g = fig._g  # link for faster access
-
+    def register_bindings(self):
         def control_callback(e):
             '''
             stackoverflow.com/a/16082411/5584077
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
             '''
-            def toggle_bool(obj, key):
-                boolean = obj.getp(key) 
-                if isinstance(boolean, bool):
-                    obj.setp(**{key: not boolean})
-                else:
-                    raise TypeError('not a boolean !')
-
+            # def toggle_bool(obj, key):
+            #     boolean = obj.getp(key)
+            #     if isinstance(boolean, bool):
+            #         obj.setp(**{key: not boolean})
+            #     else:
+            #         raise TypeError('not a boolean !')
 
             if e.keysym == 'r':
                 pass
@@ -1609,11 +1596,11 @@ class VTKBackend(BaseClass):
                 # print(self._ax)
 
             elif e.keysym == 'g':
-                toggle_bool(self._ax, 'grid')
+                self._toggle_state(self._ax['grid'], 'grid')
             elif e.keysym == 'b':
-                toggle_bool(self._ax, 'box')
+                self._toggle_state(self._ax['box'], 'box')
             elif e.keysym == 'a':
-                toggle_bool(self._ax, 'unit')
+                self._toggle_state(self._ax['unit'], 'unit')
             elif e.keysym == 's':
                 self.hardcopy('fig.pdf', replot=False)
                 return
@@ -1638,6 +1625,24 @@ class VTKBackend(BaseClass):
             self._replot()
 
         self._g.tkw.bind('<Control-Key>', control_callback)
+
+    def figure(self, *args, **kwargs):
+        # Extension of BaseClass.figure: dd a plotting package figure instance as fig._g and create a link to it as self._g
+        fig = BaseClass.figure(self, *args, **kwargs)
+        try:
+            fig._g
+        except:
+            # create plotting package figure and save figure instance as fig._g
+            self.name = 'Figure ' + str(fig.getp('number'))
+            if DEBUG:
+                print('creating figure {} in backend'.format(self.name))
+
+            fig._g = _VTKFigure(self, title=self.name)
+
+        self.fig = fig
+        self._g = fig._g  # link for faster access
+
+        self.register_bindings()
 
         return fig
 
@@ -1685,10 +1690,20 @@ class VTKBackend(BaseClass):
         '''Replot all axes and all plotitems in the backend.'''
         # NOTE: only the current figure (gcf) is redrawn.
         print('<replot> in backend') if DEBUG else None
-
-        fig = self.gcf()
         # reset the plotting package instance in fig._g now if needed
+        [object.RemoveObserver(tag) for (object, tag) in self.observers]
+
+        # 1. initial version
+        # fig = self.gcf()
+        # 2. test NOK
+        # self.fig._g = _VTKFigure(self, title=self.name)
+        # self._g = self.fig._g
+        # 3. test NOK
+        # fig = self.figure(self.getp('curfig'))
+        # still NOK, interactive mode after a _replot
+
         self._g.reset()
+        self.register_bindings()
 
         self._set_figure_size(fig)
 

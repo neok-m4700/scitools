@@ -149,7 +149,7 @@ class PlotProperties(object):
         'material': None,
         'memoryorder': 'yxz',  # FIXME: this is deprecated and will be removed
         'indexing': 'ij',  # 'xy' is Cartesian indexing, 'ij' matrix indexing
-        'default_lines': 'with_markers'  # 'plain'
+        'default_lines': 'with_markers',  # 'plain',
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -698,9 +698,9 @@ class VelocityVectors(PlotProperties):
         'arrowscale': 1.,
         'filledarrows': False,
         'cone_resolution': None,
-        'slice': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
         'udata': None, 'vdata': None, 'wdata': None,  # vector components
+        'islice': None
     }
     __doc__ += docadd('Keywords for the setp method',
                       list(PlotProperties._local_prop.keys()),
@@ -723,12 +723,12 @@ class VelocityVectors(PlotProperties):
             _check_type(kwargs['cone_resolution'], 'cone_resolution', int)
             self._prop['cone_resolution'] = int(kwargs['cone_resolution'])
 
-        if 'slice' in kwargs:
-            _check_type(kwargs['slice'], 'slice', (bool, str))
-            self._prop['slice'] = kwargs['slice']
-
         if 'filledarrows' in kwargs:
             self._prop['filledarrows'] = _toggle_state(kwargs['filledarrows'])
+
+        if 'islice' in kwargs:
+            _check_type(kwargs['islice'], 'islice', (bool, str))
+            self._prop['islice'] = kwargs['islice']
 
     def _parseargs(self, *args):
         # allow both quiver(...,LineSpec,'filled') and quiver(...,'filled',LS):
@@ -2001,8 +2001,7 @@ class BaseClass(object):
         Update backend after change in data.
         This is a key routine and must be implemented in the backend.
         '''
-        raise NotImplementedError('_replot not implemented in class %s' %
-                                  self.__class__.__name__)
+        raise NotImplementedError('_replot not implemented in class %s' % self.__class__.__name__)
 
     def _check_args(self, *args):
         '''Return the current axis, the argument list args, and the number of
@@ -3561,7 +3560,7 @@ class BaseClass(object):
         [<scitools.easyviz.common.Line object at 0xb768e36c>]
         >>> hold('off')
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'quiver: 2D vector field'
         ax, args, nargs = self._check_args(*args)
         h = VelocityVectors(*args, **kwargs)
@@ -3898,13 +3897,13 @@ class BaseClass(object):
         >>> zz = exp(-xx**2)*exp(-yy**2)
         >>> mesh(xx, yy, zz)
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'mesh: 3D mesh'
         ax, args, nargs = self._check_args(*args)
         h = Surface(*args, **kwargs)
         ax.add(h)
         if not ax.getp('hold'):
-            if not 'view' in kwargs:
+            if 'view' not in kwargs:
                 kwargs['view'] = 3
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)
@@ -3961,7 +3960,7 @@ class BaseClass(object):
         >>> zz = xx**2 + yy**2
         >>> surf(xx, yy, zz)
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'surf: 3D surface'
         return self.mesh(*args, **kwargs)
 
@@ -4399,7 +4398,7 @@ class BaseClass(object):
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
         ax.add(h)
-        if not ax.getp('hold') and not 'view' in kwargs:
+        if not ax.getp('hold') and  'view' not in kwargs:
             kwargs['view'] = 3
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)
@@ -5216,7 +5215,7 @@ class BaseClass(object):
         if n is not None:
             kwargs['specularpower'] = n
         # if sc is not None:
-            #kwargs['specularcolorreflectance'] = sc
+        #     kwargs['specularcolorreflectance'] = sc
 
         ax = self.gca()
         items = ax.getp('plotitems')
