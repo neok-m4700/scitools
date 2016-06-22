@@ -1245,8 +1245,7 @@ class Camera(object):
             elif isinstance(view, (tuple, list)) and len(view) == 2:
                 self._prop['azimuth'], self._prop['elevation'] = view
             else:
-                raise ValueError(
-                    'Camera.setp: view must be either [az,el], 2, or 3.')
+                raise ValueError('Camera.setp: view must be either [az,el], 2, or 3, or None')
 
         if 'camproj' in kwargs:
             if kwargs['camproj'] in self._camprojs:
@@ -1341,7 +1340,7 @@ class Axis(object):
         'viewport': None,  # viewport coords (list with 4 elm, backend specific)
         'ambientcolor': None,
         'diffusecolor': None,
-        'speculartcolor': None,
+        'specularcolor': None,
         'pth': None,  # this is the p-th axis in subplot(m,n,p)
         'colororder': 'b r g m c y k'.split(),
         'curcolor': 0,
@@ -4398,7 +4397,7 @@ class BaseClass(object):
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
         ax.add(h)
-        if not ax.getp('hold') and  'view' not in kwargs:
+        if not ax.getp('hold') and 'view' not in kwargs:
             kwargs['view'] = 3
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)
@@ -4579,7 +4578,7 @@ class BaseClass(object):
 
         Calling::
 
-            camproj(projeciton)
+            camproj(projection)
 
         sets the projection of the camera to projection, where projection can
         be either 'orthographic' (default) or 'perspective'.

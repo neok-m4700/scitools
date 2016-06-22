@@ -101,7 +101,7 @@ if OPTIMIZATION == 'numba':
         print('Numba not available. Optimization turned off.')
 
 
-class _VTKFigure(object):
+class _VTKFigure:
 
     def __init__(self, plt, width=800, height=600, title=''):
         # create the GUI:
@@ -129,11 +129,13 @@ class _VTKFigure(object):
         istyle = vtk.vtkInteractorStyleSwitch()
         istyle.SetCurrentStyleToTrackballCamera()
         self.iren.SetInteractorStyle(istyle)
-        self.tkw.focus_force() # needed for the callback to work
+        self.tkw.focus_force()  # needed for the callback to work
 
     def reset(self):
         print('<reset>') if DEBUG else None
         # is calling del removing the window from memory, not only from namespace ?
+        # for now this is the only way for the interactive widgets to work when issuing a replot ...
+        # if we could avoid deleting the tkw it'll be great ...
         del self.renwin
         self.tkw.forget()
         self.tkw.destroy()
@@ -247,7 +249,6 @@ class VTKBackend(BaseClass):
         self._master = tkinter.Tk()
         self._master.withdraw()
         self.figure(self.getp('curfig'))
-        self.observers = []
 
         # conversion tables for format strings:
         self._markers = {
@@ -322,6 +323,9 @@ class VTKBackend(BaseClass):
             'EastOutside': None,
             'WestOutside': None,
         }
+
+        self._w = None
+        self._b = None
 
         if DEBUG:
             print('<backend standard variables>')
@@ -508,10 +512,10 @@ class VTKBackend(BaseClass):
             print('<box>') if DEBUG else None
             normals = vtk.vtkPolyDataNormals()
             normals.SetInputConnection(self._ax._apd.GetOutputPort())
-            foheMapper = vtk.vtkPolyDataMapper()
-            foheMapper.SetInputConnection(normals.GetOutputPort())
-            foheActor = vtk.vtkLODActor()
-            foheActor.SetMapper(foheMapper)
+            # foheMapper = vtk.vtkPolyDataMapper()
+            # foheMapper.SetInputConnection(normals.GetOutputPort())
+            # foheActor = vtk.vtkLODActor()
+            # foheActor.SetMapper(foheMapper)
             outline = vtk.vtkOutlineFilter()
             outline.SetInputConnection(normals.GetOutputPort())
             mapOutline = vtk.vtkPolyDataMapper()
@@ -532,8 +536,9 @@ class VTKBackend(BaseClass):
             axes.SetAxisTitleTextProperty(tprop)
             axes.SetAxisLabelTextProperty(tprop)
 
-            self._ax._renderer.AddViewProp(outlineActor)
-            self._ax._renderer.AddViewProp(axes)
+            ax._renderer.AddViewProp(outlineActor)
+            ax._renderer.AddViewProp(axes)
+            # ax._renderer.AddActor(foheActor)
         else:
             # do not display box
             pass
@@ -611,38 +616,41 @@ class VTKBackend(BaseClass):
         print('<view>') if DEBUG else None
 
         cam = ax.getp('camera')
-        view, fp = cam.getp('view'), cam.getp('camtarget')
+        view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
+        camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
         camera = vtk.vtkCamera()
-        camera.SetFocalPoint(cam.getp('camtarget'))
-        camera.SetViewUp(cam.getp('camup'))
-        camera.ParallelProjectionOff()
+        camera.SetViewUp(upvector)
+        camera.ParallelProjectionOn()
         if view == 2:
             # setup a default 2D view
-            camera.SetPosition(fp[0], fp[1], 1)
+            camera.SetPosition(focalpoint[0], focalpoint[1], 1)
         elif view == 3:
-            camera.SetPosition(fp[0], fp[1] - 1, fp[2])
-            az = cam.getp('azimuth')
-            el = cam.getp('elevation')
+            camera.SetPosition(focalpoint[0], focalpoint[1] - 1, focalpoint[2])
+            az, el = cam.getp('azimuth'), cam.getp('elevation')
             if az is None or el is None:
                 # azimuth or elevation is not given. Set up a default 3D view (az=-37.5 and el=30 is the default 3D view in Matlab).
                 az = -37.5
                 el = 30
-            # set a 3D view according to az and el
             camera.Azimuth(az)
             camera.Elevation(el)
 
             if cam.getp('cammode') == 'manual':
+                print('ok, advanced')
                 # for advanced camera handling:
-                roll, zoom, dolly = cam.getp('camroll'), cam.getp('camzoom'), cam.getp('camdolly')
-                target, position, up_vector = cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
-                view_angle, projection = cam.getp('camva'), cam.getp('camproj')
-                if projection == 'perspective':
-                    camera.ParallelProjectionOff()
-                else:
+                if viewangle is not None:
+                    camera.SetViewAngle(viewangle)
+                if camroll is not None:
+                    camera.SetRoll(camroll)
+                camera.SetPosition(position)
+                camera.SetViewUp(upvector)
+                camera.SetFocalPoint(focalpoint)
+                # camera.Dolly(cam.getp('camdolly'))
+                if cam.getp('camproj') == 'orthographic':
                     camera.ParallelProjectionOn()
+                else:
+                    camera.ParallelProjectionOff()
 
-        print(camera.GetViewUp())
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
 
@@ -650,6 +658,7 @@ class VTKBackend(BaseClass):
         if ax.getp('unit'):
             axes = vtk.vtkAxesActor()
             [_.GetTextActor().SetTextScaleModeToNone() for _ in (axes.GetXAxisCaptionActor2D(), axes.GetYAxisCaptionActor2D(), axes.GetZAxisCaptionActor2D())]
+            # axes.SetScale(.5)
             ax._renderer.AddActor(axes)
 
         ax._renderer.ResetCamera()
@@ -709,49 +718,56 @@ class VTKBackend(BaseClass):
         clipper.SetValue(0)
         clipper.InsideOutOn()
 
-        # interactive clipper
         # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.py
-        if islice == 'cube':
-            widget = vtk.vtkBoxWidget()
-            clipFunction = vtk.vtkPlanes()
-            widget.GetOutlineProperty().SetColor(self._ax.getp('axiscolor'))
-        else:
-            widget = vtk.vtkImplicitPlaneWidget()
-            [_.SetColor(self._ax.getp('axiscolor')) for _ in (widget.GetOutlineProperty(), widget.GetEdgesProperty())]
-            # , widget.GetPlaneProperty()
-            clipFunction = vtk.vtkPlane()
+        if not self._w:
+            if islice == 'cube':
+                self._w = vtk.vtkBoxWidget()
+                self._c = vtk.vtkPlanes()
+                self._w.GetOutlineProperty().SetColor(self._ax.getp('axiscolor'))
 
-        widget.SetInteractor(self._g.iren)
-        widget.SetInputConnection(data.GetOutputPort())
-        widget.GetPlanes(clipFunction)  # in order to avoid 'Please define points and/or normals!' errors
-        widget.SetPlaceFactor(1.05)
-        widget.PlaceWidget()
-        widget.SetHandleSize(widget.GetHandleSize() / 4)
+            else:
+                self._w = vtk.vtkImplicitPlaneWidget()
+                self._c = vtk.vtkPlane()
+                [_.SetColor(self._ax.getp('axiscolor')) for _ in (self._w.GetOutlineProperty(), self._w.GetEdgesProperty())]
+
+            self._w.GetPlanes(self._c)  # in order to avoid 'Please define points and/or normals!' errors
+
+        self._w.SetInteractor(self._g.iren)
+        self._w.SetInputConnection(data.GetOutputPort())
+        if not self._b:
+            self._w.SetPlaceFactor(1.05)
+            self._w.SetHandleSize(self._w.GetHandleSize() / 2)
+            self._w.PlaceWidget()
+        else:
+            self._w.PlaceWidget(self._b)
 
         iclipper = vtk.vtkClipPolyData()
         iclipper.SetInputConnection(data.GetOutputPort())
-        iclipper.SetClipFunction(clipFunction)
+        iclipper.SetClipFunction(self._c)
         iclipper.SetValue(0)
         iclipper.InsideOutOn()
 
         def pw_interaction(obj, event):
             # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-            nonlocal clipFunction, widget  # strange, we have to add planeWidget here ...
             if isinstance(obj, vtk.vtkBoxWidget):
-                obj.GetPlanes(clipFunction)
+                self._w.GetPlanes(self._c)
             elif isinstance(obj, vtk.vtkImplicitPlaneWidget):
-                obj.GetPlane(clipFunction)
+                self._w.GetPlane(self._c)
 
         def pw_start_interaction(obj, event):
             obj.OutlineCursorWiresOn()
+            obj.GetHandleProperty().SetOpacity(.5)
             obj.GetOutlineProperty().SetOpacity(.5)
 
         def pw_end_interaction(obj, event):
             obj.OutlineCursorWiresOff()
             obj.GetOutlineProperty().SetOpacity(0)
+            obj.GetHandleProperty().SetOpacity(.2)
 
         def pw_enable(obj, event):
             nonlocal iclipper, clipper
+            # TODO: restore the pwidget parameters
+            # obj.SetData(*self.clipperInput)  # save the initial position of the points
             clipper.SetInputConnection(iclipper.GetOutputPort())
             # for now this is working fine, maybe something simpler can be done using obj.InvokeEvent('InteractionEvent')
             self._g.iren.LeftButtonPressEvent()
@@ -760,13 +776,18 @@ class VTKBackend(BaseClass):
 
         def pw_disable(obj, event):
             nonlocal data, clipper
+            # save bounds
+            polydata = vtk.vtkPolyData()
+            self._w.GetPolyData(polydata)
+            self._b = polydata.GetPoints().GetBounds()
+            # self.clipperInput = obj.GetData()
             clipper.SetInputConnection(data.GetOutputPort())
 
-        widget.AddObserver('InteractionEvent', pw_interaction)
-        widget.AddObserver('StartInteractionEvent', pw_start_interaction)
-        widget.AddObserver('EndInteractionEvent', pw_end_interaction)
-        widget.AddObserver('EnableEvent', pw_enable)
-        widget.AddObserver('DisableEvent', pw_disable)
+        self._w.AddObserver('InteractionEvent', pw_interaction)
+        self._w.AddObserver('StartInteractionEvent', pw_start_interaction)
+        self._w.AddObserver('EndInteractionEvent', pw_end_interaction)
+        self._w.AddObserver('EnableEvent', pw_enable)
+        self._w.AddObserver('DisableEvent', pw_disable)
 
         return clipper
 
@@ -1571,6 +1592,14 @@ class VTKBackend(BaseClass):
                 else:
                     raise TypeError('not a boolean !')
 
+            def _set_camera(**kwargs):
+                cam = self._ax.getp('camera')
+                if cam.getp('view') != 3:
+                    cam.setp(view=3)
+                # don't set view in the following command because cammode will fail because of the _set_default_view call
+                cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0), azimuth=0, elevation=0)
+                print(cam)
+
             if e.keysym == 'r':
                 pass
             elif e.keysym == 'i':
@@ -1609,23 +1638,34 @@ class VTKBackend(BaseClass):
             elif e.keysym == 's':
                 self.hardcopy('fig.pdf', replot=False)
                 return
-            elif e.keysym == 'KP_4':
-                self.camup(1, 0, 0)
-                return
-            elif e.keysym == 'KP_5':
-                self.camup(0, 1, 0)
-                return
-            elif e.keysym == 'KP_6':
-                self.camup(0, 0, 1)
-                return
-            elif e.keysym == 'KP_7':
-                self.view(0, 0)
-                return
+            # got camtarget value from paraview default
+            #  --------- /     ^
+            # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
+            #  --------- \
+            elif e.keysym == 'KP_4':  # +X into the screen, Y up
+                _set_camera(campos=(-1, 0, 0), camup=(0, 1, 0))
+            elif e.keysym == 'KP_5':  # +X into the screen, Z up
+                _set_camera(campos=(-1, 0, 0), camup=(0, 0, 1))
+            elif e.keysym == 'KP_6':  # +Y into the screen, Z up
+                _set_camera(campos=(0, -1, 0), camup=(0, 0, 1))
+            elif e.keysym == 'KP_7':  # +Y into the screen, X up
+                _set_camera(campos=(0, -1, 0), camup=(1, 0, 0))
+            elif e.keysym == 'KP_8':  # +Z into the screen, X up
+                _set_camera(campos=(0, 0, -1), camup=(1, 0, 0))
+            elif e.keysym == 'KP_9':  # +Z into the screen, Y up
+                _set_camera(campos=(0, 0, -1), camup=(0, 1, 0))
+            elif e.keysym == 'KP_1':  # toggle perspective between orthographic or parallel
+                cam = self._ax.getp('camera')
+                # nice one liner to toggle values of a 2 elements list/tuple !
+                cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))])
             elif e.keysym == 'KP_2':
                 self.view(2)
                 return
             elif e.keysym == 'KP_3':
                 self.view(3)
+                return
+            else:
+                # when a binding is not known, return without replotting
                 return
             self._replot()
 
@@ -1696,7 +1736,6 @@ class VTKBackend(BaseClass):
         # NOTE: only the current figure (gcf) is redrawn.
         print('<replot> in backend') if DEBUG else None
         # reset the plotting package instance in fig._g now if needed
-        [object.RemoveObserver(tag) for (object, tag) in self.observers]
 
         # 1. initial version
         # fig = self.gcf()
