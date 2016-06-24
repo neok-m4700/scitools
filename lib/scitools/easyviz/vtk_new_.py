@@ -1723,7 +1723,6 @@ class VTKBackend(BaseClass):
 
         # Set the renderers background color:
         ax._renderer.SetBackground(*ax.getp('bgcolor'))
-        print('bgcolor is', ax.getp('bgcolor'))
 
         rect = ax.getp('viewport')
         if not rect:
