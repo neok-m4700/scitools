@@ -2768,9 +2768,7 @@ class BaseClass(object):
                                 value = loc
                                 break
                     else:
-                        raise ValueError(
-                            'legend: wrong value of loc=%s, '
-                            'should be between 0 and 10' % value)
+                        raise ValueError( 'legend: wrong value of loc=%s, should be between 0 and 10' % value)
                 elif isinstance(value, str):
                     if value not in Axis._legend_locs:
                         raise ValueError(

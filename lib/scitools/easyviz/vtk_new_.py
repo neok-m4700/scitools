@@ -41,6 +41,7 @@ from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
 from .misc import _update_from_config_file
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
+from numpy import indices
 import os
 import sys
 
@@ -130,6 +131,7 @@ class _VTKFigure:
         istyle.SetCurrentStyleToTrackballCamera()
         self.iren.SetInteractorStyle(istyle)
         self.tkw.focus_force()  # needed for the callback to work
+        self.tkw.update()
 
     def reset(self):
         print('<reset>') if DEBUG else None
@@ -264,7 +266,7 @@ class VTKBackend(BaseClass):
         BaseClass.__init__(self)
         self._init()
 
-    def invertc(self, color):
+    def _invertc(self, color):
         '''invert rgb colors, pass if str or anything else'''
         try:
             if len(color) == 3:
@@ -331,7 +333,7 @@ class VTKBackend(BaseClass):
             'dg': (.9, .9, .9)   # light gray
         }
 
-        self._colors = dict({'_' + k: self.invertc(v) for (k, v) in self._colors.items()}, **self._colors)
+        self._colors = dict({'_' + k: self._invertc(v) for (k, v) in self._colors.items()}, **self._colors)
 
         self._line_styles = {
             '': None,    # no line
@@ -353,7 +355,7 @@ class VTKBackend(BaseClass):
             'WestOutside': None,
         }
 
-        self._w, self._b = None, None
+        self._w = None
 
         if DEBUG:
             print('<backend standard variables>')
@@ -474,10 +476,7 @@ class VTKBackend(BaseClass):
         '''set axes position'''
         rect = ax.getp('viewport')
         if rect:
-            # axes position is defined. In Matlab rect is defined as
-            # [left,bottom,width,height], where the four parameters are
-            # location values between 0 and 1 ((0,0) is the lower-left
-            # corner and (1,1) is the upper-right corner).
+            # axes position is defined. In Matlab rect is defined as [left,bottom,width,height], where the four parameters are location values between 0 and 1 ((0,0) is the lower-left corner and (1,1) is the upper-right corner).
             # NOTE: This can be different in the plotting package.
             pass
 
@@ -494,8 +493,7 @@ class VTKBackend(BaseClass):
     def _set_axis_method(self, ax):
         method = ax.getp('method')
         if method == 'equal':
-            # tick mark increments on the x-, y-, and z-axis should
-            # be equal in size.
+            # tick mark increments on the x-, y-, and z-axis should be equal in size.
             pass
         elif method == 'image':
             # same effect as axis('equal') and axis('tight')
@@ -540,10 +538,6 @@ class VTKBackend(BaseClass):
             print('<box>') if DEBUG else None
             normals = vtk.vtkPolyDataNormals()
             normals.SetInputConnection(self._ax._apd.GetOutputPort())
-            # foheMapper = vtk.vtkPolyDataMapper()
-            # foheMapper.SetInputConnection(normals.GetOutputPort())
-            # foheActor = vtk.vtkLODActor()
-            # foheActor.SetMapper(foheMapper)
             outline = vtk.vtkOutlineFilter()
             outline.SetInputConnection(normals.GetOutputPort())
             mapOutline = vtk.vtkPolyDataMapper()
@@ -566,9 +560,7 @@ class VTKBackend(BaseClass):
 
             ax._renderer.AddViewProp(outlineActor)
             ax._renderer.AddViewProp(axes)
-            # ax._renderer.AddActor(foheActor)
         else:
-            # do not display box
             pass
 
     def _set_grid(self, ax):
@@ -588,7 +580,6 @@ class VTKBackend(BaseClass):
             ax._renderer.AddActor(actor)
             ax._apd.AddInputConnection(geom.GetOutputPort())
         else:
-            # turn grid lines off
             pass
 
     def _set_hidden_line_removal(self, ax):
@@ -598,7 +589,6 @@ class VTKBackend(BaseClass):
             # turn hidden line removal on
             pass
         else:
-            # turn hidden line removal off
             pass
 
     def _set_colorbar(self, ax):
@@ -606,12 +596,15 @@ class VTKBackend(BaseClass):
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             print('<colorbar>') if DEBUG else None
-            # turn on colorbar
             cbar_title = cbar.getp('cbtitle')
+            # TODO: position the scalarbar actor according to cbar_location
             cbar_location = self._colorbar_locations[cbar.getp('cblocation')]
-            # ...
+            scalarBar = vtk.vtkScalarBarActor()
+            scalarBar.SetLookupTable(ax._colormap)
+            scalarBar.SetTitle(cbar.getp('cbtitle'))
+            scalarBar.SetOrientationToHorizontal()
+            ax._renderer.AddActor(scalarBar)
         else:
-            # turn off colorbar
             pass
 
     def _set_caxis(self, ax):
@@ -1149,7 +1142,6 @@ class VTKBackend(BaseClass):
         print('<surface +>') if DEBUG else None
 
         sgrid = self._create_2D_scalar_data(item)
-
         contours = item.getp('contours')
         if contours:
             # the current item is produced by meshc or surfc and we
@@ -1190,11 +1182,8 @@ class VTKBackend(BaseClass):
         self._ax._apd.AddInputConnection(normals.GetOutputPort())
 
     def _add_contours(self, item, placement=None):
-        # The placement keyword can be either None or 'bottom'. The
-        # latter specifies that the contours should be placed at the
-        # bottom (as in meshc or surfc).
+        # The placement keyword can be either None or 'bottom'. The latter specifies that the contours should be placed at the  bottom (as in meshc or surfc)
         print('<contours +>') if DEBUG else None
-
         sgrid = self._create_2D_scalar_data(item)
         plane = vtk.vtkStructuredGridGeometryFilter()
         plane.SetInputConnection(sgrid.GetOutputPort())
@@ -1210,10 +1199,8 @@ class VTKBackend(BaseClass):
             iso = vtk.vtkContourFilter()
         iso.SetInputConnection(data.GetOutputPort())
 
-        cvector = item.getp('cvector')
-        clevels = item.getp('clevels')  # number of contour levels
-        data.Update()
-        datao = data.GetOutput()
+        cvector, clevels = item.getp('cvector'), item.getp('clevels')
+        data.Update(); datao = data.GetOutput()
         if cvector is None:
             # the contour levels are chosen automatically
             zmin, zmax = datao.GetScalarRange()
@@ -1595,61 +1582,64 @@ class VTKBackend(BaseClass):
 
     def register_bindings(self):
         '''we must register the figure bindings in the backend because we have to have access to the backend properties'''
+        def _toggle_state(obj, key):
+            boolean = obj.getp(key)
+            if isinstance(boolean, bool):
+                obj.setp(**{key: not boolean})
+            else:
+                raise TypeError('not a boolean !')
+
+        def _set_camera(ax, **kwargs):
+            cam = ax.getp('camera')
+            if cam.getp('view') != 3:
+                cam.setp(view=3)
+            # don't set view in the following command because cammode will fail because of the _set_default_view call
+            cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0), azimuth=0, elevation=0)
+
         def control_callback(e):
             '''
             stackoverflow.com/a/16082411/5584077
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
             '''
-            def _toggle_state(obj, key):
-                boolean = obj.getp(key)
-                if isinstance(boolean, bool):
-                    obj.setp(**{key: not boolean})
-                else:
-                    raise TypeError('not a boolean !')
-
-            def _set_camera(**kwargs):
-                cam = self._ax.getp('camera')
-                if cam.getp('view') != 3:
-                    cam.setp(view=3)
-                # don't set view in the following command because cammode will fail because of the _set_default_view call
-                cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0), azimuth=0, elevation=0)
-                print(cam)
+            # get the renderer on which the event has been trigered
+            target_renderer = self._g.iren.FindPokedRenderer(e.x, self._g.height - e.y)
+            fig = self.gcf()
+            for _, ax in list(fig.getp('axes').items()):
+                if ax._renderer == target_renderer:
+                    break
 
             if e.keysym == 'r':
                 pass
             elif e.keysym == 'i':
-                # print(self._ax)
-                plotitems = self._ax.getp('plotitems')
+                plotitems = ax.getp('plotitems')
                 plotitems.sort(key=self._cmpPlotProperties)
                 for item in plotitems:
                     for _ in ('linecolor', 'facecolor', 'edgecolor'):
                         try:
                             # _get_color takes a string and returns a rgb tuple
                             color = item.getp(_)
-                            newcol = '_' + color.lstrip('_')
-                            # print(color, '>', newcol, {_: newcol})
+                            newcol = '_' + colsor.lstrip('_')
                             item.setp(**{_: newcol})
                         except Exception as e:
-                            # print(e)
                             pass
 
                 for _ in ('bgcolor', 'fgcolor', 'axiscolor'):
                     try:
-                        color = self._ax.getp(_)
-                        newcol = self.invertc(color)
-                        # print(color, '>', newcol, {_: newcol})
-                        self._ax.setp(**{_: newcol})
+                        color = ax.getp(_)
+                        newcol = self._invertc(color)
+                        ax.setp(**{_: newcol})
                     except Exception as e:
-                        # print(e)
                         pass
-                # print(self._ax)
 
             elif e.keysym == 'g':
-                _toggle_state(self._ax, 'grid')
+                _toggle_state(ax, 'grid')
             elif e.keysym == 'b':
-                _toggle_state(self._ax, 'box')
+                _toggle_state(ax, 'box')
             elif e.keysym == 'a':
-                _toggle_state(self._ax, 'unit')
+                _toggle_state(ax, 'unit')
+            elif e.keysym == 'c':
+                cbar = ax.getp('colorbar')
+                _toggle_state(cbar, 'visible')
             elif e.keysym == 's':
                 self.hardcopy('fig.pdf', replot=False)
                 return
@@ -1658,19 +1648,19 @@ class VTKBackend(BaseClass):
             # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
             #  --------- \
             elif e.keysym == 'KP_4':  # +X into the screen, Y up
-                _set_camera(campos=(-1, 0, 0), camup=(0, 1, 0))
+                _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0))
             elif e.keysym == 'KP_5':  # +X into the screen, Z up
-                _set_camera(campos=(-1, 0, 0), camup=(0, 0, 1))
+                _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1))
             elif e.keysym == 'KP_6':  # +Y into the screen, Z up
-                _set_camera(campos=(0, -1, 0), camup=(0, 0, 1))
+                _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1))
             elif e.keysym == 'KP_7':  # +Y into the screen, X up
-                _set_camera(campos=(0, -1, 0), camup=(1, 0, 0))
+                _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0))
             elif e.keysym == 'KP_8':  # +Z into the screen, X up
-                _set_camera(campos=(0, 0, -1), camup=(1, 0, 0))
+                _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0))
             elif e.keysym == 'KP_9':  # +Z into the screen, Y up
-                _set_camera(campos=(0, 0, -1), camup=(0, 1, 0))
+                _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0))
             elif e.keysym == 'KP_1':  # toggle perspective between orthographic or parallel
-                cam = self._ax.getp('camera')
+                cam = ax.getp('camera')
                 # nice one liner to toggle values of a 2 elements list/tuple !
                 cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))])
             elif e.keysym == 'KP_2':
@@ -1736,14 +1726,9 @@ class VTKBackend(BaseClass):
 
     def _fix_latex(self, legend):
         '''Remove latex syntax a la $, \, {, } etc.'''
-        legend = legend.strip()
         # General fix of latex syntax (more readable)
-        legend = legend.replace('**', '^')
+        legend = legend.strip().replace('**', '^').replace('$', '').replace('{', '').replace('}', '').replace('\\', '')
         # legend = legend.replace('*', '')
-        legend = legend.replace('$', '')
-        legend = legend.replace('{', '')
-        legend = legend.replace('}', '')
-        legend = legend.replace('\\', '')
         return legend
 
     def _replot(self):
@@ -1761,20 +1746,25 @@ class VTKBackend(BaseClass):
         # fig = self.figure(self.getp('curfig'))
         # still NOK, interactive mode after a _replot
 
+        fig = self.gcf()
         self._g.reset()
         self.register_bindings()
 
         self._set_figure_size(fig)
 
-        nrows, ncolumns = fig.getp('axshape')
+        nrows, ncols = fig.getp('axshape')
+        grid = indices((nrows, ncols))
+        rows, cols = grid[0].T.flatten(), grid[1].T.flatten()[::-1]
         for axnr, ax in list(fig.getp('axes').items()):
             if ax.getp('numberofitems') == 0:
                 continue
             self._ax = ax  # link for faster access
-            if nrows != 1 or ncolumns != 1:
-                # create axes in tiled position
-                # this is subplot(nrows,ncolumns,axnr)
-                pass
+            if nrows != 1 or ncols != 1:
+                # create axes in tiled position  this is subplot(nrows,ncols,axnr)
+                col, row = rows[axnr - 1], cols[axnr - 1]
+                xmin, xmax = col / ncols, (col + 1) / ncols
+                ymin, ymax = row / nrows, (row + 1) / nrows
+                ax.setp(viewport=[xmin, ymin, xmax, ymax])
             self._setup_axis(ax)
             plotitems = ax.getp('plotitems')
             plotitems.sort(key=self._cmpPlotProperties)
@@ -1800,7 +1790,14 @@ class VTKBackend(BaseClass):
                 legend = self._fix_latex(item.getp('legend'))
                 if legend:
                     # add legend to plot
-                    pass
+                    legendActor = vtk.vtkLegendBoxActor()
+                    legendActor.SetNumberOfEntries(1)
+                    legend.SetEntry(0, None, legend, ax.getp('axiscolor'))
+                    legend.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+                    legend.GetPositionCoordinate().SetValue(.5, 0.1)
+                    if ax.getp('legend_fancybox'):
+                        legend.BorderOn()
+                    ax._renderer.AddActor(legendActor)
 
             self._set_axis_props(ax)
 
@@ -1809,7 +1806,6 @@ class VTKBackend(BaseClass):
             if DEBUG:
                 print('\n<plot data to screen>\n')
                 debug(self, level=0)
-            pass
 
         self._g.display(show=self.getp('show'))
 

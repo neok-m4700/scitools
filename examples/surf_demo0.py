@@ -1,5 +1,5 @@
+import scitools.globaldata; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
 
 xv, yv = ndgrid(linspace(-2, 2, 41), linspace(-1, 1, 41))
 for n, t in enumerate(linspace(0, 4, 21)):

@@ -7,7 +7,7 @@ from scitools.easyviz.vtk_new_ import *
 
 
 setp(interactive=True)
-
+setp(show=False)
 x = linspace(-5, 5, 201)
 subplot(2, 2, 1)
 plot(x, x - sin(pi * x), xlabel='x', ylabel='y', title='subplot(2,2,1)')
@@ -18,6 +18,7 @@ plot(cos(3 * pi * x), cos(0.5 * pi * x), x=x, grid='on', axis=[-3, 3, -3, 3],
      xlabel='x', ylabel='y', title='subplot(2,2,3)')
 subplot(2, 2, 4)
 plot(x, cos(pi * x), xlabel='x', ylabel='y', title='subplot(2,2,4)')
+setp(show=True)
 show()
 
 # savefig('subplot1a.eps', color=True)

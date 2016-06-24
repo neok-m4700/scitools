@@ -30,6 +30,7 @@ x = cos(phi) * cos(theta)
 y = cos(phi) * sin(theta)
 z = sin(phi) * ones(shape(theta))
 surf(x, y, z, axis='equal')
+show()
 
 # savefig('surf1b.eps')
 # savefig('surf1b.png')
@@ -40,6 +41,7 @@ values = xv * exp(-xv**2 - yv**2)
 dx, dy = gradient(values)
 c = dx + dy
 surf(xv, yv, values, c, colorbar='on', axis=[-2, 2, -2, 2, -0.5, 0.5])
+show()
 
 # savefig('surf1c.eps')
 # savefig('surf1c.png')
@@ -48,6 +50,7 @@ figure()
 xv, yv = ndgrid(seq(-2.5, 2.5, 0.15), seq(-5, 5, 0.15))
 values = 70 * yv**2 * exp(-xv**2 - 0.2 * yv**2)
 surf(xv, yv, values)
+show()
 
 # savefig('surf1d.eps')
 # savefig('surf1d.png')
