@@ -1321,8 +1321,8 @@ class Axis(object):
         'caxis': [None] * 2,
         'caxismode': 'auto',
         'axiscolor': (0, 0, 0),
-        'bgcolor': (1, 1, 1),  # background color
-        'fgcolor': (0, 0, 0),  # foreground color
+        'bgcolor': (.7, .7, .7),  # background color
+        'fgcolor': (.2, .2, .2),  # foreground color
         'fontname': 'Helvetica',
         'fontsize': 12,
         'shading': 'faceted',

@@ -229,6 +229,35 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
         return self.GetOutputDataObject(0)
 
 
+def vtkInteractiveWidget(parent, axis):
+    if 'boxwidget' in parent.lower():
+        klass = vtk.vtkBoxWidget
+        plane = vtk.vtkPlanes()
+    elif 'implicitplanewidget' in parent.lower():
+        klass = vtk.vtkImplicitPlaneWidget
+        plane = vtk.vtkPlane()
+
+    class _vtkInteractiveWidget(klass):
+
+        def __init__(self, plane, axis):
+            klass.__init__(self)
+            self._p = plane
+            self._b = None
+            if isinstance(self, vtk.vtkBoxWidget):
+                self.GetOutlineProperty().SetColor(axis.getp('axiscolor'))
+                self.RotationEnabledOff()  # we want a bow aligned with the axis, so no rotation allowed
+            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+                [_.SetColor(axis.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
+
+        def _GetPlane(self):
+            if isinstance(self, vtk.vtkBoxWidget):
+                self.GetPlanes(self._p)
+            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+                self.GetPlane(self._p)
+
+    return _vtkInteractiveWidget(plane, axis)
+
+
 class VTKBackend(BaseClass):
 
     def __init__(self):
@@ -324,8 +353,7 @@ class VTKBackend(BaseClass):
             'WestOutside': None,
         }
 
-        self._w = None
-        self._b = None
+        self._w, self._b = None, None
 
         if DEBUG:
             print('<backend standard variables>')
@@ -718,41 +746,9 @@ class VTKBackend(BaseClass):
         clipper.SetValue(0)
         clipper.InsideOutOn()
 
-        # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.py
-        if not self._w:
-            if islice == 'cube':
-                self._w = vtk.vtkBoxWidget()
-                self._c = vtk.vtkPlanes()
-                self._w.GetOutlineProperty().SetColor(self._ax.getp('axiscolor'))
-
-            else:
-                self._w = vtk.vtkImplicitPlaneWidget()
-                self._c = vtk.vtkPlane()
-                [_.SetColor(self._ax.getp('axiscolor')) for _ in (self._w.GetOutlineProperty(), self._w.GetEdgesProperty())]
-
-            self._w.GetPlanes(self._c)  # in order to avoid 'Please define points and/or normals!' errors
-
-        self._w.SetInteractor(self._g.iren)
-        self._w.SetInputConnection(data.GetOutputPort())
-        if not self._b:
-            self._w.SetPlaceFactor(1.05)
-            self._w.SetHandleSize(self._w.GetHandleSize() / 2)
-            self._w.PlaceWidget()
-        else:
-            self._w.PlaceWidget(self._b)
-
-        iclipper = vtk.vtkClipPolyData()
-        iclipper.SetInputConnection(data.GetOutputPort())
-        iclipper.SetClipFunction(self._c)
-        iclipper.SetValue(0)
-        iclipper.InsideOutOn()
-
         def pw_interaction(obj, event):
             # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-            if isinstance(obj, vtk.vtkBoxWidget):
-                self._w.GetPlanes(self._c)
-            elif isinstance(obj, vtk.vtkImplicitPlaneWidget):
-                self._w.GetPlane(self._c)
+            obj._GetPlane()
 
         def pw_start_interaction(obj, event):
             obj.OutlineCursorWiresOn()
@@ -776,12 +772,31 @@ class VTKBackend(BaseClass):
 
         def pw_disable(obj, event):
             nonlocal data, clipper
-            # save bounds
             polydata = vtk.vtkPolyData()
-            self._w.GetPolyData(polydata)
-            self._b = polydata.GetPoints().GetBounds()
-            # self.clipperInput = obj.GetData()
+            obj.GetPolyData(polydata)
+            obj._b = polydata.GetPoints().GetBounds()
             clipper.SetInputConnection(data.GetOutputPort())
+
+        # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.py
+        if not self._w:
+            self._w = vtkInteractiveWidget('boxwidget' if islice == 'cube' else 'implicitplanewidget', self._ax)
+
+        pw_interaction(self._w, None)  # in order to avoid 'Please define points and/or normals!' errors
+
+        self._w.SetInteractor(self._g.iren)
+        self._w.SetInputConnection(data.GetOutputPort())
+        if not self._w._b:
+            self._w.SetPlaceFactor(1.05)
+            self._w.SetHandleSize(self._w.GetHandleSize() / 2)
+            self._w.PlaceWidget()
+        else:
+            self._w.PlaceWidget(self._w._b)
+
+        iclipper = vtk.vtkClipPolyData()
+        iclipper.SetInputConnection(data.GetOutputPort())
+        iclipper.SetClipFunction(self._w._p)
+        iclipper.SetValue(0)
+        iclipper.InsideOutOn()
 
         self._w.AddObserver('InteractionEvent', pw_interaction)
         self._w.AddObserver('StartInteractionEvent', pw_start_interaction)
@@ -1708,6 +1723,7 @@ class VTKBackend(BaseClass):
 
         # Set the renderers background color:
         ax._renderer.SetBackground(*ax.getp('bgcolor'))
+        print('bgcolor is', ax.getp('bgcolor'))
 
         rect = ax.getp('viewport')
         if not rect:
@@ -2196,3 +2212,21 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 # VTK_THICKARROW_GLYPH 10
 # VTK_HOOKEDARROW_GLYPH 11
 # VTK_EDGEARROW_GLYPH 12
+
+# +X
+
+# renderView1.CameraPosition = [-3.2903743041222895, 0.0, 0.0]
+# renderView1.CameraFocalPoint = [1e-20, 0.0, 0.0]
+# renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+# renderView1.CameraParallelScale = 0.8516115354228021
+
+# +Y
+# renderView1.CameraPosition = [0.0, -3.2903743041222895, 0.0]
+# renderView1.CameraFocalPoint = [0.0, 1e-20, 0.0]
+# renderView1.CameraViewUp = [0.0, 0.0, 1.0]
+# renderView1.CameraParallelScale = 0.8516115354228021
+
+# +Z
+# renderView1.CameraPosition = [0.0, 0.0, -3.2903743041222895]
+# renderView1.CameraFocalPoint = [0.0, 0.0, 1e-20]
+# renderView1.CameraParallelScale = 0.8516115354228021
