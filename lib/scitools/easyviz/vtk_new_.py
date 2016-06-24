@@ -213,7 +213,7 @@ class _VTKFigure:
 class vtkAlgorithmSource(VTKPythonAlgorithmBase):
 
     def __init__(self, data=None, outputType='vtkStructuredGrid'):
-        VTKPythonAlgorithmBase.__init__(self, nInputPorts=0, nOutputPorts=1, outputType=outputType)
+        super().__init__(nInputPorts=0, nOutputPorts=1, outputType=outputType)
         self.data = data
         self.outputType = outputType
         self.Update()
@@ -233,16 +233,16 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
 
 def vtkInteractiveWidget(parent, axis):
     if 'boxwidget' in parent.lower():
-        klass = vtk.vtkBoxWidget
-        plane = vtk.vtkPlanes()
+        klass, plane = vtk.vtkBoxWidget, vtk.vtkPlanes()
     elif 'implicitplanewidget' in parent.lower():
-        klass = vtk.vtkImplicitPlaneWidget
-        plane = vtk.vtkPlane()
+        klass, plane = vtk.vtkImplicitPlaneWidget, vtk.vtkPlane()
+    else:
+        raise NotImplementedError('wrong type of parent: {}'.format(parent))
 
     class _vtkInteractiveWidget(klass):
 
         def __init__(self, plane, axis):
-            klass.__init__(self)
+            super().__init__()
             self._p = plane
             self._b = None
             if isinstance(self, vtk.vtkBoxWidget):
@@ -263,7 +263,7 @@ def vtkInteractiveWidget(parent, axis):
 class VTKBackend(BaseClass):
 
     def __init__(self):
-        BaseClass.__init__(self)
+        super().__init__()
         self._init()
 
     def _invertc(self, color):

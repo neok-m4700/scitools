@@ -372,7 +372,7 @@ class Line(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(Line._local_prop)
         self.setp(**kwargs)
 
@@ -477,7 +477,7 @@ class Bars(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(Bars._local_prop)
         self.setp(**kwargs)
         self._parseargs(*args)
@@ -558,7 +558,7 @@ class Surface(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(Surface._local_prop)
         self.setp(**kwargs)
         self._parseargs(*args)
@@ -625,7 +625,7 @@ class Contours(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(Contours._local_prop)
         self.setp(**kwargs)
         self._parseargs(*args)
@@ -707,7 +707,7 @@ class VelocityVectors(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(VelocityVectors._local_prop)
         self.setp(**kwargs)
         self._parseargs(*args)
@@ -840,7 +840,7 @@ class Streams(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(Streams._local_prop)
         self.setp(**kwargs)
         self._parseargs(*args)
@@ -985,7 +985,7 @@ class Volume(PlotProperties):
                       list(_local_prop.keys()))
 
     def __init__(self, *args, **kwargs):
-        PlotProperties.__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self._prop.update(Volume._local_prop)
         self.setp(**kwargs)
         self._parseargs(*args)
@@ -1836,7 +1836,7 @@ class Figure(object):
                 self._prop['curax'] = n
 
 
-class BaseClass(object):
+class BaseClass:
 
     '''
     Subclasses implement different backends
