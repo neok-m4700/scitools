@@ -118,7 +118,7 @@ class _VTKFigure:
         self.root.withdraw()
         self.frame = tkinter.Frame(self.root)  # relief='sunken', bd=2
         self.frame.pack(side='top', fill='both', expand='true')
-        self.is_interactive = False
+        self.interactive_on = False
         self._init()
 
     def _init(self):
@@ -127,9 +127,9 @@ class _VTKFigure:
         self.renwin = self.tkw.GetRenderWindow()
         self.renwin.SetSize(self.width, self.height)
         self.iren = self.renwin.GetInteractor()
-        istyle = vtk.vtkInteractorStyleSwitch()
-        istyle.SetCurrentStyleToTrackballCamera()
-        self.iren.SetInteractorStyle(istyle)
+        # force trackball mode, see also vtkInteractorObserver::OnChar or vtk3DWidget
+        self.iren.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+
         self.tkw.focus_force()  # needed for the callback to work
         self.tkw.update()
 
@@ -138,7 +138,7 @@ class _VTKFigure:
         # is calling del removing the window from memory, not only from namespace ?
         # for now this is the only way for the interactive widgets to work when issuing a replot ...
         # if we could avoid deleting the tkw it'll be great ...
-        del self.renwin
+        del self.renwin, self.iren
         self.tkw.forget()
         self.tkw.destroy()
         del self.tkw
@@ -180,8 +180,8 @@ class _VTKFigure:
         # then we render the complete scene:
         self.renwin.Render()
 
-        if self.plt.getp('interactive') and not self.is_interactive and self.plt.getp('show'):
-            self.is_interactive = True
+        if self.plt.getp('interactive') and not self.interactive_on and self.plt.getp('show'):
+            self.interactive_on = True
             self.tkw.Start()
             # self.tkw.focus_force()
             # self.tkw.update()
@@ -196,7 +196,7 @@ class _VTKFigure:
 
         self.close()
         self.renwin.Finalize()
-        if self.is_interactive:
+        if self.interactive_on:
             print('--> iren exit') if DEBUG else None
             self.iren.TerminateApp()
             del self.iren
@@ -245,6 +245,10 @@ def vtkInteractiveWidget(parent, axis):
             super().__init__()
             self._p = plane
             self._b = None
+            self._hs = self.GetHandleSize() / 2
+            self._on = False
+            self._obs = []
+            self._pd = vtk.vtkPolyData()
             if isinstance(self, vtk.vtkBoxWidget):
                 self.GetOutlineProperty().SetColor(axis.getp('axiscolor'))
                 self.RotationEnabledOff()  # we want a bow aligned with the axis, so no rotation allowed
@@ -256,6 +260,16 @@ def vtkInteractiveWidget(parent, axis):
                 self.GetPlanes(self._p)
             elif isinstance(self, vtk.vtkImplicitPlaneWidget):
                 self.GetPlane(self._p)
+
+        def _RemoveObservers(self):
+            [self.RemoveObserver(_) for _ in self._obs]
+
+        def _AddObserver(self, event, callback):
+            self._obs.append(self.AddObserver(event, callback))
+
+        def _SaveBounds(self):
+            self.GetPolyData(self._pd)
+            self._b = self._pd.GetPoints().GetBounds()
 
     return _vtkInteractiveWidget(plane, axis)
 
@@ -647,17 +661,7 @@ class VTKBackend(BaseClass):
             # setup a default 2D view
             camera.SetPosition(focalpoint[0], focalpoint[1], 1)
         elif view == 3:
-            camera.SetPosition(focalpoint[0], focalpoint[1] - 1, focalpoint[2])
-            az, el = cam.getp('azimuth'), cam.getp('elevation')
-            if az is None or el is None:
-                # azimuth or elevation is not given. Set up a default 3D view (az=-37.5 and el=30 is the default 3D view in Matlab).
-                az = -37.5
-                el = 30
-            camera.Azimuth(az)
-            camera.Elevation(el)
-
             if cam.getp('cammode') == 'manual':
-                print('ok, advanced')
                 # for advanced camera handling:
                 if viewangle is not None:
                     camera.SetViewAngle(viewangle)
@@ -671,6 +675,15 @@ class VTKBackend(BaseClass):
                     camera.ParallelProjectionOn()
                 else:
                     camera.ParallelProjectionOff()
+            else:
+                camera.SetPosition(focalpoint[0], focalpoint[1] - 1, focalpoint[2])
+                az, el = cam.getp('azimuth'), cam.getp('elevation')
+                if az is None or el is None:
+                    # azimuth or elevation is not given. Set up a default 3D view (az=-37.5 and el=30 is the default 3D view in Matlab).
+                    az = -37.5
+                    el = 30
+                camera.Azimuth(az)
+                camera.Elevation(el)
 
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
@@ -683,12 +696,7 @@ class VTKBackend(BaseClass):
             ax._renderer.AddActor(axes)
 
         ax._renderer.ResetCamera()
-        # if self._ax.getp('camera').getp('view') == 2:
-        #    ax._renderer.GetActiveCamera().Zoom(1.5)
         camera.Zoom(cam.getp('camzoom'))
-
-        # set the camera in the vtkCubeAxesActor2D object:
-        # ax._vtk_axes.SetCamera(camera)
 
     def _set_axis_props(self, ax):
         print('<axis properties>') if DEBUG else None
@@ -752,6 +760,7 @@ class VTKBackend(BaseClass):
             obj.OutlineCursorWiresOff()
             obj.GetOutlineProperty().SetOpacity(0)
             obj.GetHandleProperty().SetOpacity(.2)
+            obj._SaveBounds()
 
         def pw_enable(obj, event):
             nonlocal iclipper, clipper
@@ -759,15 +768,16 @@ class VTKBackend(BaseClass):
             # obj.SetData(*self.clipperInput)  # save the initial position of the points
             clipper.SetInputConnection(iclipper.GetOutputPort())
             # for now this is working fine, maybe something simpler can be done using obj.InvokeEvent('InteractionEvent')
+            # print(obj)
+            obj._on = True
             self._g.iren.LeftButtonPressEvent()
             self._g.iren.MouseMoveEvent()
             self._g.iren.LeftButtonReleaseEvent()
 
         def pw_disable(obj, event):
             nonlocal data, clipper
-            polydata = vtk.vtkPolyData()
-            obj.GetPolyData(polydata)
-            obj._b = polydata.GetPoints().GetBounds()
+            # print(obj)
+            obj._on = False
             clipper.SetInputConnection(data.GetOutputPort())
 
         # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.py
@@ -780,7 +790,7 @@ class VTKBackend(BaseClass):
         self._w.SetInputConnection(data.GetOutputPort())
         if not self._w._b:
             self._w.SetPlaceFactor(1.05)
-            self._w.SetHandleSize(self._w.GetHandleSize() / 2)
+            self._w.SetHandleSize(self._w._hs)
             self._w.PlaceWidget()
         else:
             self._w.PlaceWidget(self._w._b)
@@ -791,11 +801,11 @@ class VTKBackend(BaseClass):
         iclipper.SetValue(0)
         iclipper.InsideOutOn()
 
-        self._w.AddObserver('InteractionEvent', pw_interaction)
-        self._w.AddObserver('StartInteractionEvent', pw_start_interaction)
-        self._w.AddObserver('EndInteractionEvent', pw_end_interaction)
-        self._w.AddObserver('EnableEvent', pw_enable)
-        self._w.AddObserver('DisableEvent', pw_disable)
+        self._w._AddObserver('InteractionEvent', pw_interaction)
+        self._w._AddObserver('StartInteractionEvent', pw_start_interaction)
+        self._w._AddObserver('EndInteractionEvent', pw_end_interaction)
+        self._w._AddObserver('EnableEvent', pw_enable)
+        self._w._AddObserver('DisableEvent', pw_disable)
 
         return clipper
 
@@ -1595,6 +1605,7 @@ class VTKBackend(BaseClass):
                 cam.setp(view=3)
             # don't set view in the following command because cammode will fail because of the _set_default_view call
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0), azimuth=0, elevation=0)
+            print(cam)
 
         def control_callback(e):
             '''
@@ -1737,15 +1748,9 @@ class VTKBackend(BaseClass):
         print('<replot> in backend') if DEBUG else None
         # reset the plotting package instance in fig._g now if needed
 
-        # 1. initial version
-        # fig = self.gcf()
-        # 2. test NOK
-        # self.fig._g = _VTKFigure(self, title=self.name)
-        # self._g = self.fig._g
-        # 3. test NOK
-        # fig = self.figure(self.getp('curfig'))
-        # still NOK, interactive mode after a _replot
-
+        # resetting interactiveobservers
+        if self._w is not None:
+            self._w._RemoveObservers()
         fig = self.gcf()
         self._g.reset()
         self.register_bindings()
@@ -1754,14 +1759,14 @@ class VTKBackend(BaseClass):
 
         nrows, ncols = fig.getp('axshape')
         grid = indices((nrows, ncols))
-        rows, cols = grid[0].T.flatten(), grid[1].T.flatten()[::-1]
+        rows, cols = grid[0].flatten()[::-1], grid[1].flatten()
         for axnr, ax in list(fig.getp('axes').items()):
             if ax.getp('numberofitems') == 0:
                 continue
             self._ax = ax  # link for faster access
             if nrows != 1 or ncols != 1:
                 # create axes in tiled position  this is subplot(nrows,ncols,axnr)
-                col, row = rows[axnr - 1], cols[axnr - 1]
+                row, col = rows[axnr - 1], cols[axnr - 1]
                 xmin, xmax = col / ncols, (col + 1) / ncols
                 ymin, ymax = row / nrows, (row + 1) / nrows
                 ax.setp(viewport=[xmin, ymin, xmax, ymax])
@@ -1806,6 +1811,14 @@ class VTKBackend(BaseClass):
             if DEBUG:
                 print('\n<plot data to screen>\n')
                 debug(self, level=0)
+
+        if self._w is not None and self._w._on:
+            self._g.tkw.event_generate('<KeyPress-i>')
+            # print(self._w)
+            # self._w.InvokeEvent('DisableEvent')
+            # print(self._w)
+            # self._w.InvokeEvent('EnableEvent')
+            # print(self._w)
 
         self._g.display(show=self.getp('show'))
 
@@ -1861,13 +1874,11 @@ class VTKBackend(BaseClass):
             filename = 'tmp' + filename
 
         self.setp(**kwargs)
-        color = self.getp('color')
-        replot = kwargs.get('replot', True)
 
         if not self.getp('show'):  # don't render to screen
             self._g.renwin.OffScreenRenderingOn()
 
-        if replot:  #  and not self._g.is_interactive # this is wrong, the pipeline isn't updated !
+        if kwargs.get('replot', True):  #  and not self._g.interactive_on # this is wrong, the pipeline isn't updated !
             self._replot()
 
         basename, ext = os.path.splitext(filename)
