@@ -689,6 +689,15 @@ class VTKBackend(BaseClass):
         view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
+        print(cam)
+        if cam.getp('shared') is not None:
+            print('sharing camera')
+            ax._renderer.SetActiveCamera(camera)
+            ax._camera = camera
+            return
+
+        print('setting up camera')
+
         camera = vtk.vtkCamera()
         camera.SetViewUp(upvector)
         camera.ParallelProjectionOn()
@@ -729,6 +738,7 @@ class VTKBackend(BaseClass):
 
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
+        cam.setp(shared=camera)
         if cam.getp('cammode') == 'auto':
             ax._renderer.ResetCamera()
         else:

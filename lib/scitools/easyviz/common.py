@@ -1211,6 +1211,7 @@ class Camera(object):
         'camzoom': 1,
         'campos': (0, 0, 0),
         'camproj': 'orthographic',
+        'shared': None  # a vtk object for sharing camera between subplots
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1279,6 +1280,9 @@ class Camera(object):
                 _check_type(kwargs[prop], prop, (list, tuple))
                 _check_size(kwargs[prop], prop, 3)
                 self._prop[prop] = kwargs[prop]
+
+        if 'shared' in kwargs:
+            self._prop['shared'] = kwargs['shared']
 
     def getp(self, name):
         try:
