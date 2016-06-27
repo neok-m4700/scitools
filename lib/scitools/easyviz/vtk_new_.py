@@ -670,6 +670,14 @@ class VTKBackend(BaseClass):
         '''set viewpoint specification'''
         print('<view>') if DEBUG else None
 
+        def print_cam(camera, msg):
+            names = ('pos', 'viewup', 'proj_dir', 'focalpoint', 'viewangle', 'plane_norm', 'wincenter', 'viewshear', 'orientation', 'orientationWXYZ', 'roll')
+            props = [getattr(camera, _)() for _ in ('GetPosition', 'GetViewUp', 'GetDirectionOfProjection', 'GetFocalPoint', 'GetViewAngle', 'GetViewPlaneNormal', 'GetWindowCenter', 'GetViewShear', 'GetOrientation', 'GetOrientationWXYZ', 'GetRoll')]
+            print(msg + '.' * 25)
+            for name, prop in zip(names, props):
+                print(name, prop, end=' ')
+            print()
+
         # unit axes
         if ax.getp('unit'):
             axes = vtk.vtkAxesActor()
@@ -681,21 +689,12 @@ class VTKBackend(BaseClass):
         view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
-        def print_cam(camera, msg):
-            names = ('pos', 'viewup', 'proj_dir', 'focalpoint', 'viewangle', 'plane_norm', 'wincenter', 'viewshear', 'orientation', 'orientationWXYZ', 'roll')
-            props = [getattr(camera, _)() for _ in ('GetPosition', 'GetViewUp', 'GetDirectionOfProjection', 'GetFocalPoint', 'GetViewAngle', 'GetViewPlaneNormal', 'GetWindowCenter', 'GetViewShear', 'GetOrientation', 'GetOrientationWXYZ', 'GetRoll')]
-            print(msg + '.' * 25)
-            for name, prop in zip(names, props):
-                print(name, prop, end=' ')
-            print()
-
         camera = vtk.vtkCamera()
         camera.SetViewUp(upvector)
         camera.ParallelProjectionOn()
         # print_cam(camera, '1')
         if view == 2:
-            # setup a default 2D view
-            camera.SetPosition(focalpoint[0], focalpoint[1], 1)
+            camera.SetPosition(focalpoint[0], focalpoint[1], 1)  # setup a default 2D view
         elif view == 3:
             if cam.getp('cammode') == 'manual':
                 if cam.getp('camproj') == 'orthographic':
@@ -727,7 +726,7 @@ class VTKBackend(BaseClass):
                     el = 30
                 camera.Azimuth(az)
                 camera.Elevation(el)
-        
+
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
         if cam.getp('cammode') == 'auto':
@@ -824,6 +823,7 @@ class VTKBackend(BaseClass):
             obj._SaveWidget()
 
         # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
+        '''WARNING, projection onto a 2D plane is broken when in interactive mode with widget !!'''
         self._w = vtkInteractiveWidget(
             'boxwidget' if islice == 'cube' else 'implicitplanewidget',
             axis=self._ax,
@@ -1786,9 +1786,6 @@ class VTKBackend(BaseClass):
         print('<replot> in backend') if DEBUG else None
         # reset the plotting package instance in fig._g now if needed
 
-        # resetting interactiveobservers
-        # is self._w is not None:
-        #     self._w._RemoveObservers()
         fig = self.gcf()
         self._g.reset()
         self.register_bindings()
