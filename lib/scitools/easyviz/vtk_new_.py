@@ -945,9 +945,9 @@ class VTKBackend(BaseClass):
         else:
             w = asarray(w)
 
-        print(z, w)
-        print(shape(u), shape(w))
-        print(shape(x) == shape(u), shape(y) == shape(u), shape(z) == shape(u), shape(v) == shape(u), shape(w) == shape(u))
+        # print(z, w)
+        # print(shape(u), shape(w))
+        # print(shape(x) == shape(u), shape(y) == shape(u), shape(z) == shape(u), shape(v) == shape(u), shape(w) == shape(u))
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
@@ -1605,7 +1605,6 @@ class VTKBackend(BaseClass):
                 cam.setp(view=3)
             # don't set view in the following command because cammode will fail because of the _set_default_view call
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0), azimuth=0, elevation=0)
-            print(cam)
 
         def control_callback(e):
             '''
