@@ -1305,7 +1305,7 @@ class VTKBackend(BaseClass):
         isoActor = vtk.vtkActor()
         isoActor.SetMapper(isoMapper)
         self._set_actor_properties(item, isoActor)
-        # self.@_legend(item, iso.GetOutput())
+        # self.add_legend(item, iso.GetOutput())
         self._ax._renderer.AddActor(isoActor)
         self._ax._apd.AddInputConnection(data.GetOutputPort())
 

@@ -2774,10 +2774,7 @@ class BaseClass:
                         raise ValueError('legend: wrong value of loc=%s, should be between 0 and 10' % value)
                 elif isinstance(value, str):
                     if value not in Axis._legend_locs:
-                        raise ValueError(
-                            'legend: wrong value of loc=%s, '
-                            'should be\n%s' %
-                            (value, str([v for v in Axis._legend_locs])[1:-1]))
+                        raise ValueError(                            'legend: wrong value of loc={}, should be\n{}'.format(value, str([v for v in Axis._legend_locs])[1:-1]))
                 else:
                     raise ValueError('legend: wrong value of loc=%s' % value)
 
@@ -2786,10 +2783,10 @@ class BaseClass:
             elif key == 'fancybox':
                 value = kwargs[key]
                 if value not in (True, False, None):
-                    raise ValueError('legend: wrong value of fancybox=%s' % value)
+                    raise ValueError('legend: wrong value of fancybox={}'.format(value))
                 ax.setp(legend_fancybox=value)
             else:
-                print('legend: ignoring keyword argument %s' % key)
+                print('legend: ignoring keyword argument {}'.format(key))
 
         items = ax.getp('plotitems')
         if len(items) == 0:
@@ -3119,9 +3116,7 @@ class BaseClass:
                         else:
                             print('Legend ' + legend + ' is not a string')
                 else:
-                    print('Number of legend items (%d) is not equal to '
-                          'number of lines in plotcommand (%d)' %
-                          (len(legends), no_lines))
+                    print('Number of legend items ({:d}) is not equal to number of lines in plotcommand ({:d})'.format(len(legends),no_lines))
             elif isinstance(legends, str):  # only one legend
                 ax.getp('plotitems')[-1].setp(legend=legends)
             del kwargs['legend']
@@ -3388,9 +3383,7 @@ class BaseClass:
                         else:
                             print('Legend ' + legend + ' is not a string')
                 else:
-                    print('Number of legend items (%d) is not equal to '
-                          'number of lines (%d) in plotcommand' %
-                          (len(legends), no_lines))
+                    print('Number of legend items ({:d}) is not equal to number of lines ({:d}) in plotcommand'.format(len(legends), no_lines))
             elif isinstance(legends, str):  # only one legend
                 ax.getp('plotitems')[-1].setp(legend=legends)
             del kwargs['legend']
