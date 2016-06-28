@@ -672,7 +672,7 @@ class VTKBackend(BaseClass):
         def print_cam(camera, msg):
             names = ('pos', 'viewup', 'proj_dir', 'focalpoint', 'viewangle', 'plane_norm', 'wincenter', 'viewshear', 'orientation', 'orientationWXYZ', 'roll')
             props = [getattr(camera, _)() for _ in ('GetPosition', 'GetViewUp', 'GetDirectionOfProjection', 'GetFocalPoint', 'GetViewAngle', 'GetViewPlaneNormal', 'GetWindowCenter', 'GetViewShear', 'GetOrientation', 'GetOrientationWXYZ', 'GetRoll')]
-            print(msg + '.' * 25)
+            print(' '.join([str(hex(id(camera))), msg, '.' * 25]))
             for name, prop in zip(names, props):
                 print(name, prop, end=' ')
             print()
@@ -688,14 +688,11 @@ class VTKBackend(BaseClass):
         view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
-        print(cam)
         if cam.getp('camshare') is not None:
-            print('sharing camera')
+            # share the camera and return
             ax._renderer.SetActiveCamera(cam.getp('camshare'))
             ax._camera = cam.getp('camshare')
             return
-
-        print('setting up camera')
 
         camera = vtk.vtkCamera()
         camera.SetViewUp(upvector)
@@ -745,13 +742,13 @@ class VTKBackend(BaseClass):
             ax._renderer.ResetCamera(self._ax._scaled_limits)
         camera.Zoom(cam.getp('camzoom'))
 
-        print(hex(id(self._ax)), 'axis')
-        print(hex(id(cam)), 'camera')
-        print(hex(id(camera)), 'vtkCamera')
-        print(cam)
+        # print(hex(id(self._ax)), 'axis')
+        # print(hex(id(cam)), 'camera')
+        # print(hex(id(camera)), 'vtkCamera')
+        # print(cam)
         # print_cam(camera, '3')
         # print(camera)
-        print('__' * 25)
+        # print('__' * 25)
 
     def _set_axis_props(self, ax):
         print('<axis properties>') if DEBUG else None
