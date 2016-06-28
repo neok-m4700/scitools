@@ -1895,10 +1895,10 @@ class VTKBackend(BaseClass):
                     # add legend to plot
                     legendActor = vtk.vtkLegendBoxActor()
                     legendActor.SetNumberOfEntries(1)
-                    symbol = vtk.vtkSphereSource(); symbol.Update()
-                    legendActor.SetEntry(0, symbol.GetOutput(), legend, ax.getp('axiscolor'))
+                    # symbol = vtk.vtkSphereSource(); symbol.Update()  # for an empty symbol, pass an empty vtkPolyData instance
+                    legendActor.SetEntry(0, vtk.vtkPolyData(), legend, ax.getp('axiscolor'))
                     legendActor.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
-                    legendActor.GetPositionCoordinate().SetValue(.1, .8)
+                    legendActor.GetPositionCoordinate().SetValue(0, .8)
                     textProp = legendActor.GetEntryTextProperty()
                     textProp.SetFontSize(textProp.GetFontSize() // 2)
                     if ax.getp('legend_fancybox'):
