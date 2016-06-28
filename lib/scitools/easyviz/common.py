@@ -49,7 +49,7 @@ def docadd(comment, *lists, **kwargs):
     return s
 
 
-class MaterialProperties(object):
+class MaterialProperties:
 
     '''
     Storage of various properties for a material on a PlotProperties object.
@@ -85,7 +85,7 @@ class MaterialProperties(object):
             raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
 
-class PlotProperties(object):
+class PlotProperties:
 
     '''
     Storage of various properties needed for plotting, such as line types,
@@ -1087,7 +1087,7 @@ class Volume(PlotProperties):
         self._prop['numberofpoints'] = len(ravel(v))
 
 
-class Colorbar(object):
+class Colorbar:
 
     '''
     Information about color bars in color plots.
@@ -1138,7 +1138,7 @@ class Colorbar(object):
         self._prop = self._defaults.copy()
 
 
-class Light(object):
+class Light:
 
     '''
     Information about light in a visualization.
@@ -1193,7 +1193,7 @@ class Light(object):
         self._prop = self._defaults.copy()
 
 
-class Camera(object):
+class Camera:
 
     '''
     Information about the camera in a visualization.
@@ -1211,7 +1211,7 @@ class Camera(object):
         'camzoom': 1,
         'campos': (0, 0, 0),
         'camproj': 'orthographic',
-        'shared': None  # a vtk object for sharing camera between subplots
+        'camshare': None  # a vtk object for sharing camera between subplots
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1281,8 +1281,8 @@ class Camera(object):
                 _check_size(kwargs[prop], prop, 3)
                 self._prop[prop] = kwargs[prop]
 
-        if 'shared' in kwargs:
-            self._prop['shared'] = kwargs['shared']
+        if 'camshare' in kwargs:
+            self._prop['camshare'] = kwargs['camshare']
 
     def getp(self, name):
         try:
@@ -1292,6 +1292,7 @@ class Camera(object):
 
     def reset(self):
         '''Reset camera to defaults.'''
+        print('. reset camera')
         self._prop = self._defaults.copy()
 
     def _set_default_view(self, view):
@@ -1302,7 +1303,7 @@ class Camera(object):
             self._prop['camup'] = (0, 0, 1)
 
 
-class Axis(object):
+class Axis:
 
     '''
     Information about the axis in curve, surface, and volume plots.
@@ -1348,7 +1349,7 @@ class Axis(object):
         'pth': None,  # this is the p-th axis in subplot(m,n,p)
         'colororder': 'b r g m c y k'.split(),
         'curcolor': 0,
-        'unit': False  # unit vectors
+        'unit': False,  # unit vectors
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1378,6 +1379,7 @@ class Axis(object):
         # self was not available when _local_prop was defined:
         self._prop['camera'] = Camera(self)
         self._prop['colorbar'] = Colorbar()
+        self._w = None
 
     def __str__(self):
         return pprint.pformat(self._prop)
@@ -1586,9 +1588,12 @@ class Axis(object):
         self._prop['viewport'] = viewport
         self._prop['pth'] = pth
         self._prop['plotitems'] = []
-        # self._prop['camera'].reset()
-        del self._prop['camera']
-        self._prop['camera'] = Camera(self)
+        if self._prop['camera'] is not None:
+            camshare = self._prop['camera'].getp('camshare')
+            self._prop['camera'].reset()
+            self._prop['camera'].setp(camshare=camshare)
+        else:
+            self._prop['camera'] = Camera(self)
         # for l in self._prop['lights']:
         #    l.reset()
         self._prop['lights'] = []
@@ -1718,7 +1723,7 @@ class Axis(object):
                 self._prop['daspect'] = daspect
 
 
-class Figure(object):
+class Figure:
 
     '''Hold figure attributtes like axes, size, ....'''
 

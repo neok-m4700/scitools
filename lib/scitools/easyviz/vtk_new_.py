@@ -243,8 +243,8 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         def __init__(self, plane, **kwargs):
             super().__init__()
-            old = kwargs.get('old')
             axis = kwargs.get('axis')
+            old = axis._w
             self._p = plane
             # self._b = getattr(old, '_b', None)
             # self._pd = vtk.vtkPolyData()
@@ -264,6 +264,7 @@ def vtkInteractiveWidget(parent, **kwargs):
             self.SetPlaceFactor(1.05)
             self.iren = kwargs.get('iren')
             self.SetInteractor(self.iren)
+            self.SetCurrentRenderer(axis._renderer)
             self.SetInputConnection(kwargs.get('ic'))
             self.PlaceWidget()
             if self._t is not None:
@@ -388,8 +389,6 @@ class VTKBackend(BaseClass):
             'EastOutside': None,
             'WestOutside': None,
         }
-
-        self._w = None
 
         if DEBUG:
             print('<backend standard variables>')
@@ -690,10 +689,10 @@ class VTKBackend(BaseClass):
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
         print(cam)
-        if cam.getp('shared') is not None:
+        if cam.getp('camshare') is not None:
             print('sharing camera')
-            ax._renderer.SetActiveCamera(camera)
-            ax._camera = camera
+            ax._renderer.SetActiveCamera(cam.getp('camshare'))
+            ax._camera = cam.getp('camshare')
             return
 
         print('setting up camera')
@@ -738,7 +737,7 @@ class VTKBackend(BaseClass):
 
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
-        cam.setp(shared=camera)
+        cam.setp(camshare=camera)
         if cam.getp('cammode') == 'auto':
             ax._renderer.ResetCamera()
         else:
@@ -746,10 +745,13 @@ class VTKBackend(BaseClass):
             ax._renderer.ResetCamera(self._ax._scaled_limits)
         camera.Zoom(cam.getp('camzoom'))
 
+        print(hex(id(self._ax)), 'axis')
+        print(hex(id(cam)), 'camera')
+        print(hex(id(camera)), 'vtkCamera')
         print(cam)
         # print_cam(camera, '3')
         # print(camera)
-        print('==  ' * 25)
+        print('__' * 25)
 
     def _set_axis_props(self, ax):
         print('<axis properties>') if DEBUG else None
@@ -834,28 +836,27 @@ class VTKBackend(BaseClass):
 
         # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
         '''WARNING, projection onto a 2D plane is broken when in interactive mode with widget !!'''
-        self._w = vtkInteractiveWidget(
+        self._ax._w = vtkInteractiveWidget(
             'boxwidget' if islice == 'cube' else 'implicitplanewidget',
             axis=self._ax,
             iren=self._g.iren,
             ic=data.GetOutputPort(),
-            old=self._w
         )
 
-        pw_interaction(self._w, None)  # in order to avoid 'Please define points and/or normals!' errors
+        pw_interaction(self._ax._w, None)  # in order to avoid 'Please define points and/or normals!' errors
         pw_start_interaction
 
         iclipper = vtk.vtkClipPolyData()
         iclipper.SetInputConnection(data.GetOutputPort())
-        iclipper.SetClipFunction(self._w._p)
+        iclipper.SetClipFunction(self._ax._w._p)
         iclipper.SetValue(0)
         iclipper.InsideOutOn()
 
-        self._w._AddObserver('InteractionEvent', pw_interaction)
-        self._w._AddObserver('StartInteractionEvent', pw_start_interaction)
-        self._w._AddObserver('EndInteractionEvent', pw_end_interaction)
-        self._w._AddObserver('EnableEvent', pw_enable)
-        self._w._AddObserver('DisableEvent', pw_disable)
+        self._ax._w._AddObserver('InteractionEvent', pw_interaction)
+        self._ax._w._AddObserver('StartInteractionEvent', pw_start_interaction)
+        self._ax._w._AddObserver('EndInteractionEvent', pw_end_interaction)
+        self._ax._w._AddObserver('EnableEvent', pw_enable)
+        self._ax._w._AddObserver('DisableEvent', pw_disable)
 
         return clipper
 
@@ -1655,17 +1656,22 @@ class VTKBackend(BaseClass):
             # don't set view in the following command because cammode will fail because of the _set_default_view call
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0))
 
+        def _find_poked_ren(event):
+            target = self._g.iren.FindPokedRenderer(event.x, self._g.height - event.y)
+            fig = self.gcf()
+            for _, ax in list(fig.getp('axes').items()):
+                if ax._renderer == target:
+                    break
+
+            return ax
+
         def control_callback(e):
             '''
             stackoverflow.com/a/16082411/5584077
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
             '''
             # get the renderer on which the event has been trigered
-            target_renderer = self._g.iren.FindPokedRenderer(e.x, self._g.height - e.y)
-            fig = self.gcf()
-            for _, ax in list(fig.getp('axes').items()):
-                if ax._renderer == target_renderer:
-                    break
+            ax = _find_poked_ren(e)
 
             if e.keysym == 'r':
                 pass
@@ -1734,6 +1740,17 @@ class VTKBackend(BaseClass):
             self._replot()
 
         self._g.tkw.bind('<Control-Key>', control_callback)
+
+        def key_callback(e):
+            ax = _find_poked_ren(e)
+            if e.keysym == 'i':
+                self._g.iren.SetKeyCode('i')
+                ax._w.OnChar()
+            else:
+                # forward the event if not interactive event
+                self._g.tkw.KeyPressEvent(e, 0, 0)
+
+        self._g.tkw.bind('<KeyPress>', key_callback)
 
     def figure(self, *args, **kwargs):
         # Extension of BaseClass.figure: dd a plotting package figure instance as fig._g and create a link to it as self._g
@@ -1851,14 +1868,14 @@ class VTKBackend(BaseClass):
 
             self._set_axis_props(ax)
 
+            if ax._w is not None and ax._w._on:
+                ax._w.On()  # enbale widget as in vtkInteractorObserver::OnChar()
+
         if self.getp('show'):
             # display plot on the screen
             if DEBUG:
                 print('\n<plot data to screen>\n')
                 debug(self, level=0)
-
-        if self._w is not None and self._w._on:
-            self._g.tkw.event_generate('<KeyPress-i>')
 
         self._g.display(show=self.getp('show'))
 
