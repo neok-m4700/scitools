@@ -4,12 +4,10 @@ import os
 import operator
 import pprint
 
-from scitools.numpyutils import seq, iseq, asarray, ones, zeros, sqrt, shape, \
-    ravel, meshgrid, squeeze, reshape, ndgrid, size, ndarray
+from scitools.numpyutils import seq, iseq, asarray, ones, zeros, sqrt, shape, ravel, meshgrid, squeeze, reshape, ndgrid, size, ndarray
 from scitools.globaldata import backend
 
-from .misc import _check_xyz, _check_xyuv, _check_xyzuvw, _check_xyzv, \
-    _check_size, _check_type, _toggle_state, _update_from_config_file
+from .misc import _check_xyz, _check_xyuv, _check_xyzuvw, _check_xyzv, _check_size, _check_type, _toggle_state, _update_from_config_file
 
 from warnings import warn
 import collections
@@ -283,11 +281,7 @@ class PlotProperties:
         one will count.
         '''
         if isinstance(format, str) and len(format) > 0:
-            color = ''
-            linetype = ''
-            marker = ''
-            linewidth = ''
-            pointsize = ''
+            color, linetype, marker, linewidth, pointsize = ('' for _ in range(5))
             # Notice that '--' and '-.' are before '-' in the _linestyles
             # alphabet.
 
@@ -600,7 +594,7 @@ class Surface(PlotProperties):
         nx, ny = shape(z)
         self._prop['dims'] = (nx, ny, 1)
         self._prop['numberofpoints'] = nx * ny
-        if not 'mesh' in self._prop['function']:
+        if 'mesh' not in self._prop['function']:
             self._prop['wireframe'] = False
 
 
@@ -1036,13 +1030,11 @@ class Volume(PlotProperties):
             func = self._prop['function']
             tmparg = args[-1]
             if func == 'slice_':  # slice_(...,'method')
-                intrp_methods = 'linear cubic nearest'.split()
+                interp_methods = 'linear cubic nearest'.split()
                 method = str(tmparg)
-                if not method in interp_methods:
-                    raise ValueError(
-                        'interpolation method must be %s, not %s' %
-                        (interp_methods, method))
-                #self._prop['interpolationmethod'] = method
+                if method not in interp_methods:
+                    raise ValueError('interpolation method must be {}, not {}'.format(interp_methods, method))
+                # self._prop['interpolationmethod'] = method
             elif func == 'contourslice':  # contourslice(...,
                 if isinstance(tmparg, int) and tmparg >= 0:
                     self._prop['clevels'] = tmparg
@@ -1211,7 +1203,7 @@ class Camera:
         'camzoom': 1,
         'campos': (0, 0, 0),
         'camproj': 'orthographic',
-        'camshare': None  # a vtk object for sharing camera between subplots
+        # 'camshare': None  # a vtk object for sharing camera between subplots
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1281,8 +1273,8 @@ class Camera:
                 _check_size(kwargs[prop], prop, 3)
                 self._prop[prop] = kwargs[prop]
 
-        if 'camshare' in kwargs:
-            self._prop['camshare'] = kwargs['camshare']
+        # if 'camshare' in kwargs:
+        #     self._prop['camshare'] = kwargs['camshare']
 
     def getp(self, name):
         try:
@@ -1292,7 +1284,6 @@ class Camera:
 
     def reset(self):
         '''Reset camera to defaults.'''
-        print('. reset camera')
         self._prop = self._defaults.copy()
 
     def _set_default_view(self, view):
@@ -1561,6 +1552,9 @@ class Axis:
         self._prop['camera'].setp(**kwargs)
         self._prop['colorbar'].setp(**kwargs)
 
+        if '_camera' in kwargs:
+            self._camera = kwargs['_camera']
+
         # update the axis:
         self.update()
 
@@ -1755,7 +1749,7 @@ class Figure:
             s += pprint.pformat(self._prop['size']) + '\n'
         for ax in self._prop['axes']:
             s += 'axis %d:\n' % ax
-            #s += pprint.pformat(str(self._prop['axes'][ax]))
+            # s += pprint.pformat(str(self._prop['axes'][ax]))
             s += pprint.pformat(self._prop['axes'][ax]._prop)
         return s
 
@@ -1799,7 +1793,7 @@ class Figure:
 
         if 'curax' in kwargs:
             curax = kwargs['curax']
-            #_check_type(curax, 'curax', int)
+            # _check_type(curax, 'curax', int)
             self._set_current_axis(curax)
 
         if 'size' in kwargs:
@@ -2777,7 +2771,7 @@ class BaseClass:
                                 value = loc
                                 break
                     else:
-                        raise ValueError( 'legend: wrong value of loc=%s, should be between 0 and 10' % value)
+                        raise ValueError('legend: wrong value of loc=%s, should be between 0 and 10' % value)
                 elif isinstance(value, str):
                     if value not in Axis._legend_locs:
                         raise ValueError(
@@ -3401,7 +3395,7 @@ class BaseClass:
                 ax.getp('plotitems')[-1].setp(legend=legends)
             del kwargs['legend']
 
-        if not ax.getp('hold') and not 'view' in kwargs:
+        if not ax.getp('hold') and 'view' not in kwargs:
             kwargs['view'] = 3
 
         # set keyword arguments in all the added lines:
@@ -3422,7 +3416,7 @@ class BaseClass:
     def fill(self, *args, **kwargs):
         '''Draw filled 2D polygons.'''
         kwargs['description'] = 'fill: filled 2D polygons'
-        if not 'edgecolor' in kwargs:
+        if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
         return self.plot(*args, **kwargs)
 
@@ -3498,7 +3492,7 @@ class BaseClass:
         h = Bars(*args, **kwargs)
         ax.add(h)
         if not ax.getp('hold'):
-            if not 'box' in kwargs:
+            if 'box' not in kwargs:
                 kwargs['box'] = True
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)

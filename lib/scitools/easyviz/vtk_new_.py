@@ -243,8 +243,9 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         def __init__(self, plane, **kwargs):
             super().__init__()
-            axis = kwargs.get('axis')
-            old = axis._w
+            self.fig = kwargs.get('fig')
+            self.ax = kwargs.get('ax')
+            old = self.ax._w
             self._p = plane
             # self._b = getattr(old, '_b', None)
             # self._pd = vtk.vtkPolyData()
@@ -256,19 +257,18 @@ def vtkInteractiveWidget(parent, **kwargs):
             del old
             self._obs = []
             if isinstance(self, vtk.vtkBoxWidget):
-                self.GetOutlineProperty().SetColor(axis.getp('axiscolor'))
-                self.RotationEnabledOff()  # we want a bow aligned with the axis, so no rotation allowed
+                self.GetOutlineProperty().SetColor(self.ax.getp('axiscolor'))
+                self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
             elif isinstance(self, vtk.vtkImplicitPlaneWidget):
-                [_.SetColor(axis.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
+                [_.SetColor(self.ax.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
             self.SetHandleSize(self._hs)
             self.SetPlaceFactor(1.05)
-            self.iren = kwargs.get('iren')
+            self.iren = self.fig._g.iren
             self.SetInteractor(self.iren)
-            self.SetCurrentRenderer(axis._renderer)
+            self.SetCurrentRenderer(self.ax._renderer)
             self.SetInputConnection(kwargs.get('ic'))
             self.PlaceWidget()
-            if self._t is not None:
-                self.SetTransform(self._t)
+            self.SetTransform(self._t)
 
         def _GetPlane(self):
             if isinstance(self, vtk.vtkBoxWidget):
@@ -286,11 +286,20 @@ def vtkInteractiveWidget(parent, **kwargs):
             # self.GetPolyData(self._pd)
             # self._b = self._pd.GetPoints().GetBounds()
             self.GetTransform(self._t)
+            for _, ax in list(self.fig.getp('axes').items()):
+                if ax == self.ax:
+                    continue
+                ax._w._t = self._t
+                ax._w.SetTransform(self._t)
+                ax._w.InvokeEvent('InteractionEvent')
 
-        def _Trigger(self):
-            self.iren.LeftButtonPressEvent()
-            self.iren.MouseMoveEvent()
-            self.iren.LeftButtonReleaseEvent()
+        # def _Trigger(self):
+        #     _ = tuple(map(int, self.GetCurrentRenderer().GetCenter()))
+        #     # print(_)
+        #     self.iren.SetEventInformation(*_, 0, 0, chr(0), 0, None)
+        #     self.iren.LeftButtonPressEvent()
+        #     self.iren.MouseMoveEvent()
+        #     self.iren.LeftButtonReleaseEvent()
 
     return _vtkInteractiveWidget(plane, **kwargs)
 
@@ -688,13 +697,37 @@ class VTKBackend(BaseClass):
         view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
-        if cam.getp('camshare') is not None:
-            # share the camera and return
-            ax._renderer.SetActiveCamera(cam.getp('camshare'))
-            ax._camera = cam.getp('camshare')
-            return
-
+        # camshare = cam.getp('camshare')
         camera = vtk.vtkCamera()
+        for _, axis in list(fig.getp('axes').items()):
+            _ = getattr(axis, '_camera', None)
+            if _ is not None:
+                # update local camera with the one from
+                # cam.setp(**axis.getp('camera')._prop)
+                ax.setp(camera=axis.getp('camera'))
+                cam = ax.getp('camera')
+                camera = ax._camera
+                break
+
+            # if axis.getp('camera'):
+            #     if axis.getp('camera').getp('camshare'):
+            #         camera = axis.getp('camera').getp('camshare')
+            #         break
+
+        # if camshare is not None:
+        #     camera = camshare
+        #     ax._renderer.SetActiveCamera(camera)
+        #     ax._camera = camera
+        #     return
+        # else:
+        #     # existing shared camera from another axis or newcamera if None exists
+        #     camera = vtk.vtkCamera()
+        #     for _, axis in list(fig.getp('axes').items()):
+        #         if axis.getp('camera'):
+        #             if axis.getp('camera').getp('camshare'):
+        #                 camera = axis.getp('camera').getp('camshare')
+        #                 break
+
         camera.SetViewUp(upvector)
         camera.ParallelProjectionOn()
         # print_cam(camera, '1')
@@ -735,11 +768,17 @@ class VTKBackend(BaseClass):
         ax._renderer.SetActiveCamera(camera)
         ax._camera = camera
         cam.setp(camshare=camera)
+
+        is_on = ax._w.GetEnabled()
+        if is_on:
+            ax._w.Off()
         if cam.getp('cammode') == 'auto':
             ax._renderer.ResetCamera()
         else:
-            print('reset camera using', self._ax._scaled_limits)
-            ax._renderer.ResetCamera(self._ax._scaled_limits)
+            print('reset camera using', ax._scaled_limits)
+            ax._renderer.ResetCamera(ax._scaled_limits)
+        if is_on:
+            ax._w.On()
         camera.Zoom(cam.getp('camzoom'))
 
         # print(hex(id(self._ax)), 'axis')
@@ -822,7 +861,7 @@ class VTKBackend(BaseClass):
             clipper.SetInputConnection(iclipper.GetOutputPort())
             # for now this is working fine, maybe something simpler can be done using obj.InvokeEvent('InteractionEvent')
             obj._on = True
-            obj._Trigger()
+            pw_interaction(obj, event)
             pw_end_interaction(obj, event)
 
         def pw_disable(obj, event):
@@ -835,13 +874,12 @@ class VTKBackend(BaseClass):
         '''WARNING, projection onto a 2D plane is broken when in interactive mode with widget !!'''
         self._ax._w = vtkInteractiveWidget(
             'boxwidget' if islice == 'cube' else 'implicitplanewidget',
-            axis=self._ax,
-            iren=self._g.iren,
-            ic=data.GetOutputPort(),
+            ax=self._ax,
+            fig=self.gcf(),
+            ic=data.GetOutputPort()
         )
 
         pw_interaction(self._ax._w, None)  # in order to avoid 'Please define points and/or normals!' errors
-        pw_start_interaction
 
         iclipper = vtk.vtkClipPolyData()
         iclipper.SetInputConnection(data.GetOutputPort())
@@ -1654,89 +1692,106 @@ class VTKBackend(BaseClass):
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0))
 
         def _find_poked_ren(event):
-            target = self._g.iren.FindPokedRenderer(event.x, self._g.height - event.y)
-            fig = self.gcf()
-            for _, ax in list(fig.getp('axes').items()):
+            target = self._g.iren.FindPokedRenderer(event.x, self._g.renwin.GetSize()[1] - event.y)
+            for _, ax in list(self.gcf().getp('axes').items()):
                 if ax._renderer == target:
                     break
 
             return ax
 
-        def control_callback(e):
+        def callback(e, ctrl, shift):
             '''
             stackoverflow.com/a/16082411/5584077
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
             '''
+            key = e.keysym.lower()
+            print(key)
             # get the renderer on which the event has been trigered
-            ax = _find_poked_ren(e)
+            if ctrl:
+                axs = (_find_poked_ren(e),)
+            elif shift:
+                axs = [ax for _, ax in list(self.gcf().getp('axes').items())]
 
-            if e.keysym == 'r':
-                pass
-            elif e.keysym == 'i':
-                plotitems = ax.getp('plotitems')
-                plotitems.sort(key=self._cmpPlotProperties)
-                for item in plotitems:
-                    for _ in ('linecolor', 'facecolor', 'edgecolor'):
-                        try:
-                            # _get_color takes a string and returns a rgb tuple
-                            color = item.getp(_)
-                            newcol = '_' + colsor.lstrip('_')
-                            item.setp(**{_: newcol})
-                        except Exception as e:
-                            pass
-
-                for _ in ('bgcolor', 'fgcolor', 'axiscolor'):
-                    try:
-                        color = ax.getp(_)
-                        newcol = self._invertc(color)
-                        ax.setp(**{_: newcol})
-                    except Exception as e:
+            if ctrl or shift:
+                for ax in axs:
+                    # print(hex(id(ax)), key)
+                    if key == 'r':
                         pass
+                    elif key == 'i':
+                        plotitems = ax.getp('plotitems')
+                        plotitems.sort(key=self._cmpPlotProperties)
+                        for item in plotitems:
+                            for _ in ('linecolor', 'facecolor', 'edgecolor'):
+                                try:
+                                    # _get_color takes a string and returns a rgb tuple
+                                    color = item.getp(_)
+                                    newcol = '_' + colsor.lstrip('_')
+                                    item.setp(**{_: newcol})
+                                except Exception as e:
+                                    pass
 
-            elif e.keysym == 'g':
-                _toggle_state(ax, 'grid')
-            elif e.keysym == 'b':
-                _toggle_state(ax, 'box')
-            elif e.keysym == 'a':
-                _toggle_state(ax, 'unit')
-            elif e.keysym == 'c':
-                cbar = ax.getp('colorbar')
-                _toggle_state(cbar, 'visible')
-            elif e.keysym == 's':
-                self.hardcopy('fig.pdf', replot=False)
-                return
-            # got camtarget value from paraview default
-            #  --------- /     ^
-            # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
-            #  --------- \
-            elif e.keysym == 'KP_4':  # +X into the screen, Y up
-                _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0))
-            elif e.keysym == 'KP_5':  # +X into the screen, Z up
-                _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1))
-            elif e.keysym == 'KP_6':  # +Y into the screen, Z up
-                _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1))
-            elif e.keysym == 'KP_7':  # +Y into the screen, X up
-                _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0))
-            elif e.keysym == 'KP_8':  # +Z into the screen, X up
-                _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0))
-            elif e.keysym == 'KP_9':  # +Z into the screen, Y up
-                _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0))
-            elif e.keysym == 'KP_1':  # toggle perspective between orthographic or parallel
-                cam = ax.getp('camera')
-                # nice one liner to toggle values of a 2 elements list/tuple !
-                cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))])
-            elif e.keysym == 'KP_2':
-                self.view(2)
-                return
-            elif e.keysym == 'KP_3':
-                self.view(3)
-                return
-            else:
-                # when a binding is not known, return without replotting
-                return
-            self._replot()
+                        for _ in ('bgcolor', 'fgcolor', 'axiscolor'):
+                            try:
+                                color = ax.getp(_)
+                                newcol = self._invertc(color)
+                                ax.setp(**{_: newcol})
+                            except Exception as e:
+                                pass
 
-        self._g.tkw.bind('<Control-Key>', control_callback)
+                    elif key == 'g':
+                        _toggle_state(ax, 'grid')
+                    elif key == 'b':
+                        _toggle_state(ax, 'box')
+                    elif key == 'a':
+                        _toggle_state(ax, 'unit')
+                    elif key == 'c':
+                        cbar = ax.getp('colorbar')
+                        _toggle_state(cbar, 'visible')
+                    elif key == 's':
+                        self.hardcopy('fig.pdf', replot=False)
+                        return
+                    # got camtarget value from paraview default
+                    #  --------- /     ^
+                    # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
+                    #  --------- \
+                    elif key == 'kp_4' or key == 'kp_left':  # +X into the screen, Y up
+                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0))
+                    elif key == 'kp_5' or key == 'kp_begin':  # +X into the screen, Z up
+                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1))
+                    elif key == 'kp_6' or key == 'kp_right':  # +Y into the screen, Z up
+                        _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1))
+                    elif key == 'kp_7' or key == 'kp_home':  # +Y into the screen, X up
+                        _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0))
+                    elif key == 'kp_8' or key == 'kp_up':  # +Z into the screen, X up
+                        _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0))
+                    elif key == 'kp_9' or key == 'kp_prior':  # +Z into the screen, Y up
+                        _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0))
+                    elif key == 'kp_1' or key == 'kp_end':  # toggle perspective between orthographic or parallel
+                        cam = ax.getp('camera')
+                        # nice one liner to toggle values of a 2 elements list/tuple !
+                        cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))])
+                    elif key == 'kp_2' or key == 'kp_down':
+                        self.view(2)
+                        return
+                    elif key == 'kp_3' or key == 'kp_next':
+                        self.view(3)
+                        return
+                    else:
+                        # when a binding is not known, return without replotting, and forward the event
+                        self._g.tkw.KeyPressEvent(e, ctrl, shift)
+                        return
+
+                # only replot at the end
+                self._replot()
+
+        def ctrl_callback(e):
+            callback(e, 1, 0)
+
+        def shift_callback(e):
+            callback(e, 0, 1)
+
+        self._g.tkw.bind('<Control-Key>', ctrl_callback)
+        self._g.tkw.bind('<Shift-Key>', shift_callback)
 
         def key_callback(e):
             ax = _find_poked_ren(e)
@@ -1866,7 +1921,7 @@ class VTKBackend(BaseClass):
             self._set_axis_props(ax)
 
             if ax._w is not None and ax._w._on:
-                ax._w.On()  # enbale widget as in vtkInteractorObserver::OnChar()
+                ax._w.On()  # enable widget as in vtkInteractorObserver::OnChar()
 
         if self.getp('show'):
             # display plot on the screen
