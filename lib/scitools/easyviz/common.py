@@ -1337,6 +1337,7 @@ class Axis:
         'ambientcolor': None,
         'diffusecolor': None,
         'specularcolor': None,
+        'legend_fancybox': None,
         'pth': None,  # this is the p-th axis in subplot(m,n,p)
         'colororder': 'b r g m c y k'.split(),
         'curcolor': 0,

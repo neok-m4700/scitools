@@ -262,7 +262,7 @@ def vtkInteractiveWidget(parent, **kwargs):
             elif isinstance(self, vtk.vtkImplicitPlaneWidget):
                 [_.SetColor(self.ax.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
             self.SetHandleSize(self._hs)
-            self.SetPlaceFactor(1.05)
+            self.SetPlaceFactor(1.01)
             self.iren = self.fig._g.iren
             self.SetInteractor(self.iren)
             self.SetCurrentRenderer(self.ax._renderer)
@@ -445,7 +445,8 @@ class VTKBackend(BaseClass):
 
     def _set_title(self, ax):
         '''Add a title at the top of the axis'''
-        title = self._fix_latex(ax.getp('title'))
+        # title = self._fix_latex(ax.getp('title'))
+        title = ax.getp('title')
         if title:
             print('<title>') if DEBUG else None
             tprop = vtk.vtkTextProperty()
@@ -1888,16 +1889,20 @@ class VTKBackend(BaseClass):
                         self._add_slices(item)
                     elif func == 'contourslice':
                         self._add_contourslices(item)
-                legend = self._fix_latex(item.getp('legend'))
+                # legend = self._fix_latex(item.getp('legend'))
+                legend = item.getp('legend')
                 if legend:
                     # add legend to plot
                     legendActor = vtk.vtkLegendBoxActor()
                     legendActor.SetNumberOfEntries(1)
-                    legend.SetEntry(0, None, legend, ax.getp('axiscolor'))
-                    legend.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
-                    legend.GetPositionCoordinate().SetValue(.5, 0.1)
+                    symbol = vtk.vtkSphereSource(); symbol.Update()
+                    legendActor.SetEntry(0, symbol.GetOutput(), legend, ax.getp('axiscolor'))
+                    legendActor.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+                    legendActor.GetPositionCoordinate().SetValue(.1, .8)
+                    textProp = legendActor.GetEntryTextProperty()
+                    textProp.SetFontSize(textProp.GetFontSize() // 2)
                     if ax.getp('legend_fancybox'):
-                        legend.BorderOn()
+                        legendActor.BorderOn()
                     ax._renderer.AddActor(legendActor)
 
             self._set_axis_props(ax)
