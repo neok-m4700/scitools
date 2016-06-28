@@ -769,16 +769,11 @@ class VTKBackend(BaseClass):
         ax._camera = camera
         cam.setp(camshare=camera)
 
-        is_on = ax._w.GetEnabled()
-        if is_on:
-            ax._w.Off()
         if cam.getp('cammode') == 'auto':
             ax._renderer.ResetCamera()
         else:
             print('reset camera using', ax._scaled_limits)
             ax._renderer.ResetCamera(ax._scaled_limits)
-        if is_on:
-            ax._w.On()
         camera.Zoom(cam.getp('camzoom'))
 
         # print(hex(id(self._ax)), 'axis')
@@ -843,13 +838,11 @@ class VTKBackend(BaseClass):
             obj._GetPlane()
 
         def pw_start_interaction(obj, event):
-            # print('pw_start_interaction')
             obj.OutlineCursorWiresOn()
             obj.GetHandleProperty().SetOpacity(.5)
             obj.GetOutlineProperty().SetOpacity(.5)
 
         def pw_end_interaction(obj, event):
-            # print('pw_end_interaction')
             obj.OutlineCursorWiresOff()
             obj.GetOutlineProperty().SetOpacity(0)
             obj.GetHandleProperty().SetOpacity(.2)
@@ -859,7 +852,6 @@ class VTKBackend(BaseClass):
             nonlocal iclipper, clipper
             # TODO: restore the pwidget parameters
             clipper.SetInputConnection(iclipper.GetOutputPort())
-            # for now this is working fine, maybe something simpler can be done using obj.InvokeEvent('InteractionEvent')
             obj._on = True
             pw_interaction(obj, event)
             pw_end_interaction(obj, event)
@@ -871,7 +863,6 @@ class VTKBackend(BaseClass):
             obj._SaveWidget()
 
         # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
-        '''WARNING, projection onto a 2D plane is broken when in interactive mode with widget !!'''
         self._ax._w = vtkInteractiveWidget(
             'boxwidget' if islice == 'cube' else 'implicitplanewidget',
             ax=self._ax,
