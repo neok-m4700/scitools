@@ -955,10 +955,8 @@ class VTKBackend(BaseClass):
             c = item.getp('cdata')       # pseudocolor data
         except KeyError:
             c = z.copy()
-        if c is None:
-            c = z.copy()
-        else:
-            c = asarray(c)
+       
+        c = z.copy() if c is None else asarray(c)
         assert shape(c) == shape(z)
 
         if shape(x) != shape(z) and shape(y) != shape(z):
@@ -975,8 +973,7 @@ class VTKBackend(BaseClass):
         if function in ['contour', 'contourf', 'pcolor']:
             z *= 0
         if function in ['meshc', 'surfc'] and isinstance(item, Contours):
-            # this item is the Contours object beneath the surface in
-            # a meshc or surfc plot.
+            # this item is the Contours object beneath the surface in a meshc or surfc plot.
             z *= 0
             z += self._ax._scaled_limits[4]
 
@@ -1013,14 +1010,8 @@ class VTKBackend(BaseClass):
         u, v = asarray(item.getp('udata')), asarray(item.getp('vdata'))
         w = item.getp('wdata')
 
-        if z is None:
-            z = zeros(shape(u))
-        else:
-            z = squeeze(z)
-        if w is None:
-            w = zeros(shape(u))
-        else:
-            w = asarray(w)
+        z = zeros(shape(u)) if z is None else squeeze(z)
+        w = zeros(shape(u)) if w is None else asarray(w)
 
         # print(z, w)
         # print(shape(u), shape(w))
