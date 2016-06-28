@@ -955,7 +955,7 @@ class VTKBackend(BaseClass):
             c = item.getp('cdata')       # pseudocolor data
         except KeyError:
             c = z.copy()
-       
+
         c = z.copy() if c is None else asarray(c)
         assert shape(c) == shape(z)
 
