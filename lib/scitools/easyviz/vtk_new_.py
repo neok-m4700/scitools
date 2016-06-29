@@ -109,8 +109,8 @@ class _VTKFigure:
         self.plt = plt
         self.width = width
         self.height = height
-        self.master = plt._master
-        self.root = tkinter.Toplevel(self.master)
+        # self.master = plt._master
+        self.root = tkinter.Toplevel(plt._master)
         self.root.title(title)
         self.root.protocol('WM_DELETE_WINDOW', self.exit)
         self.root.minsize(200, 200)
@@ -153,7 +153,6 @@ class _VTKFigure:
 
     def close(self, event=None):
         print('<close>') if DEBUG else None
-
         self.plt.clf()
         self.root.withdraw()
 
@@ -185,11 +184,12 @@ class _VTKFigure:
             self.tkw.Start()
             # self.tkw.focus_force()
             # self.tkw.update()
-            # not needed anymore, instead use vtkInteractorStyleSwitch
+
+            # => not needed anymore, instead use vtkInteractorStyleSwitch
             # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
             # self.tkw.event_generate('<KeyPress-t>')
 
-            self.master.mainloop()  # this is a blocking call
+            # self.master.mainloop()  # this is a blocking call
 
     def exit(self):
         print('<exit>') if DEBUG else None
@@ -202,8 +202,9 @@ class _VTKFigure:
             del self.iren
 
         del self.renwin
-        self.master.quit()
-        # self.master.destroy  # do not destroy, in order to create other figures ...
+        plt._master.quit()
+
+        # self.master.destroy()  # do not destroy, in order to create other figures ...
 
     def set_size(self, width, height):
         self.root.geometry('{}x{}'.format(width, height))
@@ -706,8 +707,8 @@ class VTKBackend(BaseClass):
                 # update local camera with the one from
                 # cam.setp(**axis.getp('camera')._prop)
                 ax.setp(camera=axis.getp('camera'))
+                camera = axis._camera
                 cam = ax.getp('camera')
-                camera = ax._camera
                 break
 
             # if axis.getp('camera'):
@@ -1675,12 +1676,24 @@ class VTKBackend(BaseClass):
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0))
 
         def _find_poked_ren(event):
+            '''get the vtkTkRenderWindowInteractor widget and renderer on which the event has been triggered'''
+            fig = None
+            for _, fig in list(plt._figs.items()):
+                # compare event and find the figure
+                if event.widget == fig._g.tkw:
+                    fig = self.figure(fig.getp('number'))
+                    break
+
+            if fig is None:  # just in case
+                fig = self.gcf()
+
+            # to use self._g, we have to have access to the poked figures
             target = self._g.iren.FindPokedRenderer(event.x, self._g.renwin.GetSize()[1] - event.y)
-            for _, ax in list(self.gcf().getp('axes').items()):
+            for _, ax in list(fig.getp('axes').items()):
                 if ax._renderer == target:
                     break
 
-            return ax
+            return fig, ax
 
         def callback(e, ctrl, shift):
             '''
@@ -1689,11 +1702,14 @@ class VTKBackend(BaseClass):
             '''
             key = e.keysym.lower()
             print(key)
-            # get the renderer on which the event has been trigered
+            print(dir(e))
+            print(vars(e))
+
+            fig, ax = _find_poked_ren(e)
             if ctrl:
-                axs = (_find_poked_ren(e),)
+                axs = (ax,)
             elif shift:
-                axs = [ax for _, ax in list(self.gcf().getp('axes').items())]
+                axs = [ax for _, ax in list(fig.getp('axes').items())]
 
             if ctrl or shift:
                 for ax in axs:
@@ -1777,7 +1793,7 @@ class VTKBackend(BaseClass):
         self._g.tkw.bind('<Shift-Key>', shift_callback)
 
         def key_callback(e):
-            ax = _find_poked_ren(e)
+            _, ax = _find_poked_ren(e)
             if e.keysym == 'i':
                 self._g.iren.SetKeyCode('i')
                 ax._w.OnChar()

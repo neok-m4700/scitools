@@ -4423,8 +4423,7 @@ class BaseClass:
 
         toggles the hidden state.
 
-        Note: Some backends has no support for hidden line removal (e.g.,
-        VTK).
+        Note: Some backends has no support for hidden line removal (e.g., VTK).
         '''
         ax = self.gca()
         nargs = len(args)
