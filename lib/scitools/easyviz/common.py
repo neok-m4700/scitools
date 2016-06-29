@@ -128,7 +128,7 @@ class PlotProperties:
                  '-.': 'dashdot',
                  '--': 'dashed',
                  }
-    __doc__ += 'Valid symbols::\n      - Colors: %s\n      - Markers: %s\n      - Linestyles: %s\n      - Sizes: %s\n      - Styles:\n%s' % (_colors, _markers, _linestyles, _sizes, pprint.pformat(_styledoc)[1:-1])
+    __doc__ += 'Valid symbols::\n      - Colors: {}\n      - Markers: {}\n      - Linestyles: {}\n      - Sizes: {}\n      - Styles:\n{}'.format(_colors, _markers, _linestyles, _sizes, pprint.pformat(_styledoc)[1:-1])
 
     _local_prop = {
         'description': '',
@@ -148,6 +148,7 @@ class PlotProperties:
         'memoryorder': 'yxz',  # FIXME: this is deprecated and will be removed
         'indexing': 'ij',  # 'xy' is Cartesian indexing, 'ij' matrix indexing
         'default_lines': 'with_markers',  # 'plain',
+        'islice': False
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -163,7 +164,7 @@ class PlotProperties:
             prop = self._prop[key]
             if isinstance(prop, (list, tuple, ndarray)) and \
                     len(ravel(prop)) > 3:
-                props[key] = '%s with shape %s' % (type(prop), shape(prop))
+                props[key] = '{} with shape {}'.format(type(prop), shape(prop))
             else:
                 props[key] = self._prop[key]
         return pprint.pformat(props)
@@ -245,6 +246,10 @@ class PlotProperties:
                 self._prop['indexing'] = kwargs['indexing']
             else:
                 raise ValueError('indexing must be xy or ij, not {}'.format(kwargs['indexing']))
+
+        if 'islice' in kwargs:
+            _check_type(kwargs['islice'], 'islice', (bool, str))
+            self._prop['islice'] = kwargs['islice']
 
         # set material properties:
         self._prop['material'].setp(**kwargs)
@@ -694,7 +699,6 @@ class VelocityVectors(PlotProperties):
         'cone_resolution': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
         'udata': None, 'vdata': None, 'wdata': None,  # vector components
-        'islice': None
     }
     __doc__ += docadd('Keywords for the setp method',
                       list(PlotProperties._local_prop.keys()),
@@ -719,10 +723,6 @@ class VelocityVectors(PlotProperties):
 
         if 'filledarrows' in kwargs:
             self._prop['filledarrows'] = _toggle_state(kwargs['filledarrows'])
-
-        if 'islice' in kwargs:
-            _check_type(kwargs['islice'], 'islice', (bool, str))
-            self._prop['islice'] = kwargs['islice']
 
     def _parseargs(self, *args):
         # allow both quiver(...,LineSpec,'filled') and quiver(...,'filled',LS):
@@ -863,30 +863,30 @@ class Streams(PlotProperties):
         # kwargs = {'indexing': self._prop['indexing']}
         nargs = len(args)
         if nargs >= 9 and nargs <= 10:
-            x, y, z, u, v, w, sx, sy, sz = [asarray(a) for a in args[:9]]
+            x, y, z, u, v, w, sx, sy, sz = [asarray(_) for _ in args[:9]]
             # x, y, z, u, v, w = _check_xyzuvw(*args[:6])
-            # x, y, z = [asarray(a) for a in args[:3]] #_check_xyz(*args[:3])
-            # u, v, w = [asarray(a) for a in args[3:6]]
-            # sx, sy, sz = [asarray(a) for a in args[6:9]]
+            # x, y, z = [asarray(_) for _ in args[:3]] #_check_xyz(*args[:3])
+            # u, v, w = [asarray(_) for _ in args[3:6]]
+            # sx, sy, sz = [asarray(_) for _ in args[6:9]]
         elif nargs >= 6 and nargs <= 7:
-            u, v = [asarray(a) for a in args[:2]]
+            u, v = [asarray(_) for _ in args[:2]]
             if u.ndim == 3:  # streamline(U,V,W,startx,starty,startz)
                 nx, ny, nz = shape(u)
                 x, y, z = ndgrid(seq(nx - 1), seq(ny - 1), seq(nz - 1))
                 # w = asarray(args[2])
-                w, sx, sy, sz = [asarray(a) for a in args[2:6]]
+                w, sx, sy, sz = [asarray(_) for _ in args[2:6]]
             else:  # streamline(X,Y,U,V,startx,starty)
                 x, y = u, v
-                # u, v = [asarray(a) for a in args[2:4]]
-                u, v, sx, sy = [asarray(a) for a in args[2:6]]
+                # u, v = [asarray(_) for _ in args[2:4]]
+                u, v, sx, sy = [asarray(_) for _ in args[2:6]]
         elif nargs >= 4 and nargs <= 5:  # streamline(U,V,startx,starty)
-            u, v = [asarray(a) for a in args[:2]]
+            u, v = [asarray(_) for _ in args[:2]]
             try:
                 nx, ny = shape(u)
             except:
-                raise ValueError('u must be 2D, not %dD' % u.ndim)
+                raise ValueError('u must be 2D, not {:d}D'.format(u.ndim))
             x, y = ndgrid(seq(nx - 1), seq(ny - 1))
-            sx, sy = [asarray(a) for a in args[2:4]]
+            sx, sy = [asarray(_) for _ in args[2:4]]
         elif nargs >= 1 and nargs <= 2:  # streamline(XYZ) or streamline(XY)
             raise NotImplementedError('Streams._parseargs: not implemented')
         else:
@@ -913,11 +913,11 @@ class Streams(PlotProperties):
                 else:
                     self._prop['stepsize'] = float(options)
             else:
-                msg = 'options must be [stepsize[,maxverts]], not %s' % options
+                msg = 'options must be [stepsize[,maxverts]], not {}'.format(options)
                 if func == 'streamtube':
-                    msg = 'options must be [scale[,n]], not %s' % options
+                    msg = 'options must be [scale[,n]], not {}'.format(options)
                 elif func == 'streamribbon':
-                    msg = 'options must be a [width], not %s' % options
+                    msg = 'options must be a [width], not {}'.format(options)
                 raise ValueError(msg)
 
         # if len(u.shape) == 3:
@@ -1851,9 +1851,8 @@ class BaseClass:
 
     List of internal helper functions (for subclasses):
     ...
-
-
     '''
+
     _matlab_like_cmds = [
         'autumn', 'axes', 'axis', 'bone', 'box', 'brighten',
         'camdolly', 'camlight', 'camlookat', 'campos',
@@ -1878,10 +1877,10 @@ class BaseClass:
 
     _local_attrs = {
         'curfig': 1,         # current figure
-        'show': True,        # screenplot after each plot command
-        # 'changed': False,    # sync state
-        'interactive': True,  # update backend after each change
-        'color': False,      # hardcopy with color?
+        'show': False,       # screenplot after each plot command
+        # 'changed': False,  # sync state
+        'interactive': False,  # update backend after each change
+        'color': True,      # hardcopy with color?
     }
     _update_from_config_file(_local_attrs)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_attrs.keys()))
@@ -1938,10 +1937,10 @@ class BaseClass:
             if key in self._attrs:  # legal key?
                 if self._attrs_type[key](value):  # legal type?
                     self._attrs[key] = value
+                    if 'key' == 'show':
+                        input('here')
                 else:
-                    raise TypeError(
-                        'BaseClass.setp: keyword %s %s is illegal.' %
-                        (key, type(key)))
+                    raise TypeError('BaseClass.setp: keyword {} {} is illegal'.format(key, type(key)))
 
         if 'hardcopy' in kwargs:
             self.hardcopy(kwargs['hardcopy'])
@@ -2338,7 +2337,6 @@ class BaseClass:
     def clf(self):
         '''Clear the current figure.'''
         self.gcf().reset()
-        # print('$ fig num', self._attrs['curfig'])
         del self._figs[self._attrs['curfig']]
         self.figure(self._attrs['curfig'])
 
@@ -2673,8 +2671,7 @@ class BaseClass:
 
     def closefig(self, arg):
         '''Close figure window.'''
-        raise NotImplementedError('closefig not implemented in class %s' %
-                                  self.__class__.__name__)
+        raise NotImplementedError('closefig not implemented in class {}'.format(self.__class__.__name__))
 
     def closefigs(self):
         '''Close all figure windows.'''
@@ -2775,7 +2772,7 @@ class BaseClass:
                         raise ValueError('legend: wrong value of loc=%s, should be between 0 and 10' % value)
                 elif isinstance(value, str):
                     if value not in Axis._legend_locs:
-                        raise ValueError(                            'legend: wrong value of loc={}, should be\n{}'.format(value, str([v for v in Axis._legend_locs])[1:-1]))
+                        raise ValueError('legend: wrong value of loc={}, should be\n{}'.format(value, str([v for v in Axis._legend_locs])[1:-1]))
                 else:
                     raise ValueError('legend: wrong value of loc=%s' % value)
 
@@ -3117,7 +3114,7 @@ class BaseClass:
                         else:
                             print('Legend ' + legend + ' is not a string')
                 else:
-                    print('Number of legend items ({:d}) is not equal to number of lines in plotcommand ({:d})'.format(len(legends),no_lines))
+                    print('Number of legend items ({:d}) is not equal to number of lines in plotcommand ({:d})'.format(len(legends), no_lines))
             elif isinstance(legends, str):  # only one legend
                 ax.getp('plotitems')[-1].setp(legend=legends)
             del kwargs['legend']
@@ -4979,9 +4976,8 @@ class BaseClass:
             elif isinstance(args[0], str) and args[0] in ['auto', 'manual']:
                 ax.setp(caxismode=args[0])
             else:
-                raise TypeError('caxis: argument must be %s, not %s' %
-                                ((type(list), type(tuple), type(str)),
-                                 type(args[0])))
+                raise TypeError('caxis: argument must be {}, not {}'.format((type(list), type(tuple), type(str)),
+                                                                            type(args[0])))
 
         if nargs == 2:
             ax.setp(caxis=args)

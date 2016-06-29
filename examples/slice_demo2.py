@@ -3,19 +3,16 @@
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3558.html
 
+import scitools.globaldata
+scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from time import sleep
 
 # Investigate the Data:
 x, y, z, v = flow()
 
-xmin = arrmin(x)
-ymin = arrmin(y)
-zmin = arrmin(z)
-
-xmax = arrmax(x)
-ymax = arrmax(y)
-zmax = arrmax(z)
+xmin, ymin, zmin = x.min(), y.min(), z.min()
+xmax, ymax, zmax = x.max(), y.max(), z.max()
 
 setp(interactive=False)
 
@@ -31,7 +28,7 @@ zd = hslice.getp('zdata')
 # delete(hslice)
 
 # Draw the Slice Planes:
-#h = slice_(x,y,z,v,xd,yd,zd)
+# h = slice_(x,y,z,v,xd,yd,zd)
 h = slice_(x, y, z, v, [], [], 0)
 h.setp(diffuse=.8)
 # h.set('FaceColor','interp',
@@ -39,14 +36,14 @@ h.setp(diffuse=.8)
 #      'DiffuseStrength',.8)
 
 hold('on')
-#hx = slice_(x,y,z,v,xmax,[],[])
+# hx = slice_(x,y,z,v,xmax,[],[])
 hx = slice_(x, y, z, v, xmax - 0.001, [], [])
 # set(hx,'FaceColor','interp','EdgeColor','none')
 
 hy = slice_(x, y, z, v, [], ymax, [])
 # set(hy,'FaceColor','interp','EdgeColor','none')
 
-#hz = slice_(x,y,z,v,[],[],zmin)
+# hz = slice_(x,y,z,v,[],[],zmin)
 hz = slice_(x, y, z, v, [], [], zmin + 0.001)
 # set(hz,'FaceColor','interp','EdgeColor','none')
 
@@ -63,6 +60,5 @@ shading('interp')
 # colormap(jet(24))
 # lightangle(-45,45)
 
-show()
-
+plt.mainloop(show=True, interactive=True)
 input("Press Return key to quit: ")

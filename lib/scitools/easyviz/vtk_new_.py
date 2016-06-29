@@ -109,7 +109,6 @@ class _VTKFigure:
         self.plt = plt
         self.width = width
         self.height = height
-        # self.master = plt._master
         self.root = tkinter.Toplevel(plt._master)
         self.root.title(title)
         self.root.protocol('WM_DELETE_WINDOW', self.exit)
@@ -118,7 +117,6 @@ class _VTKFigure:
         self.root.withdraw()
         self.frame = tkinter.Frame(self.root)  # relief='sunken', bd=2
         self.frame.pack(side='top', fill='both', expand='true')
-        self.interactive_on = False
         self._init()
 
     def _init(self):
@@ -151,12 +149,15 @@ class _VTKFigure:
         #     self.renwin.RemoveRenderer(ren)
         #     ren = renderers.GetNextItem()
 
-    def close(self, event=None):
+    def close(self):
         print('<close>') if DEBUG else None
-        self.plt.clf()
+        # self.plt.clf()  # clf only clears the figure, we want to remove it
         self.root.withdraw()
+        fignum = self.plt._attrs['curfig']
+        self.plt._attrs['curfig'] -= 1
+        del self.plt._figs[fignum]
 
-    def display(self, show=True):
+    def display(self, show):
         print('<display>') if DEBUG else None
         if show:
             self.root.deiconify()  # raise window
@@ -179,32 +180,19 @@ class _VTKFigure:
         # then we render the complete scene:
         self.renwin.Render()
 
-        if self.plt.getp('interactive') and not self.interactive_on and self.plt.getp('show'):
-            self.interactive_on = True
-            self.tkw.Start()
-            # self.tkw.focus_force()
-            # self.tkw.update()
-
-            # => not needed anymore, instead use vtkInteractorStyleSwitch
-            # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
-            # self.tkw.event_generate('<KeyPress-t>')
-
-            # self.master.mainloop()  # this is a blocking call
-
     def exit(self):
         print('<exit>') if DEBUG else None
-
         self.close()
         self.renwin.Finalize()
-        if self.interactive_on:
+        if self.iren:
             print('--> iren exit') if DEBUG else None
             self.iren.TerminateApp()
             del self.iren
 
         del self.renwin
-        plt._master.quit()
 
-        # self.master.destroy()  # do not destroy, in order to create other figures ...
+        if len(self.plt._figs) < 1:
+            self.plt._master.quit()
 
     def set_size(self, width, height):
         self.root.geometry('{}x{}'.format(width, height))
@@ -248,8 +236,6 @@ def vtkInteractiveWidget(parent, **kwargs):
             self.ax = kwargs.get('ax')
             old = self.ax._w
             self._p = plane
-            # self._b = getattr(old, '_b', None)
-            # self._pd = vtk.vtkPolyData()
             if old is not None:
                 old._RemoveObservers()
             self._t = getattr(old, '_t', vtk.vtkTransform())
@@ -284,8 +270,6 @@ def vtkInteractiveWidget(parent, **kwargs):
             self._obs.append(self.AddObserver(event, callback))
 
         def _SaveWidget(self):
-            # self.GetPolyData(self._pd)
-            # self._b = self._pd.GetPoints().GetBounds()
             self.GetTransform(self._t)
             for _, ax in list(self.fig.getp('axes').items()):
                 if ax == self.ax:
@@ -293,14 +277,6 @@ def vtkInteractiveWidget(parent, **kwargs):
                 ax._w._t = self._t
                 ax._w.SetTransform(self._t)
                 ax._w.InvokeEvent('InteractionEvent')
-
-        # def _Trigger(self):
-        #     _ = tuple(map(int, self.GetCurrentRenderer().GetCenter()))
-        #     # print(_)
-        #     self.iren.SetEventInformation(*_, 0, 0, chr(0), 0, None)
-        #     self.iren.LeftButtonPressEvent()
-        #     self.iren.MouseMoveEvent()
-        #     self.iren.LeftButtonReleaseEvent()
 
     return _vtkInteractiveWidget(plane, **kwargs)
 
@@ -559,7 +535,7 @@ class VTKBackend(BaseClass):
 
         direction = ax.getp('direction')
         if direction == 'ij':
-            # Use matrix coordinates. The origin of the coordinate system is the upper-left corner. The i-axis should be vertical and numbered from top to bottom, while the j-axis should be horizontal and numbered from left to right.
+            # Use matrix coordinates. The origin of the coordinate system is the upper-left corner. The i-axis should be vertical and numbered from top to bottom, while the j-axis should be horizontal and numbered from left to right
             # o---j--->
             # |
             # i
@@ -567,7 +543,7 @@ class VTKBackend(BaseClass):
             # v
             pass
         elif direction == 'xy':
-            # use the default Cartesian axes form. The origin is at the lower-left corner. The x-axis is horizontal and numbered from left to right, while the y-axis is vertical and numbered from bottom to top.
+            # use the default Cartesian axes form. The origin is at the lower-left corner. The x-axis is horizontal and numbered from left to right, while the y-axis is vertical and numbered from bottom to top
             # ^
             # |
             # y
@@ -617,7 +593,7 @@ class VTKBackend(BaseClass):
             mapper = vtk.vtkPolyDataMapper()
             mapper.SetInputConnection(geom.GetOutputPort())
             mapper.ScalarVisibilityOff()
-            # mapper.SetLookupTable(self._ax._colormap)  # why use a colormap on grid points
+            # mapper.SetLookupTable(self._ax._colormap)  # why use a colormap on grid points ?
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
             actor.GetProperty().SetColor(*ax.getp('axiscolor'))
@@ -699,7 +675,6 @@ class VTKBackend(BaseClass):
         view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
-        # camshare = cam.getp('camshare')
         camera = vtk.vtkCamera()
         for _, axis in list(fig.getp('axes').items()):
             _ = getattr(axis, '_camera', None)
@@ -710,25 +685,6 @@ class VTKBackend(BaseClass):
                 camera = axis._camera
                 cam = ax.getp('camera')
                 break
-
-            # if axis.getp('camera'):
-            #     if axis.getp('camera').getp('camshare'):
-            #         camera = axis.getp('camera').getp('camshare')
-            #         break
-
-        # if camshare is not None:
-        #     camera = camshare
-        #     ax._renderer.SetActiveCamera(camera)
-        #     ax._camera = camera
-        #     return
-        # else:
-        #     # existing shared camera from another axis or newcamera if None exists
-        #     camera = vtk.vtkCamera()
-        #     for _, axis in list(fig.getp('axes').items()):
-        #         if axis.getp('camera'):
-        #             if axis.getp('camera').getp('camshare'):
-        #                 camera = axis.getp('camera').getp('camshare')
-        #                 break
 
         camera.SetViewUp(upvector)
         camera.ParallelProjectionOn()
@@ -741,7 +697,7 @@ class VTKBackend(BaseClass):
                     camera.ParallelProjectionOn()
                 else:
                     camera.ParallelProjectionOff()
-                print('manual', upvector, focalpoint, position)
+                # print('manual', upvector, focalpoint, position)
                 # for advanced camera handling:
                 camera.Roll(0)
                 camera.Yaw(0)
@@ -774,7 +730,7 @@ class VTKBackend(BaseClass):
         if cam.getp('cammode') == 'auto':
             ax._renderer.ResetCamera()
         else:
-            print('reset camera using', ax._scaled_limits)
+            # print('reset camera using', ax._scaled_limits)
             ax._renderer.ResetCamera(ax._scaled_limits)
         camera.Zoom(cam.getp('camzoom'))
 
@@ -835,56 +791,57 @@ class VTKBackend(BaseClass):
         clipper.SetValue(0)
         clipper.InsideOutOn()
 
-        def pw_interaction(obj, event):
-            # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-            obj._GetPlane()
+        if islice:
+            def pw_interaction(obj, event):
+                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
+                obj._GetPlane()
 
-        def pw_start_interaction(obj, event):
-            obj.OutlineCursorWiresOn()
-            obj.GetHandleProperty().SetOpacity(.5)
-            obj.GetOutlineProperty().SetOpacity(.5)
+            def pw_start_interaction(obj, event):
+                obj.OutlineCursorWiresOn()
+                obj.GetHandleProperty().SetOpacity(.5)
+                obj.GetOutlineProperty().SetOpacity(.5)
 
-        def pw_end_interaction(obj, event):
-            obj.OutlineCursorWiresOff()
-            obj.GetOutlineProperty().SetOpacity(0)
-            obj.GetHandleProperty().SetOpacity(.2)
-            obj._SaveWidget()
+            def pw_end_interaction(obj, event):
+                obj.OutlineCursorWiresOff()
+                obj.GetOutlineProperty().SetOpacity(0)
+                obj.GetHandleProperty().SetOpacity(.2)
+                obj._SaveWidget()
 
-        def pw_enable(obj, event):
-            nonlocal iclipper, clipper
-            # TODO: restore the pwidget parameters
-            clipper.SetInputConnection(iclipper.GetOutputPort())
-            obj._on = True
-            pw_interaction(obj, event)
-            pw_end_interaction(obj, event)
+            def pw_enable(obj, event):
+                nonlocal iclipper, clipper
+                # TODO: restore the pwidget parameters
+                clipper.SetInputConnection(iclipper.GetOutputPort())
+                obj._on = True
+                pw_interaction(obj, event)
+                pw_end_interaction(obj, event)
 
-        def pw_disable(obj, event):
-            nonlocal data, clipper
-            obj._on = False
-            clipper.SetInputConnection(data.GetOutputPort())
-            obj._SaveWidget()
+            def pw_disable(obj, event):
+                nonlocal data, clipper
+                obj._on = False
+                clipper.SetInputConnection(data.GetOutputPort())
+                obj._SaveWidget()
 
-        # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
-        self._ax._w = vtkInteractiveWidget(
-            'boxwidget' if islice == 'cube' else 'implicitplanewidget',
-            ax=self._ax,
-            fig=self.gcf(),
-            ic=data.GetOutputPort()
-        )
+            # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
+            self._ax._w = vtkInteractiveWidget(
+                'boxwidget' if islice == 'cube' else 'implicitplanewidget',
+                ax=self._ax,
+                fig=self.gcf(),
+                ic=data.GetOutputPort()
+            )
 
-        pw_interaction(self._ax._w, None)  # in order to avoid 'Please define points and/or normals!' errors
+            pw_interaction(self._ax._w, None)  # in order to avoid 'Please define points and/or normals!' errors
 
-        iclipper = vtk.vtkClipPolyData()
-        iclipper.SetInputConnection(data.GetOutputPort())
-        iclipper.SetClipFunction(self._ax._w._p)
-        iclipper.SetValue(0)
-        iclipper.InsideOutOn()
+            iclipper = vtk.vtkClipPolyData()
+            iclipper.SetInputConnection(data.GetOutputPort())
+            iclipper.SetClipFunction(self._ax._w._p)
+            iclipper.SetValue(0)
+            iclipper.InsideOutOn()
 
-        self._ax._w._AddObserver('InteractionEvent', pw_interaction)
-        self._ax._w._AddObserver('StartInteractionEvent', pw_start_interaction)
-        self._ax._w._AddObserver('EndInteractionEvent', pw_end_interaction)
-        self._ax._w._AddObserver('EnableEvent', pw_enable)
-        self._ax._w._AddObserver('DisableEvent', pw_disable)
+            self._ax._w._AddObserver('InteractionEvent', pw_interaction)
+            self._ax._w._AddObserver('StartInteractionEvent', pw_start_interaction)
+            self._ax._w._AddObserver('EndInteractionEvent', pw_end_interaction)
+            self._ax._w._AddObserver('EnableEvent', pw_enable)
+            self._ax._w._AddObserver('DisableEvent', pw_disable)
 
         return clipper
 
@@ -1678,7 +1635,7 @@ class VTKBackend(BaseClass):
         def _find_poked_ren(event):
             '''get the vtkTkRenderWindowInteractor widget and renderer on which the event has been triggered'''
             fig = None
-            for _, fig in list(plt._figs.items()):
+            for _, fig in list(self._figs.items()):
                 # compare event and find the figure
                 if event.widget == fig._g.tkw:
                     fig = self.figure(fig.getp('number'))
@@ -1701,9 +1658,9 @@ class VTKBackend(BaseClass):
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
             '''
             key = e.keysym.lower()
-            print(key)
-            print(dir(e))
-            print(vars(e))
+            print(key, end=' ')
+            # print(dir(e))
+            # print(vars(e))
 
             fig, ax = _find_poked_ren(e)
             if ctrl:
@@ -1796,7 +1753,8 @@ class VTKBackend(BaseClass):
             _, ax = _find_poked_ren(e)
             if e.keysym == 'i':
                 self._g.iren.SetKeyCode('i')
-                ax._w.OnChar()
+                if ax._w is not None:
+                    ax._w.OnChar()
             else:
                 # forward the event if not interactive event
                 self._g.tkw.KeyPressEvent(e, 0, 0)
@@ -1934,6 +1892,36 @@ class VTKBackend(BaseClass):
 
         self._g.display(show=self.getp('show'))
 
+    def mainloop(self, **kwargs):
+        self.setp(**kwargs)
+        # if self.getp('interactive') and self.getp('show'):
+        #     self._g.tkw.Start()
+
+            # => not needed anymore, instead use vtkInteractorStyleSwitch
+            # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
+            # self.tkw.event_generate('<KeyPress-t>')
+
+            # self.master.mainloop()  # this is a blocking call
+        self.all_show()
+        self._master.mainloop()
+
+    def all_show(self):
+        if self.getp('show'):
+            for _, fig in list(self._figs.items()):
+                self.figure(fig.getp('number'))
+                if self.getp('interactive'):
+                    self._g.tkw.Start()
+                    self._g.tkw.focus_force()
+                    self._g.tkw.update()
+                self.show()
+
+    # def all_exit(self):
+    #     for _, fig in list(self._figs.items()):
+    #         self.figure(fig.getp('number'))
+    #         self._g.exit()
+    #     self._master.quit()
+    #     # self.master.destroy()  # do not destroy, in order to create other figures ...
+
     def hardcopy(self, filename, **kwargs):
         '''
         Supported extensions in VTK backend:
@@ -1990,7 +1978,7 @@ class VTKBackend(BaseClass):
         if not self.getp('show'):  # don't render to screen
             self._g.renwin.OffScreenRenderingOn()
 
-        if kwargs.get('replot', True):  #  and not self._g.interactive_on # this is wrong, the pipeline isn't updated !
+        if kwargs.get('replot', True):
             self._replot()
 
         basename, ext = os.path.splitext(filename)
@@ -2348,3 +2336,22 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 # renderView1.CameraPosition = [0.0, 0.0, -3.2903743041222895]
 # renderView1.CameraFocalPoint = [0.0, 0.0, 1e-20]
 # renderView1.CameraParallelScale = 0.8516115354228021
+
+# if axis.getp('camera'):
+#     if axis.getp('camera').getp('camshare'):
+#         camera = axis.getp('camera').getp('camshare')
+#         break
+
+# if camshare is not None:
+#     camera = camshare
+#     ax._renderer.SetActiveCamera(camera)
+#     ax._camera = camera
+#     return
+# else:
+#     # existing shared camera from another axis or newcamera if None exists
+#     camera = vtk.vtkCamera()
+#     for _, axis in list(fig.getp('axes').items()):
+#         if axis.getp('camera'):
+#             if axis.getp('camera').getp('camshare'):
+#                 camera = axis.getp('camera').getp('camshare')
+#                 break

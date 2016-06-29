@@ -2,8 +2,10 @@
 
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/ref/slice.html
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
-from scitools.easyviz.vtk_new_ import *
+import scitools.globaldata
+scitools.globaldata.DEBUG = 1
+scitools.globaldata.backend = 'vtk_new'
+from scitools.easyviz import *
 import numpy as np
 
 setp(interactive=True)
@@ -17,5 +19,8 @@ yslice = 2
 zslice = [-2 + BUG, 0]
 slice_(x, y, z, v, xslice, yslice, zslice, grid='off')
 
-savefig('tmp_slice1.eps')
-savefig('tmp_slice1.png')
+plt.mainloop()
+
+# vtk 7.0.0 gl2psexporter is broken
+# savefig('tmp_slice1.eps')
+# savefig('tmp_slice1.png')
