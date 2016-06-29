@@ -1876,11 +1876,11 @@ class BaseClass:
     __doc__ += docadd('List of Matlab - like interface functions (for the user)', _matlab_like_cmds)
 
     _local_attrs = {
-        'curfig': 1,         # current figure
-        'show': False,       # screenplot after each plot command
-        # 'changed': False,  # sync state
-        'interactive': False,  # update backend after each change
-        'color': True,      # hardcopy with color?
+        'curfig': 1,                # current figure
+        'show': True,               # screenplot after each plot command
+        # 'changed': False,         # sync state
+        'interactive': True,        # update backend after each change
+        'color': True,              # hardcopy with color?
     }
     _update_from_config_file(_local_attrs)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_attrs.keys()))
@@ -2260,8 +2260,7 @@ class BaseClass:
         destroying those changes.
         '''
         # must be implemented in subclass
-        raise NotImplementedError('hardcopy not implemented in class %s' %
-                                  self.__class__.__name__)
+        raise NotImplementedError('hardcopy not implemented in class {}'.format(self.__class__.__name__))
 
     def hold(self, *args):
         '''Change the hold state of the current axis.

@@ -166,10 +166,9 @@ class _VTKFigure:
 
     def render(self):
         print('<render>') if DEBUG else None
-
         # full pipeline update (is it really necessary ?, tb added)
-        self.plt._ax._apd.Update()
-        self.tkw.Initialize()
+        if hasattr(self.plt, '_ax'):
+            self.plt._ax._apd.Update()
 
         # First we render each of the axis renderers:
         renderers = self.renwin.GetRenderers()
@@ -238,16 +237,14 @@ def vtkInteractiveWidget(parent, **kwargs):
             self._p = plane
             if old is not None:
                 old._RemoveObservers()
-            self._t = getattr(old, '_t', vtk.vtkTransform())
             self._hs = getattr(old, '_hs', self.GetHandleSize() / 4)
             self._on = getattr(old, '_on', False)
+            if isinstance(self, vtk.vtkBoxWidget):
+                self._t = getattr(old, '_t', vtk.vtkTransform())
+            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+                self._b = getattr(old, '_b', None)
             del old
             self._obs = []
-            if isinstance(self, vtk.vtkBoxWidget):
-                self.GetOutlineProperty().SetColor(self.ax.getp('axiscolor'))
-                self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
-            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
-                [_.SetColor(self.ax.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
             self.SetHandleSize(self._hs)
             self.SetPlaceFactor(1.01)
             self.iren = self.fig._g.iren
@@ -255,7 +252,13 @@ def vtkInteractiveWidget(parent, **kwargs):
             self.SetCurrentRenderer(self.ax._renderer)
             self.SetInputConnection(kwargs.get('ic'))
             self.PlaceWidget()
-            self.SetTransform(self._t)
+            if isinstance(self, vtk.vtkBoxWidget):
+                self.GetOutlineProperty().SetColor(self.ax.getp('axiscolor'))
+                self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
+                self.SetTransform(self._t)
+            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+                [_.SetColor(self.ax.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
+                self._pd = vtk.vtkPolyData()
 
         def _GetPlane(self):
             if isinstance(self, vtk.vtkBoxWidget):
@@ -270,13 +273,27 @@ def vtkInteractiveWidget(parent, **kwargs):
             self._obs.append(self.AddObserver(event, callback))
 
         def _SaveWidget(self):
-            self.GetTransform(self._t)
+            if isinstance(self, vtk.vtkBoxWidget):
+                self.GetTransform(self._t)
+            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+                self.GetPolyData(self._pd)
+                pts = self._pd.GetPoints()
+                self._b = pts.GetBounds() if pts else (-1, -1, -1, 1, 1, 1)
+
+            # set other widgets bounds/transform
             for _, ax in list(self.fig.getp('axes').items()):
                 if ax == self.ax:
                     continue
-                ax._w._t = self._t
-                ax._w.SetTransform(self._t)
-                ax._w.InvokeEvent('InteractionEvent')
+                if ax._w is not None:
+                    if all(isinstance(_, vtk.vtkBoxWidget) for _ in (self, ax._w)):
+                        ax._w._t = self._t
+                        ax._w.SetTransform(self._t)
+                    elif all(isinstance(_, vtk.vtkImplicitPlaneWidget) for _ in (self, ax._w)):
+                        ax._w._pd = self._pd
+                        ax._w._b = self._b
+                        ax._w.PlaceWidget(ax._w._b)
+
+                    ax._w.InvokeEvent('InteractionEvent')
 
     return _vtkInteractiveWidget(plane, **kwargs)
 
@@ -676,7 +693,7 @@ class VTKBackend(BaseClass):
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
         camera = vtk.vtkCamera()
-        for _, axis in list(fig.getp('axes').items()):
+        for _, axis in list(self.gcf().getp('axes').items()):
             _ = getattr(axis, '_camera', None)
             if _ is not None:
                 # update local camera with the one from
@@ -797,14 +814,17 @@ class VTKBackend(BaseClass):
                 obj._GetPlane()
 
             def pw_start_interaction(obj, event):
-                obj.OutlineCursorWiresOn()
-                obj.GetHandleProperty().SetOpacity(.5)
+                if isinstance(self, vtk.vtkBoxWidget):
+                    obj.OutlineCursorWiresOn()
+                    obj.GetHandleProperty().SetOpacity(.5)
                 obj.GetOutlineProperty().SetOpacity(.5)
 
             def pw_end_interaction(obj, event):
-                obj.OutlineCursorWiresOff()
+                if isinstance(self, vtk.vtkBoxWidget):
+                    obj.OutlineCursorWiresOff()
+                    obj.GetHandleProperty().SetOpacity(.2)
+
                 obj.GetOutlineProperty().SetOpacity(0)
-                obj.GetHandleProperty().SetOpacity(.2)
                 obj._SaveWidget()
 
             def pw_enable(obj, event):
@@ -1496,7 +1516,6 @@ class VTKBackend(BaseClass):
 
         cax = self._ax._caxis
         if cax is None:
-            print('cax is', cax)
             cax = sgrid.GetOutput().GetScalarRange()
 
         mapper.SetScalarRange(cax)
@@ -1672,7 +1691,7 @@ class VTKBackend(BaseClass):
                 for ax in axs:
                     # print(hex(id(ax)), key)
                     if key == 'r':
-                        pass
+                        break  # break and replot
                     elif key == 'i':
                         plotitems = ax.getp('plotitems')
                         plotitems.sort(key=self._cmpPlotProperties)
@@ -1693,16 +1712,16 @@ class VTKBackend(BaseClass):
                                 ax.setp(**{_: newcol})
                             except Exception as e:
                                 pass
-
+                        continue
                     elif key == 'g':
-                        _toggle_state(ax, 'grid')
+                        _toggle_state(ax, 'grid'); continue
                     elif key == 'b':
-                        _toggle_state(ax, 'box')
+                        _toggle_state(ax, 'box'); continue
                     elif key == 'a':
-                        _toggle_state(ax, 'unit')
+                        _toggle_state(ax, 'unit'); continue
                     elif key == 'c':
                         cbar = ax.getp('colorbar')
-                        _toggle_state(cbar, 'visible')
+                        _toggle_state(cbar, 'visible'); continue
                     elif key == 's':
                         self.hardcopy('fig.pdf', replot=False)
                         return
@@ -1710,26 +1729,26 @@ class VTKBackend(BaseClass):
                     #  --------- /     ^
                     # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
                     #  --------- \
-                    elif key == 'kp_4' or key == 'kp_left':  # +X into the screen, Y up
-                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0))
-                    elif key == 'kp_5' or key == 'kp_begin':  # +X into the screen, Z up
-                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1))
-                    elif key == 'kp_6' or key == 'kp_right':  # +Y into the screen, Z up
-                        _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1))
-                    elif key == 'kp_7' or key == 'kp_home':  # +Y into the screen, X up
-                        _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0))
-                    elif key == 'kp_8' or key == 'kp_up':  # +Z into the screen, X up
-                        _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0))
-                    elif key == 'kp_9' or key == 'kp_prior':  # +Z into the screen, Y up
-                        _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0))
-                    elif key == 'kp_1' or key == 'kp_end':  # toggle perspective between orthographic or parallel
+                    elif key in ('kp_4', 'kp_left'):  # +X into the screen, Y up
+                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0)); continue
+                    elif key in ('kp_5', 'kp_begin'):  # +X into the screen, Z up
+                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1)); continue
+                    elif key in ('kp_6', 'kp_right'):  # +Y into the screen, Z up
+                        _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1)); continue
+                    elif key in ('kp_7', 'kp_home'):  # +Y into the screen, X up
+                        _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0)); continue
+                    elif key in ('kp_8', 'kp_up'):  # +Z into the screen, X up
+                        _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0)); continue
+                    elif key in ('kp_9', 'kp_prior'):  # +Z into the screen, Y up
+                        _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0)); continue
+                    elif key in ('kp_1', 'kp_end'):  # toggle perspective between orthographic or parallel
                         cam = ax.getp('camera')
                         # nice one liner to toggle values of a 2 elements list/tuple !
-                        cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))])
-                    elif key == 'kp_2' or key == 'kp_down':
+                        cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))]); continue
+                    elif key in ('kp_2', 'kp_down'):
                         self.view(2)
                         return
-                    elif key == 'kp_3' or key == 'kp_next':
+                    elif key in ('kp_3', 'kp_next'):
                         self.view(3)
                         return
                     else:
@@ -1738,7 +1757,7 @@ class VTKBackend(BaseClass):
                         return
 
                 # only replot at the end
-                self._replot()
+                self._replot(axs)
 
         def ctrl_callback(e):
             callback(e, 1, 0)
@@ -1816,23 +1835,26 @@ class VTKBackend(BaseClass):
         # legend = legend.replace('*', '')
         return legend
 
-    def _replot(self):
+    def _replot(self, axs=None):
         '''Replot all axes and all plotitems in the backend.'''
         # NOTE: only the current figure (gcf) is redrawn.
         print('<replot> in backend') if DEBUG else None
         # reset the plotting package instance in fig._g now if needed
 
         fig = self.gcf()
-        self._g.reset()
-        self.register_bindings()
 
-        self._set_figure_size(fig)
+        if axs is None:
+            self._g.reset()
+            self.register_bindings()
+            self._set_figure_size(fig)
 
         nrows, ncols = fig.getp('axshape')
         grid = indices((nrows, ncols))
         rows, cols = grid[0].flatten()[::-1], grid[1].flatten()
         for axnr, ax in list(fig.getp('axes').items()):
             if ax.getp('numberofitems') == 0:
+                continue
+            if axs is not None and ax not in axs:  # then replot only for specified axes
                 continue
             self._ax = ax  # link for faster access
             if nrows != 1 or ncols != 1:
@@ -1894,14 +1916,6 @@ class VTKBackend(BaseClass):
 
     def mainloop(self, **kwargs):
         self.setp(**kwargs)
-        # if self.getp('interactive') and self.getp('show'):
-        #     self._g.tkw.Start()
-
-            # => not needed anymore, instead use vtkInteractorStyleSwitch
-            # trackball mode, see luyanxin.com/programming/event-testing-in-tkinter.html
-            # self.tkw.event_generate('<KeyPress-t>')
-
-            # self.master.mainloop()  # this is a blocking call
         self.all_show()
         self._master.mainloop()
 
@@ -1909,8 +1923,8 @@ class VTKBackend(BaseClass):
         if self.getp('show'):
             for _, fig in list(self._figs.items()):
                 self.figure(fig.getp('number'))
-                if self.getp('interactive'):
-                    self._g.tkw.Start()
+                if any(ax._w for _, ax in list(fig.getp('axes').items())):
+                    self._g.tkw.Start()  # self._g.tkw.Initialize()
                     self._g.tkw.focus_force()
                     self._g.tkw.update()
                 self.show()
@@ -1968,7 +1982,7 @@ class VTKBackend(BaseClass):
                          compression). This option only has effect when
                          vector_file is True.
         '''
-        print('----> hardcopy to', filename) if DEBUG else None
+        print('--> hardcopy to', filename) if DEBUG else None
 
         if filename.startswith('.'):
             filename = 'tmp' + filename
@@ -1976,6 +1990,7 @@ class VTKBackend(BaseClass):
         self.setp(**kwargs)
 
         if not self.getp('show'):  # don't render to screen
+            off_ren = self._g.renwin.GetOffScreenRendering()
             self._g.renwin.OffScreenRenderingOn()
 
         if kwargs.get('replot', True):
@@ -1989,10 +2004,11 @@ class VTKBackend(BaseClass):
 
         jpeg_quality = int(kwargs.get('quality', 100))
         progressive = bool(kwargs.get('progressive', False))
-        vector_file = bool(kwargs.get('vector_file', True))
+        vector_file = bool(kwargs.get('vector_file', False))
         orientation = kwargs.get('orientation', 'portrait')
         raster3d = bool(kwargs.get('raster3d', False))
         compression = bool(kwargs.get('compression', True))
+        magnification = int(kwargs.get('magnification', 2))
 
         if DEBUG:
             print('jpeg_quality, progressive, vector_file', jpeg_quality, progressive, vector_file)
@@ -2029,7 +2045,11 @@ class VTKBackend(BaseClass):
                 '.eps': vtk.vtkPostScriptWriter(),  # gives a normal PS file
             }
             w2if = vtk.vtkWindowToImageFilter()
+            w2if.SetMagnification(magnification)
             w2if.SetInput(self._g.renwin)
+            w2if.SetInputBufferTypeToRGBA()  # else all items drawn using alpha channel won't appear
+            w2if.ReadFrontBufferOff()  # needed to avoid some desktop overlay on linux
+            w2if.Update()  # advised in documentation
             try:
                 writer = vtk_image_writers[ext.lower()]
             except KeyError:
@@ -2038,13 +2058,13 @@ class VTKBackend(BaseClass):
                 writer.SetQuality(jpeg_quality)
                 writer.SetProgressive(progressive)
             if ext.lower() in ('.tif', '.tiff'):
-                # FIXME: allow to set compression mode for TIFF output
-                # see http://www.vtk.org/doc/release/5.0/html/a02108.html
-                pass
+                writer.SetCompressionToDeflate()
             writer.SetFileName(filename)
             writer.SetInputConnection(w2if.GetOutputPort())
             writer.Write()
-        self._g.renwin.OffScreenRenderingOff()
+        
+        # restore OffScreenRendering state
+        self._g.renwin.SetOffScreenRendering(off_ren)
 
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.
@@ -2093,10 +2113,9 @@ class VTKBackend(BaseClass):
         assert m % 4 == 0, 'flag: the number of colors must be a multiple of 4.'
         lut = vtk.vtkLookupTable()
         lut.SetNumberOfColors(m)
-        # the last parameter alpha is set to 1 by default
-        # in method declaration
+        # the last parameter alpha is set to 1 by default  in method declaration
         for i in range(0, m, 4):
-            lut.SetTableValue(i, 1, 0, 0, 1)   # red
+            lut.SetTableValue(i, 1, 0, 0, 1)      # red
             lut.SetTableValue(1 + i, 1, 1, 1, 1)  # white
             lut.SetTableValue(2 + i, 0, 0, 1, 1)  # blue
             lut.SetTableValue(3 + i, 0, 0, 0, 1)  # black

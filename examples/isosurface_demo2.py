@@ -2,9 +2,10 @@
 
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3371.html
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
+import scitools.globaldata
+scitools.globaldata.DEBUG = 1
+scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
 
 from time import sleep
 from scipy import io
@@ -43,7 +44,7 @@ daspect([1, 1, .4])
 # set(hcap,'AmbientStrength',.6)
 # set(hiso,'SpecularColorReflectance',0,'SpecularExponent',50)
 
-show()
+plt.mainloop()
 
 input('Press Return key to quit: ')
 

@@ -22,12 +22,10 @@ hslice = surf(linspace(xmin, xmax, 100),
               zeros((100, 100)))
 
 # rotate(hslice,[-1,0,0],-45)
-xd = hslice.getp('xdata')
-yd = hslice.getp('ydata')
-zd = hslice.getp('zdata')
+xd, yd, zd = hslice.getp('xdata'), hslice.getp('ydata'), hslice.getp('zdata')
 # delete(hslice)
 
-# Draw the Slice Planes:
+# Draw the Slice Planses:
 # h = slice_(x,y,z,v,xd,yd,zd)
 h = slice_(x, y, z, v, [], [], 0)
 h.setp(diffuse=.8)
@@ -61,4 +59,4 @@ shading('interp')
 # lightangle(-45,45)
 
 plt.mainloop(show=True, interactive=True)
-input("Press Return key to quit: ")
+# input("Press Return key to quit: ")

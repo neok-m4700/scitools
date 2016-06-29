@@ -3,11 +3,11 @@
 # Examples taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/ref/isosurface.html and
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3653.html
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
+import scitools.globaldata
+scitools.globaldata.DEBUG = 1
+scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
 
-setp(interactive=True)
 setp(show=False)
 
 x, y, z, v = flow()
@@ -21,13 +21,10 @@ view(3)
 axis('tight')
 # camlight()
 # lighting('gouraud')
-setp(show=True)
-show()
 
 # savefig('tmp_isosurf1a.eps')
 # savefig('tmp_isosurf1a_lq.eps', vector_file=False)
 # savefig('tmp_isosurf1a.png')
-setp(show=False)
 figure()
 h = isosurface(x, y, z, v, 0)
 # setp(hpatch,'FaceColor','red','EdgeColor','none')
@@ -35,8 +32,7 @@ shading('interp')
 daspect([1, 4, 4])
 view([-65, 20])
 axis('tight')
-setp(show=True)
-show()
+plt.mainloop(show=True)
 # camlight('left')
 # setp(gcf,'Renderer','zbuffer');
 # lighting('phong')

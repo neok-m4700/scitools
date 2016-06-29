@@ -4,8 +4,12 @@
 Demonstration on how to deal with greek letters and mathematics
 in axis labels, titles, legends, and text.
 """
+import scitools.globaldata
+scitools.globaldata.DEBUG = 1
+scitools.globaldata.backend = 'vtk_new'
 from scitools.std import *
 
+setp(show=False)
 
 def do_plot(latex='no'):
     tau_1 = linspace(0, 3, 151)
@@ -22,7 +26,8 @@ def do_plot(latex='no'):
              title=r'Plot of $\theta_1$ and $\theta_2$, $\alpha = \sum_{i=1}^n \phi_i$' + ' (%s) ' % latex.replace('$', 'dollar'),
              xlabel=r'$\tau$',
              ylabel=r'$\theta$',
-             savefig='tmp_' + backend + '_' + latex.replace(' $', '_dollar') + '.eps')
+             # savefig='tmp_' + backend + '_' + latex.replace(' $', '_dollar') + '.eps',
+             )
     elif latex == 'without $':
         # latex math without dollars - some backends will automatically
         # treat this the right way
@@ -33,7 +38,8 @@ def do_plot(latex='no'):
              title=r'Plot of \theta_1 and \theta_2, \alpha = \sum_{i=1}^n \phi_i' + ' (%s) ' % latex.replace('$', 'dollar'),
              xlabel=r'\tau',
              ylabel=r'\theta',
-             savefig='tmp_' + backend + '_' + latex.replace(' $', '_dollar') + '.eps')
+             # savefig='tmp_' + backend + '_' + latex.replace(' $', '_dollar') + '.eps'
+             )
     elif latex == 'no':
         # No latex math, just plain words
         plot(tau_1, theta_1, 'r-',
@@ -43,13 +49,15 @@ def do_plot(latex='no'):
              title='Plot of theta_1 and theta_2, alpha = sum_i phi_i' + ' (%s) ' % latex.replace('$', 'dollar'),
              xlabel=r'tau',
              ylabel=r'theta',
-             savefig='tmp_' + backend + '_' + latex + '.eps')
+             # savefig='tmp_' + backend + '_' + latex + '.eps'
+             )
 
 print(backend)
 for latex in 'no', 'with $', 'without $':
     figure()
     print('latex: %s' % latex)
     do_plot(latex)
+plt.mainloop(show=True)
 input('Press Return: ')
 
 """
