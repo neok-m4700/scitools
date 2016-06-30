@@ -42,6 +42,7 @@ from scitools.numpyutils import allclose
 from .misc import _update_from_config_file
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
 from numpy import indices
+from copy import deepcopy
 import os
 import sys
 
@@ -111,7 +112,7 @@ class _VTKFigure:
         self.height = height
         self.root = tkinter.Toplevel(plt._master)
         self.root.title(title)
-        self.root.protocol('WM_DELETE_WINDOW', self.exit)
+        # self.root.protocol('WM_DELETE_WINDOW', self.plt.closefig)
         self.root.minsize(200, 200)
         self.root.geometry('{}x{}'.format(width, height))
         self.root.withdraw()
@@ -131,31 +132,33 @@ class _VTKFigure:
         self.tkw.focus_force()  # needed for the callback to work
         self.tkw.update()
 
-    def reset(self):
-        print('<reset>') if DEBUG else None
+    def hard_reset(self):
+        print('<hard reset>') if DEBUG else None
         # is calling del removing the window from memory, not only from namespace ?
         # for now this is the only way for the interactive widgets to work when issuing a replot ...
         # if we could avoid deleting the tkw it'll be great ...
-        del self.renwin, self.iren
-        self.tkw.forget()
-        self.tkw.destroy()
-        del self.tkw
+        self.reset()
+        self.exit()
         self._init()
-        # recreative the vtkTkRenderWindowInteractor as in __init__
-        # remove all renderers:
-        # renderers = self.renwin.GetRenderers()
-        # ren = renderers.GetFirstRenderer()
-        # while ren is not None:
-        #     self.renwin.RemoveRenderer(ren)
-        #     ren = renderers.GetNextItem()
 
-    def close(self):
-        print('<close>') if DEBUG else None
-        # self.plt.clf()  # clf only clears the figure, we want to remove it
-        self.root.withdraw()
-        fignum = self.plt._attrs['curfig']
-        self.plt._attrs['curfig'] -= 1
-        del self.plt._figs[fignum]
+    def reset(self, axs=()):
+        print('<soft reset>') if DEBUG else None
+        # remove all renderers
+        renderers = self.renwin.GetRenderers()
+        ren = renderers.GetFirstRenderer()
+        while ren is not None:
+            if axs is None or any(ren == getattr(ax, '_renderer', None) for ax in axs):
+                self.renwin.RemoveRenderer(ren)
+            ren = renderers.GetNextItem()
+
+        # else iwidget crashes without any information
+        # for ax in axs:
+        #     if getattr(ax, '_w', None) is not None:
+        #         print('old is', ax._w_old)
+        #         ax._w.Off()
+            # for attr in ('_apd', '_renderer'):
+            #     _ = getattr(ax, attr, None)
+            #     del _
 
     def display(self, show):
         print('<display>') if DEBUG else None
@@ -170,28 +173,27 @@ class _VTKFigure:
         if hasattr(self.plt, '_ax'):
             self.plt._ax._apd.Update()
 
-        # First we render each of the axis renderers:
-        renderers = self.renwin.GetRenderers()
+        renderers = self.renwin.GetRenderers()  # first we render each of the axis renderers
         ren = renderers.GetFirstRenderer()
         while ren is not None:
             ren.Render()
             ren = renderers.GetNextItem()
-        # then we render the complete scene:
+        # then we render the complete scene
         self.renwin.Render()
 
     def exit(self):
         print('<exit>') if DEBUG else None
-        self.close()
         self.renwin.Finalize()
         if self.iren:
             print('--> iren exit') if DEBUG else None
             self.iren.TerminateApp()
             del self.iren
-
         del self.renwin
-
-        if len(self.plt._figs) < 1:
-            self.plt._master.quit()
+        self.tkw.forget()
+        self.tkw.destroy()
+        self.root.withdraw()
+        # del self.frame
+        del self.tkw
 
     def set_size(self, width, height):
         self.root.geometry('{}x{}'.format(width, height))
@@ -231,25 +233,29 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         def __init__(self, plane, **kwargs):
             super().__init__()
-            self.fig = kwargs.get('fig')
             self.ax = kwargs.get('ax')
+            self.fig = kwargs.get('fig')
             self._p = plane
+            self._obs = []
             old = self.ax._w
-            if old is not None:
+            print('received old:', old)
+            if len(getattr(old, '_obs', [])) > 0:
                 old._RemoveObservers()
-            self._hs = getattr(old, '_hs', self.GetHandleSize() / 4)
+            self._hs = getattr(old, '_hs', self.GetHandleSize() / 3)
             self._on = getattr(old, '_on', False)
             if isinstance(self, vtk.vtkBoxWidget):
-                self._t = getattr(old, '_t', vtk.vtkTransform())
+                self._t = vtk.vtkTransform()
+                if isinstance(old, vtk.vtkBoxWidget):
+                    old.GetTransform(self._t)
             elif isinstance(self, vtk.vtkImplicitPlaneWidget):
                 self._b = getattr(old, '_b', (-1, 1, -1, 1, -1, 1))
-            del old
-            self._obs = []
+            # if old:
+            #     del old
+            self.SetInteractor(fig._g.iren)
+            self.SetCurrentRenderer(self.ax._renderer)
+            # self.SetDefaultRenderer(self.ax._renderer)
             self.SetHandleSize(self._hs)
             self.SetPlaceFactor(1.01)
-            self.iren = self.fig._g.iren
-            self.SetInteractor(self.iren)
-            self.SetCurrentRenderer(self.ax._renderer)
             self.SetInputConnection(kwargs.get('ic'))
             self.PlaceWidget()
             if isinstance(self, vtk.vtkBoxWidget):
@@ -280,8 +286,9 @@ def vtkInteractiveWidget(parent, **kwargs):
                 pts = self._pd.GetPoints()
                 if pts:
                     self._b = pts.GetBounds()
+
             # set other widgets bounds/transform
-            for _, ax in list(self.fig.getp('axes').items()):
+            for ax in self.fig.getp('axes').values():
                 if ax == self.ax:
                     continue
                 if ax._w is not None:
@@ -293,6 +300,9 @@ def vtkInteractiveWidget(parent, **kwargs):
                         ax._w._b = self._b
                         ax._w.PlaceWidget(ax._w._b)
                     ax._w.InvokeEvent('InteractionEvent')
+
+        def __str__(self):
+            return '\n'.join(['{}:{}'.format(k, v) for (k, v) in self.__dict__.items()])
 
     return _vtkInteractiveWidget(plane, **kwargs)
 
@@ -573,7 +583,7 @@ class VTKBackend(BaseClass):
         if ax.getp('box'):
             print('<box>') if DEBUG else None
             normals = vtk.vtkPolyDataNormals()
-            normals.SetInputConnection(self._ax._apd.GetOutputPort())
+            normals.SetInputConnection(ax._apd.GetOutputPort())
             outline = vtk.vtkOutlineFilter()
             outline.SetInputConnection(normals.GetOutputPort())
             mapOutline = vtk.vtkPolyDataMapper()
@@ -586,7 +596,7 @@ class VTKBackend(BaseClass):
             tprop.ShadowOn()
             axes = vtk.vtkCubeAxesActor2D()
             axes.SetInputConnection(normals.GetOutputPort())
-            axes.SetCamera(self._ax._renderer.GetActiveCamera())
+            axes.SetCamera(ax._renderer.GetActiveCamera())
             axes.SetLabelFormat('%6.4g')
             # axes.SetFlyModeToOuterEdges()
             axes.SetFlyModeToClosestTriad()
@@ -692,7 +702,7 @@ class VTKBackend(BaseClass):
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
         camera = vtk.vtkCamera()
-        for _, axis in list(self.gcf().getp('axes').items()):
+        for axis in self.gcf().getp('axes').values():
             _ = getattr(axis, '_camera', None)
             if _ is not None:
                 # update local camera with the one from
@@ -808,18 +818,32 @@ class VTKBackend(BaseClass):
         clipper.InsideOutOn()
 
         if islice:
+            # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
+            self._ax._w = vtkInteractiveWidget(
+                'boxwidget' if islice == 'cube' else 'implicitplanewidget',
+                ax=self._ax,
+                fig=self.fig,
+                ic=data.GetOutputPort()
+            )
+
+            iclipper = vtk.vtkClipPolyData()
+            iclipper.SetInputConnection(data.GetOutputPort())
+            iclipper.SetClipFunction(self._ax._w._p)
+            iclipper.SetValue(0)
+            iclipper.InsideOutOn()
+
             def pw_interaction(obj, event):
                 # see www.python.org/dev/peps/pep-3104 for nonlocal kw
                 obj._GetPlane()
 
             def pw_start_interaction(obj, event):
-                if isinstance(self, vtk.vtkBoxWidget):
+                if isinstance(obj, vtk.vtkBoxWidget):
                     obj.OutlineCursorWiresOn()
                     obj.GetHandleProperty().SetOpacity(.5)
                 obj.GetOutlineProperty().SetOpacity(.5)
 
             def pw_end_interaction(obj, event):
-                if isinstance(self, vtk.vtkBoxWidget):
+                if isinstance(obj, vtk.vtkBoxWidget):
                     obj.OutlineCursorWiresOff()
                     obj.GetHandleProperty().SetOpacity(.2)
                 obj.GetOutlineProperty().SetOpacity(0)
@@ -832,6 +856,7 @@ class VTKBackend(BaseClass):
                 obj._on = True
                 pw_interaction(obj, event)
                 pw_end_interaction(obj, event)
+                print(obj)
 
             def pw_disable(obj, event):
                 nonlocal data, clipper
@@ -839,27 +864,13 @@ class VTKBackend(BaseClass):
                 clipper.SetInputConnection(data.GetOutputPort())
                 obj._SaveWidget()
 
-            # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
-            self._ax._w = vtkInteractiveWidget(
-                'boxwidget' if islice == 'cube' else 'implicitplanewidget',
-                ax=self._ax,
-                fig=self.gcf(),
-                ic=data.GetOutputPort()
-            )
-
-            pw_interaction(self._ax._w, None)  # in order to avoid 'Please define points and/or normals!' errors
-
-            iclipper = vtk.vtkClipPolyData()
-            iclipper.SetInputConnection(data.GetOutputPort())
-            iclipper.SetClipFunction(self._ax._w._p)
-            iclipper.SetValue(0)
-            iclipper.InsideOutOn()
-
             self._ax._w._AddObserver('InteractionEvent', pw_interaction)
             self._ax._w._AddObserver('StartInteractionEvent', pw_start_interaction)
             self._ax._w._AddObserver('EndInteractionEvent', pw_end_interaction)
             self._ax._w._AddObserver('EnableEvent', pw_enable)
             self._ax._w._AddObserver('DisableEvent', pw_disable)
+
+            pw_interaction(self._ax._w, None)  # in order to avoid 'Please define points and/or normals!' errors
 
         return clipper
 
@@ -1634,7 +1645,38 @@ class VTKBackend(BaseClass):
             self._g.set_size(800, 600)
             pass
 
-    def register_bindings(self):
+    def find_poked(self, event):
+        '''get the vtkTkRenderWindowIntesractor widget and renderer on which the event has been triggered'''
+        # print(dir(event))
+        # print(vars(event))
+
+        fig = self.fig
+        for _, __ in list(self._figs.items()):
+            # compare event and find the figure
+            if event.widget == __._g.tkw:
+                fig = self.figure(__.getp('number'))  # set curfig to this figure
+                print('found fig')
+                break
+
+        # to use self._g, we have to have access to the poked figures
+        ax = self.gca()
+
+        if all(isinstance(_, int) for _ in (event.x, event.y)):
+            target = self._g.iren.FindPokedRenderer(event.x, self._g.renwin.GetSize()[1] - event.y)
+            for _ in fig.getp('axes').values():
+                if _._renderer == target:
+                    self.axes(_)  # set curax to this axis
+                    ax = _
+                    print('found ax')
+                    break
+
+        print('--> poked fig {}'.format(fig.getp('number')), hex(id(fig)))
+        print(fig)
+        print('--> poked ax', hex(id(ax)))
+
+        return fig, ax
+
+    def register_bindings(self, tkw):
         '''we must register the figure bindings in the backend because we have to have access to the backend properties'''
         def _toggle_state(obj, key):
             boolean = obj.getp(key)
@@ -1649,26 +1691,6 @@ class VTKBackend(BaseClass):
             # don't set view in the following command because cammode will fail because of the _set_default_view call
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0))
 
-        def _find_poked_ren(event):
-            '''get the vtkTkRenderWindowInteractor widget and renderer on which the event has been triggered'''
-            fig = None
-            for _, fig in list(self._figs.items()):
-                # compare event and find the figure
-                if event.widget == fig._g.tkw:
-                    fig = self.figure(fig.getp('number'))
-                    break
-
-            if fig is None:  # just in case
-                fig = self.gcf()
-
-            # to use self._g, we have to have access to the poked figures
-            target = self._g.iren.FindPokedRenderer(event.x, self._g.renwin.GetSize()[1] - event.y)
-            for _, ax in list(fig.getp('axes').items()):
-                if ax._renderer == target:
-                    break
-
-            return fig, ax
-
         def callback(e, ctrl, shift):
             '''
             stackoverflow.com/a/16082411/5584077
@@ -1679,11 +1701,11 @@ class VTKBackend(BaseClass):
             # print(dir(e))
             # print(vars(e))
 
-            fig, ax = _find_poked_ren(e)
+            fig, ax = self.find_poked(e)
             if ctrl:
                 axs = (ax,)
             elif shift:
-                axs = [ax for _, ax in list(fig.getp('axes').items())]
+                axs = fig.getp('axes').values()
 
             if ctrl or shift:
                 for ax in axs:
@@ -1710,16 +1732,15 @@ class VTKBackend(BaseClass):
                                 ax.setp(**{_: newcol})
                             except Exception as e:
                                 pass
-                        continue
                     elif key == 'g':
-                        _toggle_state(ax, 'grid'); continue
+                        _toggle_state(ax, 'grid')
                     elif key == 'b':
-                        _toggle_state(ax, 'box'); continue
+                        _toggle_state(ax, 'box')
                     elif key == 'a':
-                        _toggle_state(ax, 'unit'); continue
+                        _toggle_state(ax, 'unit')
                     elif key == 'c':
                         cbar = ax.getp('colorbar')
-                        _toggle_state(cbar, 'visible'); continue
+                        _toggle_state(cbar, 'visible')
                     elif key == 's':
                         self.hardcopy('fig.pdf', replot=False)
                         return
@@ -1728,21 +1749,21 @@ class VTKBackend(BaseClass):
                     # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
                     #  --------- \
                     elif key in ('kp_4', 'kp_left'):  # +X into the screen, Y up
-                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0)); continue
+                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0))
                     elif key in ('kp_5', 'kp_begin'):  # +X into the screen, Z up
-                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1)); continue
+                        _set_camera(ax, campos=(-1, 0, 0), camup=(0, 0, 1))
                     elif key in ('kp_6', 'kp_right'):  # +Y into the screen, Z up
-                        _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1)); continue
+                        _set_camera(ax, campos=(0, -1, 0), camup=(0, 0, 1))
                     elif key in ('kp_7', 'kp_home'):  # +Y into the screen, X up
-                        _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0)); continue
+                        _set_camera(ax, campos=(0, -1, 0), camup=(1, 0, 0))
                     elif key in ('kp_8', 'kp_up'):  # +Z into the screen, X up
-                        _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0)); continue
+                        _set_camera(ax, campos=(0, 0, -1), camup=(1, 0, 0))
                     elif key in ('kp_9', 'kp_prior'):  # +Z into the screen, Y up
-                        _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0)); continue
+                        _set_camera(ax, campos=(0, 0, -1), camup=(0, 1, 0))
                     elif key in ('kp_1', 'kp_end'):  # toggle perspective between orthographic or parallel
                         cam = ax.getp('camera')
                         # nice one liner to toggle values of a 2 elements list/tuple !
-                        cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))]); continue
+                        cam.setp(camproj=cam._camprojs[1 - cam._camprojs.index(cam.getp('camproj'))])
                     elif key in ('kp_2', 'kp_down'):
                         self.view(2)
                         return
@@ -1751,11 +1772,11 @@ class VTKBackend(BaseClass):
                         return
                     else:
                         # when a binding is not known, return without replotting, and forward the event
-                        self._g.tkw.KeyPressEvent(e, ctrl, shift)
+                        tkw.KeyPressEvent(e, ctrl, shift)
                         return
 
                 # only replot at the end
-                self._replot(axs)
+                self._replot(fig, axs)
 
         def ctrl_callback(e):
             callback(e, 1, 0)
@@ -1763,23 +1784,31 @@ class VTKBackend(BaseClass):
         def shift_callback(e):
             callback(e, 0, 1)
 
-        self._g.tkw.bind('<Control-Key>', ctrl_callback)
-        self._g.tkw.bind('<Shift-Key>', shift_callback)
+        tkw.bind('<Control-Key>', ctrl_callback)
+        tkw.bind('<Shift-Key>', shift_callback)
+        tkw.bind('<Destroy>', self.closefig)
 
         def key_callback(e):
-            _, ax = _find_poked_ren(e)
+            fig, ax = self.find_poked(e)
+            # tkw.KeyPressEvent(e, 0, 0)
             if e.keysym == 'i':
-                self._g.iren.SetKeyCode('i')
-                if ax._w is not None:
+                fig._g.iren.SetKeyCode('i')
+                if getattr(ax, '_w', None) is not None:
+                    ax._w.SetInteractor(fig._g.iren)
+                    ax._w.SetCurrentRenderer(ax._renderer)
                     ax._w.OnChar()
+                # self._g.iren.CharEvent()
+                # self._g.iren.SetKeySym('i')
+                # self._g.iren.KeyPressEvent()
+                # tkw.KeyPressEvent(e, 0, 0)
             else:
                 # forward the event if not interactive event
-                self._g.tkw.KeyPressEvent(e, 0, 0)
+                tkw.KeyPressEvent(e, 0, 0)
 
-        self._g.tkw.bind('<KeyPress>', key_callback)
+        tkw.bind('<KeyPress>', key_callback)
 
     def figure(self, *args, **kwargs):
-        # Extension of BaseClass.figure: dd a plotting package figure instance as fig._g and create a link to it as self._g
+        # Extension of BaseClass.figure: adding a plotting package figure instance as fig._g and create a link to it as self._g
         fig = BaseClass.figure(self, *args, **kwargs)
         try:
             fig._g
@@ -1790,16 +1819,27 @@ class VTKBackend(BaseClass):
                 print('creating figure {} in backend'.format(self.name))
 
             fig._g = _VTKFigure(self, title=self.name)
+            self.register_bindings(fig._g.tkw)
 
         self.fig = fig
         self._g = fig._g  # link for faster access
 
-        self.register_bindings()
-
         return fig
 
-    def closefig(self, arg=None):
-        self._g.close()
+    def closefig(self, event=None):
+        if DEBUG:
+            print('<closefig>')
+        fig, ax = self.find_poked(event)
+        fig._g.exit()
+        # delete the associated backend !
+        for k in list(self._figs):
+            if self._figs[k] == fig:
+                del self._figs[k]
+        del fig
+        if len(self._figs) < 1:
+            self._master.quit()
+
+        self.figure(max(self._figs) if len(self._figs) > 0 else None)  # raise another figure
 
     def _setup_axis(self, ax):
         if DEBUG:
@@ -1809,7 +1849,7 @@ class VTKBackend(BaseClass):
         self._set_colormap(ax)
         self._set_caxis(ax)
 
-        # Create a renderer for this axis and add it to the current figures renderer window:
+        # create a renderer for this axis and add it to the current figures renderer window
         ax._renderer = vtk.vtkRenderer()
         self._g.renwin.AddRenderer(ax._renderer)
 
@@ -1825,6 +1865,9 @@ class VTKBackend(BaseClass):
         # ax._renderer.SetPixelAspect(axshape[1], axshape[0])
 
         ax._apd = vtk.vtkAppendPolyData()
+        if getattr(ax, '_w', None) is not None:
+            if ax._w._on:  # else iwidget crashes without any information
+                ax._w.Off()
 
     def _fix_latex(self, legend):
         '''Remove latex syntax a la $, \, {, } etc.'''
@@ -1833,17 +1876,22 @@ class VTKBackend(BaseClass):
         # legend = legend.replace('*', '')
         return legend
 
-    def _replot(self, axs=None):
+    def _replot(self, fig=None, axs=None):
         '''Replot all axes and all plotitems in the backend.'''
         # NOTE: only the current figure (gcf) is redrawn.
         print('<replot> in backend') if DEBUG else None
         # reset the plotting package instance in fig._g now if needed
 
-        fig = self.gcf()
+        if fig is not None:
+            # make sure sure we have the right figure
+            self.figure(fig.getp('number'))
+        else:
+            fig = self.fig
+        fig_axes = fig.getp('axes').values()
 
-        if axs is None:
-            self._g.reset()
-            self.register_bindings()
+        if axs is not None and all(_ in fig_axes for _ in axs) and len(axs) == len(fig_axes):
+            fig._g.hard_reset()
+            self.register_bindings(fig._g.tkw)
             self._set_figure_size(fig)
 
         nrows, ncols = fig.getp('axshape')
@@ -1854,6 +1902,8 @@ class VTKBackend(BaseClass):
                 continue
             if axs is not None and ax not in axs:  # then replot only for specified axes
                 continue
+            print('--> replot for ax', hex(id(ax)))
+            fig._g.reset((ax,))
             self._ax = ax  # link for faster access
             if nrows != 1 or ncols != 1:
                 # create axes in tiled position  this is subplot(nrows,ncols,axnr)
@@ -1901,8 +1951,16 @@ class VTKBackend(BaseClass):
 
             self._set_axis_props(ax)
 
-            if ax._w is not None and ax._w._on:
-                ax._w.On()  # enable widget as in vtkInteractorObserver::OnChar()
+            if getattr(ax, '_w', None) is not None:
+                print('after reset', ax._w)
+                if ax._w._on:
+                    # fig._g.iren.SetKeyCode('i')
+                    # ax._w.SetInteractor(fig._g.iren)
+                    # ax._w.SetCurrentRenderer(ax._renderer)
+                    # fig._g.iren.CharEvent()
+                    # fig._g.iren.KeyPressEvent()
+                    # ax._w.OnChar()
+                    ax._w.On()
 
         if self.getp('show'):
             # display plot on the screen
@@ -1913,11 +1971,13 @@ class VTKBackend(BaseClass):
         self._g.display(show=self.getp('show'))
 
     def mainloop(self, **kwargs):
+        print('<mainloop>') if DEBUG else None
         self.setp(**kwargs)
         self.all_show()
         self._master.mainloop()
 
     def all_show(self):
+        print('<all_show>') if DEBUG else None
         if self.getp('show'):
             for _, fig in list(self._figs.items()):
                 self.figure(fig.getp('number'))

@@ -87,11 +87,11 @@ class MaterialProperties:
 stanford.edu/~mwaskom/software/seaborn/generated/seaborn.set_color_codes.html#seaborn.set_color_codes
 github.com/mwaskom/seaborn/pull/554
 '''
-try:
-    import seaborn.apionly as sns
-    sns.set_color_codes()
-except:
-    pass
+# try:
+#     import seaborn.apionly as sns
+#     sns.set_color_codes()
+# except:
+#     pass
 
 
 class PlotProperties:
