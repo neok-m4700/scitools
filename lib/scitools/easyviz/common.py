@@ -83,6 +83,17 @@ class MaterialProperties:
             raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
 
+'''
+stanford.edu/~mwaskom/software/seaborn/generated/seaborn.set_color_codes.html#seaborn.set_color_codes
+github.com/mwaskom/seaborn/pull/554
+'''
+try:
+    import seaborn.apionly as sns
+    sns.set_color_codes()
+except:
+    pass
+
+
 class PlotProperties:
 
     '''
@@ -96,8 +107,7 @@ class PlotProperties:
     '''
     _colors = 'b r g m c y k w'.split()  # colororder determines unset colors
     _markers = 'o s v + ^ x d * < > p h .'.split()
-    _colors2markers = dict([(color, marker)
-                            for color, marker in zip(_colors, _markers)])
+    _colors2markers = dict([(_, __) for _, __ in zip(_colors, _markers)])
     _linestyles = ': -. -- -'.split()
     _sizes = '1 2 3 4 5 6 7 8 9'.split()
     _styledoc = {'y': 'yellow',
@@ -401,31 +411,26 @@ class Line(PlotProperties):
                     y = list(range(len(z)))
                 else:
                     if not isinstance(kwargs['y'], (collections.Sequence, ndarray)):
-                        raise TypeError('Can only plot sequence types, '
-                                        'y is %s' % type(kwargs['y']))
+                        raise TypeError('Can only plot sequence types, y is {}'.format(type(kwargs['y'])))
                     y = kwargs['y']
             if 'x' in kwargs:  # will only set x variable if y is set
-                if isinstance(kwargs['x'], str) \
-                        and kwargs['x'] == 'auto':
+                if isinstance(kwargs['x'], str) and kwargs['x'] == 'auto':
                     # now x is the indicies of y
                     x = list(range(len(y)))
                 else:
                     if not isinstance(kwargs['x'], (collections.Sequence, ndarray)):
-                        raise TypeError('Can only plot sequence types, '
-                                        'x is %s' % type(kwargs['x']))
+                        raise TypeError('Can only plot sequence types, x is {}'.format(type(kwargs['x'])))
                     x = kwargs['x']
 
             # Consitency check
-            assert size(x) == size(y), \
-                'Line.setp: x has size %d, expected y to have size %d, not %d' % (size(x), size(x), size(y))
-            assert size(x) == size(z), \
-                'Line.setp: x has size %d, expected z to have size %d, not %d' % (size(x), size(x), size(z))
+            assert size(x) == size(y), 'Line.setp: x has size {:d}, expected y to have size {:d}, not {:d}'.format(size(x), size(x), size(y))
+            assert size(x) == size(z), 'Line.setp: x has size {:d}, expected z to have size {:d}, not {:d}'.format(size(x), size(x), size(z))
 
             self._set_data(x, y, z)
 
         elif 'y' in kwargs:
             if not isinstance(kwargs['y'], (collections.Sequence, ndarray)):
-                raise TypeError('Can only plot sequence types y is %s' % type(kwargs['y']))
+                raise TypeError('Can only plot sequence types y is {}'.format(type(kwargs['y'])))
             y = kwargs['y']
             if 'format' in kwargs:
                 self.setformat(kwargs['format'])
@@ -436,12 +441,11 @@ class Line(PlotProperties):
                     x = list(range(len(y)))
                 else:
                     if not isinstance(kwargs['x'], (collections.Sequence, ndarray)):
-                        raise TypeError('Can only plot sequence types, '
-                                        'x is %s' % type(kwargs['x']))
+                        raise TypeError('Can only plot sequence types, x is {}'.format(type(kwargs['x'])))
                     x = kwargs['x']
 
             # Consitency check
-            assert size(x) == size(y), 'Line.setp: x has size %d, expected y to have size %d, not %d.' % (size(x), size(x), size(y))
+            assert size(x) == size(y), 'Line.setp: x has size {:d}, expected y to have size {:d}, not {:d}'.format(size(x), size(x), size(y))
 
             self._set_data(x, y)
 

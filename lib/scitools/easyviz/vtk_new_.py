@@ -233,8 +233,8 @@ def vtkInteractiveWidget(parent, **kwargs):
             super().__init__()
             self.fig = kwargs.get('fig')
             self.ax = kwargs.get('ax')
-            old = self.ax._w
             self._p = plane
+            old = self.ax._w
             if old is not None:
                 old._RemoveObservers()
             self._hs = getattr(old, '_hs', self.GetHandleSize() / 4)
@@ -242,7 +242,7 @@ def vtkInteractiveWidget(parent, **kwargs):
             if isinstance(self, vtk.vtkBoxWidget):
                 self._t = getattr(old, '_t', vtk.vtkTransform())
             elif isinstance(self, vtk.vtkImplicitPlaneWidget):
-                self._b = getattr(old, '_b', None)
+                self._b = getattr(old, '_b', (-1, 1, -1, 1, -1, 1))
             del old
             self._obs = []
             self.SetHandleSize(self._hs)
@@ -278,8 +278,8 @@ def vtkInteractiveWidget(parent, **kwargs):
             elif isinstance(self, vtk.vtkImplicitPlaneWidget):
                 self.GetPolyData(self._pd)
                 pts = self._pd.GetPoints()
-                self._b = pts.GetBounds() if pts else (-1, -1, -1, 1, 1, 1)
-
+                if pts:
+                    self._b = pts.GetBounds()
             # set other widgets bounds/transform
             for _, ax in list(self.fig.getp('axes').items()):
                 if ax == self.ax:
@@ -292,7 +292,6 @@ def vtkInteractiveWidget(parent, **kwargs):
                         ax._w._pd = self._pd
                         ax._w._b = self._b
                         ax._w.PlaceWidget(ax._w._b)
-
                     ax._w.InvokeEvent('InteractionEvent')
 
     return _vtkInteractiveWidget(plane, **kwargs)
@@ -823,7 +822,6 @@ class VTKBackend(BaseClass):
                 if isinstance(self, vtk.vtkBoxWidget):
                     obj.OutlineCursorWiresOff()
                     obj.GetHandleProperty().SetOpacity(.2)
-
                 obj.GetOutlineProperty().SetOpacity(0)
                 obj._SaveWidget()
 
@@ -2062,7 +2060,7 @@ class VTKBackend(BaseClass):
             writer.SetFileName(filename)
             writer.SetInputConnection(w2if.GetOutputPort())
             writer.Write()
-        
+
         # restore OffScreenRendering state
         self._g.renwin.SetOffScreenRendering(off_ren)
 
