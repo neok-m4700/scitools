@@ -1906,6 +1906,7 @@ class VTKBackend(BaseClass):
 
         if axs and all(_ in fig_axes for _ in axs) and len(axs) == len(fig_axes):
             print('--> hard reset')
+            fig._g.soft_reset(axs)
             fig._g.hard_reset()
             self.register_bindings(fig._g.tkw)
             self._set_figure_size(fig)
