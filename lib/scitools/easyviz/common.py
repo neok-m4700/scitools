@@ -1375,7 +1375,6 @@ class Axis:
         # self was not available when _local_prop was defined:
         self._prop['camera'] = Camera(self)
         self._prop['colorbar'] = Colorbar()
-        self._w = None
 
     def __str__(self):
         return pprint.pformat(self._prop)
