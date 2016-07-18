@@ -48,8 +48,8 @@ import sys
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
-inc_dirs = [os.path.expandvars('$CONDA_ENV_PATH/include/vtk-7.0')]
-lib_dirs = [os.path.join(os.environ['CONDA_ENV_PATH'], 'lib/python{}/site-packages/vtk'.format(major_minor)), '/usr/lib']
+inc_dirs = [os.path.expandvars('$CONDA_PREFIX/include/vtk-7.0')]
+lib_dirs = [os.path.join(os.environ['CONDA_PREFIX'], 'lib/python{}/site-packages/vtk'.format(major_minor)), '/usr/lib']
 
 sys.path.extend(lib_dirs)
 # print(sys.path)
