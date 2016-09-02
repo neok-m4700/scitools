@@ -2110,8 +2110,8 @@ class VTKBackend(BaseClass):
         magnification = int(kwargs.get('magnification', 2))
 
         if DEBUG:
-            print('jpeg_quality, progressive, vector_file', jpeg_quality, progressive, vector_file)
-            print('orientation, raster3d, compression', orientation, raster3d, compression)
+            for _ in ('jpeg_quality', 'progressive', 'vector_file', 'orientation', 'raster3d', 'compression'):
+                print('    ', _, '=', locals()[_])
 
         landscape = False
         if orientation.lower() == 'landscape':
@@ -2146,9 +2146,12 @@ class VTKBackend(BaseClass):
             w2if = vtk.vtkWindowToImageFilter()
             w2if.SetMagnification(magnification)
             w2if.SetInput(self._g.renwin)
-            w2if.SetInputBufferTypeToRGBA()  # else all items drawn using alpha channel won't appear
+            if ext.lower() in ('.ps', '.eps'):
+                w2if.SetInputBufferTypeToRGB()  # vtkPostScriptWriter only support 1 or 3 (RGB) components not 4 (RGB + alpha)
+            else:
+                w2if.SetInputBufferTypeToRGBA()  # else all items drawn using alpha channel won't appear
             w2if.ReadFrontBufferOff()  # needed to avoid some desktop overlay on linux
-            w2if.Update()  # advised in documentation
+            w2if.Update()  # or w2if.Modified(), advised in documentation
             try:
                 writer = vtk_image_writers[ext.lower()]
             except KeyError:
@@ -2163,7 +2166,8 @@ class VTKBackend(BaseClass):
             writer.Write()
 
         # restore OffScreenRendering state
-        self._g.renwin.SetOffScreenRendering(off_ren)
+        if not self.getp('show'):
+            self._g.renwin.SetOffScreenRendering(off_ren)
 
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.

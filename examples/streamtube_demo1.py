@@ -2,7 +2,7 @@
 
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/ref/streamtube.html
-
+import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from scipy import io
 
@@ -14,27 +14,28 @@ u = wind['u']
 v = wind['v']
 w = wind['w']
 
-sx,sy,sz = ndgrid([80]*4,seq(20,50,10),seq(0,15,5),sparse=False)
+sx, sy, sz = ndgrid([80] * 4, seq(20, 50, 10), seq(0, 15, 5), sparse=False)
 
 setp(show=False)
-streamtube(x,y,z,u,v,w,sx,sy,sz)
-daspect([1,1,1])
+streamtube(x, y, z, u, v, w, sx, sy, sz)
+daspect([1, 1, 1])
 view(3)
 axis('tight')
 shading('interp')
-#camlight(); lighting('gouraud')
+# camlight(); lighting('gouraud')
 setp(show=True)
 show()
 
 figure()
 # alternative syntax:
-streamtube(x,y,z,u,v,w,sx,sy,sz,
-           daspect=[1,1,1],
+streamtube(x, y, z, u, v, w, sx, sy, sz,
+           daspect=[1, 1, 1],
            view=3,
            axis='tight',
            shading='interp')
 
-input('Press Return key to quit: ')
+# input('Press Return key to quit: ')
 
-#savefig('tmp_streamtube1.eps')
-#savefig('tmp_streamtube1.png')
+savefig('tmp_streamtube1.eps')  # NOK zoom problems
+savefig('tmp_streamtube1.ps', vector_file=True)
+plt.mainloop()

@@ -3,8 +3,8 @@
 # Example taken from:
 # http://www.mathworks.fr/access/helpdesk/help/techdoc/ref/streamparticles.html
 
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
-from scitools.easyviz.vtk_new_ import *
+import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
+from scitools.easyviz import *
 from scipy import io
 
 wind = io.loadmat('wind_matlab_v6.mat')
