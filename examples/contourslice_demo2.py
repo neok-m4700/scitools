@@ -2,14 +2,11 @@
 
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3371.html
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
-
+import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
 from scipy import io
 
-setp(interactive=False)
-setp(show=False)
+setp(interactive=False, show=False)
 
 mri = io.loadmat('mri_matlab_v6.mat')
 D = mri['D']
@@ -31,13 +28,14 @@ daspect([1, 1, 1])
 colormap('viridis')
 show()
 
-print('..... before save')
-savefig('tmp_contourslice2a.eps')
 
-exit(0)
+print('..... before save')
+setp(interactive=True, show=True); plt.mainloop(); exit(0)
 # buggy script !!, exit for now ...
 # problem with vtkOpenGLTexture
 # vtkOpenGLTexture
+
+savefig('tmp_contourslice2a.eps')
 
 savefig('tmp_contourslice2a.png')
 print('..... after save')
@@ -57,3 +55,5 @@ show()
 print('..... there')
 savefig('tmp_contourslice2b.eps')
 savefig('tmp_contourslice2b.png')
+
+plt.mainloop()

@@ -1348,7 +1348,7 @@ class VTKBackend(BaseClass):
             visPts.SetInputConnection(mask.GetOutputPort())
             visPts.SetRenderer(self._ax._renderer)
             ldm = vtk.vtkLabeledDataMapper()
-            ldm.SetInputConnnection(mask.GetOutputPort())
+            ldm.SetInputData(mask.GetOutput())  # vtkLabeledDataMapper has no attribute 'SetInputConnnection'
             ldm.SetLabelFormat('%.1g')
             ldm.SetLabelModeToLabelScalars()
             tprop = ldm.GetLabelTextProperty()
@@ -2131,7 +2131,8 @@ class VTKBackend(BaseClass):
             exp.DrawBackgroundOn()
             exp.SetWrite3DPropsAsRasterImage(raster3d)
             exp.Write()
-        else:
+
+        elif ext.lower() in ('.tif', '.tiff', '.bmp', '.pnm', '.png', '.jpg', '.jpeg', '.ps', '.eps'):
             vtk_image_writers = {
                 '.tif': vtk.vtkTIFFWriter(),
                 '.tiff': vtk.vtkTIFFWriter(),
@@ -2152,10 +2153,7 @@ class VTKBackend(BaseClass):
                 w2if.SetInputBufferTypeToRGBA()  # else all items drawn using alpha channel won't appear
             w2if.ReadFrontBufferOff()  # needed to avoid some desktop overlay on linux
             w2if.Update()  # or w2if.Modified(), advised in documentation
-            try:
-                writer = vtk_image_writers[ext.lower()]
-            except KeyError:
-                raise TypeError('hardcopy: Extension {} is currently not supported.'.format(ext))
+            writer = vtk_image_writers[ext.lower()]
             if ext.lower() in ('.jpg', '.jpeg'):
                 writer.SetQuality(jpeg_quality)
                 writer.SetProgressive(progressive)
@@ -2164,6 +2162,10 @@ class VTKBackend(BaseClass):
             writer.SetFileName(filename)
             writer.SetInputConnection(w2if.GetOutputPort())
             writer.Write()
+        else:
+            msg = 'hardcopy: Extension {} is currently not supported.'.format(ext)
+            # raise TypeError(msg)
+            print(msg)
 
         # restore OffScreenRendering state
         if not self.getp('show'):

@@ -2,10 +2,8 @@
 
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/ref/contourslice.html
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
-
+import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
 
 setp(show=False)
 x, y, z, v = flow()
@@ -37,3 +35,4 @@ h = contourslice(x, y, z, v, seq(1, 9), [], [0], linspace(-8, 2, 10),
 
 # savefig('tmp_contourslice1b.eps')
 # savefig('tmp_contourslice1b.png')
+plt.mainloop()
