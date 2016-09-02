@@ -2011,6 +2011,7 @@ class VTKBackend(BaseClass):
         self._g.display(show=self.getp('show'))
 
     def mainloop(self, **kwargs):
+        '''blocking call for showing tk widget'''
         print('<mainloop>') if DEBUG else None
         self.setp(**kwargs)
         self.all_show()
@@ -2021,7 +2022,7 @@ class VTKBackend(BaseClass):
         if self.getp('show'):
             for _, fig in list(self._figs.items()):
                 self.figure(fig.getp('number'))
-                if any(ax._iw for _, ax in list(fig.getp('axes').items())):
+                if any(hasattr(ax, '_iw') and ax._iw for _, ax in list(fig.getp('axes').items())):
                     fig._g.tkw.Start()  # self._g.tkw.Initialize()
                     fig._g.tkw.focus_force()
                     fig._g.tkw.update()

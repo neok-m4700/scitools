@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
-from scitools.std import *
+import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
+from scitools.std import *
 
 '''Demonstration on how to use the surf command'''
 
@@ -51,6 +50,8 @@ xv, yv = ndgrid(seq(-2.5, 2.5, 0.15), seq(-5, 5, 0.15))
 values = 70 * yv**2 * exp(-xv**2 - 0.2 * yv**2)
 surf(xv, yv, values)
 show()
+
+plt.mainloop()
 
 # savefig('surf1d.eps')
 # savefig('surf1d.png')

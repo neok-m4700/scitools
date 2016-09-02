@@ -2,10 +2,9 @@
 
 '''Demonstration of some more advanced examples on how to use the surf command
 to plot surfaces'''
-
+import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.std import *
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
 
 
 def test():
@@ -30,7 +29,7 @@ def test():
     x1 = c * ones(shape(X)) * (cos(X) * sin(X) - .5 * ones(shape(X)) + a * sin(Z1) * sin(X) / len_)
     y1 = a * c * cos(Z1) * ones(shape(X))
     z1 = ones(shape(X)) * cos(X) + a * c * sin(Z1) * cos(2 * X) / len_
-     #import sys; sys.exit()
+    # import sys; sys.exit()
     handleHndl = surf(x1, y1, z1, X)
     # set(handleHndl,'EdgeColor',[.5 .5 .5]);
     hold('on')
@@ -205,3 +204,4 @@ if __name__ == '__main__':
     test2()
     figure()
     test3()
+    plt.mainloop()

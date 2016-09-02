@@ -1,5 +1,4 @@
-import scitools.globaldata
-scitools.globaldata.backend = 'vtk_new'
+import scitools.globaldata; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 setp(show=False)
 
