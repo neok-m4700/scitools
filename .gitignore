@@ -2,6 +2,7 @@
 *.o
 *.so
 *.a
+*.pyc
 # temporary files:
 *.bak
 *.swp
@@ -28,3 +29,5 @@ temp*
 *.project
 # misc:
 .DS_Store
+# temporary directories
+build/
