@@ -1268,7 +1268,7 @@ class VTKBackend(BaseClass):
 
         self._set_actor_properties(item, actor)
         # self._add_legend(item, normals.GetOutput())
-        self._ax._renderer.AddActor(actor)
+        self._ax._renderer.AddActor(actor)  # DEBUG !!
         self._ax._apd.AddInputConnection(normals.GetOutputPort())
 
     def _add_contours(self, item, placement=None):
@@ -1280,6 +1280,9 @@ class VTKBackend(BaseClass):
         data = self._cut_data(plane, item)
 
         filled = item.getp('filled')  # draw filled contour plot if True
+        # filled = True  # DEBUG !!
+        # print('is filled', filled)
+        # print('function', item.getp('function'))
         if filled:
             iso = vtk.vtkBandedPolyDataContourFilter()
             iso.SetScalarModeToValue()
@@ -1292,13 +1295,12 @@ class VTKBackend(BaseClass):
         cvector, clevels = item.getp('cvector'), item.getp('clevels')
         data.Update(); datao = data.GetOutput()
         if cvector is None:
-            # the contour levels are chosen automatically
+            # the contour levels are chosen automagically
             zmin, zmax = datao.GetScalarRange()
             iso.SetNumberOfContours(clevels)
             iso.GenerateValues(clevels, zmin, zmax)
         else:
-            for i in range(clevels):
-                iso.SetValue(i, cvector[i])
+            [iso.SetValue(_, cvector[_]) for _ in range(clevels)]
 
         isoMapper = vtk.vtkPolyDataMapper()
         isoMapper.SetInputConnection(iso.GetOutputPort())
@@ -1321,6 +1323,9 @@ class VTKBackend(BaseClass):
         self._ax._renderer.AddActor(isoActor)
         self._ax._apd.AddInputConnection(data.GetOutputPort())
 
+        fgcolor = self._get_color(self._ax.getp('fgcolor'), (0, 0, 0))
+        edgecolor = self._get_color(item.getp('edgecolor'), fgcolor)
+
         if filled:
             # create contour edges:
             edgeMapper = vtk.vtkPolyDataMapper()
@@ -1328,33 +1333,32 @@ class VTKBackend(BaseClass):
             edgeMapper.SetResolveCoincidentTopologyToPolygonOffset()
             edgeActor = vtk.vtkActor()
             edgeActor.SetMapper(edgeMapper)
-            fgcolor = self._get_color(self._ax.getp('fgcolor'), (0, 0, 0))
-            edgecolor = self._get_color(item.getp('edgecolor'), fgcolor)
             edgeActor.GetProperty().SetColor(edgecolor)
-            # FIXME: use edgecolor property above (or black as default)
             self._ax._renderer.AddActor(edgeActor)
 
         if item.getp('clabels'):
-            # add labels on the contour curves
-            # subsample the points and label them:
+            # add labels on the contour curves subsample the points and label them
+            # print('    adding labels', 'fgcolor', fgcolor, 'edgecolor', edgecolor, 'bgcolor', self._ax.getp('bgcolor'))
+            # print('    ratio', int(datao.GetNumberOfPoints() / 50))
             mask = vtk.vtkMaskPoints()
             mask.SetInputConnection(iso.GetOutputPort())
-            mask.SetOnRatio(int(data.GetOutput().GetNumberOfPoints() / 50))
+            mask.SetOnRatio(int(datao.GetNumberOfPoints() / 50))
             mask.SetMaximumNumberOfPoints(50)
             mask.RandomModeOn()
 
-            # Create labels for points - only show visible points
+            # create labels for points - only show visible points
             visPts = vtk.vtkSelectVisiblePoints()
             visPts.SetInputConnection(mask.GetOutputPort())
             visPts.SetRenderer(self._ax._renderer)
+            visPts.Update()  # needed, else data is out of date, see classvtkSelectVisiblePoints.html
             ldm = vtk.vtkLabeledDataMapper()
             ldm.SetInputData(mask.GetOutput())  # vtkLabeledDataMapper has no attribute 'SetInputConnnection'
             ldm.SetLabelFormat('%.1g')
             ldm.SetLabelModeToLabelScalars()
             tprop = ldm.GetLabelTextProperty()
             tprop.SetFontFamilyToArial()
-            tprop.SetFontSize(10)
-            tprop.SetColor(0, 0, 0)
+            tprop.SetFontSize(self._ax.getp('fontsize') // 2)
+            tprop.SetColor(edgecolor)
             tprop.ShadowOff()
             tprop.BoldOff()
             contourLabels = vtk.vtkActor2D()
@@ -1764,7 +1768,7 @@ class VTKBackend(BaseClass):
                         cbar = ax.getp('colorbar')
                         _toggle_state(cbar, 'visible')
                     elif key == 's':
-                        self.hardcopy('fig.pdf', replot=False)
+                        self.hardcopy('fig.pdf', replot=False, vector_file=True, magnification=1, compression=False)
                         return
                     # got camtarget value from paraview default
                     #  --------- /     ^
@@ -2111,7 +2115,7 @@ class VTKBackend(BaseClass):
 
         if DEBUG:
             for _ in ('jpeg_quality', 'progressive', 'vector_file', 'orientation', 'raster3d', 'compression'):
-                print('    ', _, '=', locals()[_])
+                print('   ', _, '=', locals()[_])
 
         landscape = False
         if orientation.lower() == 'landscape':
