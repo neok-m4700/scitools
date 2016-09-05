@@ -41,7 +41,7 @@ from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
 from .misc import _update_from_config_file
 from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
-from numpy import indices
+import numpy as np
 from copy import deepcopy
 import os
 import sys
@@ -986,8 +986,9 @@ class VTKBackend(BaseClass):
             z *= 0
         if function in ['meshc', 'surfc'] and isinstance(item, Contours):
             # this item is the Contours object beneath the surface in a meshc or surfc plot.
+            # we add an epsilon value else we can have 'no input data' troubles
             z *= 0
-            z += self._ax._scaled_limits[4]
+            z += self._ax._scaled_limits[4] + np.finfo(np.float32).eps
 
         points = vtk.vtkPoints()
         points.SetNumberOfPoints(item.getp('numberofpoints'))
@@ -1293,6 +1294,7 @@ class VTKBackend(BaseClass):
         iso.SetInputConnection(data.GetOutputPort())
 
         cvector, clevels = item.getp('cvector'), item.getp('clevels')
+        # print('cvector', cvector, 'clevels', clevels) if DEBUG else None
         data.Update(); datao = data.GetOutput()
         if cvector is None:
             # the contour levels are chosen automagically
@@ -1343,7 +1345,7 @@ class VTKBackend(BaseClass):
             mask = vtk.vtkMaskPoints()
             mask.SetInputConnection(iso.GetOutputPort())
             mask.SetOnRatio(int(datao.GetNumberOfPoints() / 50))
-            mask.SetMaximumNumberOfPoints(50)
+            mask.SetMaximumNumberOfPoints(100)
             mask.RandomModeOn()
 
             # create labels for points - only show visible points
@@ -1934,7 +1936,7 @@ class VTKBackend(BaseClass):
                 fig._g.soft_reset(axs)
 
         nrows, ncols = fig.getp('axshape')
-        grid = indices((nrows, ncols))
+        grid = np.indices((nrows, ncols))
         rows, cols = grid[0].flatten()[::-1], grid[1].flatten()
         for axnr, ax in list(fig.getp('axes').items()):
             if ax.getp('numberofitems') == 0:

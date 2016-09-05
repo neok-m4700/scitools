@@ -8,7 +8,7 @@ setp(show=False)
 subplot(221); surf(values)
 subplot(222); surf(xv, yv, values, shading='flat')
 subplot(223); surf(values, shading='interp')
-subplot(224); surfc(values, clevels=10, clabels=True, filled=True)  # add contours beneath the surface
+subplot(224); surfc(values, cvector=[0], clabels=True)  # add contours beneath the surface
 setp(show=True)
 show()
 
