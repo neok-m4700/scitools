@@ -45,6 +45,7 @@ import numpy as np
 from copy import deepcopy
 import os
 import sys
+import readline  # see bugs.python.org/issue19884
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))

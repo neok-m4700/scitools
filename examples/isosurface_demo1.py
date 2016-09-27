@@ -4,13 +4,15 @@
 # http://www.mathworks.com/access/helpdesk/help/techdoc/ref/isosurface.html and
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3653.html
 import scitools.globaldata
-scitools.globaldata.DEBUG = 1
+scitools.globaldata.DEBUG = False
 scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 
 setp(show=False)
 
 x, y, z, v = flow()
+
+print(x.shape, y.shape, z.shape, v.shape)
 
 h = isosurface(x, y, z, v, -3)
 # setp(h, 'FaceColor', 'red', 'EdgeColor', 'none')
