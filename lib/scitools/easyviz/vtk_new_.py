@@ -1843,8 +1843,7 @@ class VTKBackend(BaseClass):
         except:
             # create plotting package figure and save figure instance as fig._g
             self.name = 'Figure ' + str(fig.getp('number'))
-            if DEBUG:
-                print('creating figure {} in backend'.format(self.name))
+            print('creating figure {} in backend'.format(self.name)) if DEBUG else None
 
             fig._g = _VTKFigure(self, title=self.name)
             self.register_bindings(fig._g.tkw)
@@ -1992,7 +1991,7 @@ class VTKBackend(BaseClass):
             self._set_axis_props(ax)
 
             if getattr(ax, '_iw', None) is not None:
-                print('after reset', ax._iw)
+                # print('after reset', ax._iw)
                 if ax._iw._on:
                     print('enabling widget')
                     # fig._g.iren.SetKeyCode('i')
