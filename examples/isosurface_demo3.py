@@ -2,10 +2,10 @@
 
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-7858.html
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
+import scitools.globaldata
+scitools.globaldata.DEBUG = False
+scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
-from scitools.easyviz.vtk_new_ import *
-
 from scipy import io
 
 setp(interactive=False)

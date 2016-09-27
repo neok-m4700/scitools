@@ -3,11 +3,10 @@
 # Example taken from:
 # http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3371.html
 import scitools.globaldata
-scitools.globaldata.DEBUG = 1
+scitools.globaldata.DEBUG = False
 scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 
-from time import sleep
 from scipy import io
 
 setp(interactive=False)
@@ -44,9 +43,8 @@ daspect([1, 1, .4])
 # set(hcap,'AmbientStrength',.6)
 # set(hiso,'SpecularColorReflectance',0,'SpecularExponent',50)
 
-plt.mainloop()
-
-input('Press Return key to quit: ')
 
 # savefig('tmp_isosurf2a.eps')
 # savefig('tmp_isosurf2a.png')
+
+plt.mainloop()
