@@ -579,7 +579,7 @@ class Surface(PlotProperties):
             self._prop['wireframe'] = _toggle_state(kwargs['wireframe'])
 
     def _parseargs(self, *args):
-        kwargs = {'indexing': self._prop['indexing']}
+        kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 3 and nargs <= 4:  # mesh(X,Y,Z) or mesh(x,y,Z)
             x, y, z = _check_xyz(*args[:3], **kwargs)
@@ -655,7 +655,7 @@ class Contours(PlotProperties):
     def _parseargs(self, *args):
         if isinstance(args[-1], str):  # contour(...,LineSpec)
             self.setformat(args[-1]); args = args[:-1]
-        kwargs = {'indexing': self._prop['indexing']}
+        kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 3 and nargs <= 4:
             x, y, z = _check_xyz(*args[:3], **kwargs)
@@ -739,7 +739,7 @@ class VelocityVectors(PlotProperties):
 
         z, w = [None] * 2
         func = self._prop['function']
-        kwargs = {'indexing': self._prop['indexing']}
+        kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs == 6 or nargs == 7:  # quiver3(X,Y,Z,U,V,W)
             x, y, z, u, v, w = _check_xyzuvw(*args[:6], **kwargs)
@@ -864,7 +864,7 @@ class Streams(PlotProperties):
         '''parsing remaining arguments after issuing setp() in __init__'''
         # TODO: do more error checking and add support for indexing='ij'.
         z, w, sz, option = [None] * 4
-        # kwargs = {'indexing': self._prop['indexing']}
+        # kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 9 and nargs <= 10:
             x, y, z, u, v, w, sx, sy, sz = [asarray(_) for _ in args[:9]]
@@ -1014,10 +1014,12 @@ class Volume(PlotProperties):
             self._parseargs_slice_(*args)
         elif func == 'isosurface':
             self._parseargs_isosurface(*args)
+        elif func == 'threshold':
+            self._parseargs_threshold(*args)
 
     def _parseargs_slice_(self, *args):
         # this method also works for contourslice
-        kwargs = {'indexing': self._prop['indexing']}
+        kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 7 and nargs <= 8:
             # slice_(X,Y,Z,V,Sx,Sy,Sz) or slice_(X,Y,Z,V,XI,YI,ZI)
@@ -1049,7 +1051,7 @@ class Volume(PlotProperties):
         self._set_data(x, y, z, v, slices=slices)
 
     def _parseargs_isosurface(self, *args):
-        kwargs = {'indexing': self._prop['indexing']}
+        kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 5 and nargs <= 6:  # isosurface(X,Y,Z,V,isovalue)
             x, y, z, v = _check_xyzv(*args[:4], **kwargs)
@@ -1066,6 +1068,23 @@ class Volume(PlotProperties):
             self._prop['cdata'] = cdata
 
         self._set_data(x, y, z, v, isovalue=isovalue)
+
+    def _parseargs_threshold(self, *args):
+        kwargs = dict(indexing=self._prop['indexing'])
+        nargs = len(args)
+        if nargs >= 4 and nargs <= 5:  # isosurface(X,Y,Z,V)
+            x, y, z, v = _check_xyzv(*args[:4], **kwargs)
+        elif nargs >= 1 and nargs <= 2:  # isosurface(V)
+            x, y, z, v = _check_xyzv(args[0], indexing=kwargs['indexing'])
+        else:
+            raise TypeError('Wrong number of arguments')
+
+        if nargs in (2, 5):  # isosurface(...,COLORS)
+            cdata = asarray(args[-1])
+            assert v.shape == cdata.shape, 'COLORS must have shape {} (as V), not {}'.format(v.shape, cdata.shape)
+            self._prop['cdata'] = cdata
+
+        self._set_data(x, y, z, v)
 
     def _set_data(self, x, y, z, v, slices=None, isovalue=None):
         self._set_lim(x, 'xlim')
@@ -1874,7 +1893,7 @@ class BaseClass:
         'semilogy', 'set', 'shading', 'show', 'slice_',
         'spring', 'streamline', 'streamribbon', 'streamslice',
         'streamtube', 'savefig', 'subplot', 'subvolume',
-        'summer', 'surf', 'surfc', 'surfl', 'title', 'vga', 'view',
+        'summer', 'surf', 'surfc', 'surfl', 'threshold', 'title', 'vga', 'view',
         'white', 'winter', 'xlabel', 'ylabel', 'zlabel']
     __doc__ += docadd('List of Matlab - like interface functions (for the user)', _matlab_like_cmds)
 
@@ -1892,7 +1911,7 @@ class BaseClass:
     _attrs_type = {'curfig': lambda arg: isinstance(arg, (int)),
                    'show': lambda arg: isinstance(arg, (bool)),
                    'interactive': lambda arg: isinstance(arg, (bool)),
-                   #'changed': lambda arg: isinstance(arg, (bool)),
+                   # 'changed': lambda arg: isinstance(arg, (bool)),
                    'color': lambda arg: isinstance(arg, (bool))
                    }
 
@@ -4388,6 +4407,30 @@ class BaseClass:
         >>> isosurface(x, y, z, v, -3, daspect=[1,1,1])
         '''
         kwargs['description'] = 'isosurface: isosurface extractor'
+        ax, args, nargs = self._check_args(*args)
+        h = Volume(*args, **kwargs)
+        ax.add(h)
+        if not ax.getp('hold') and 'view' not in kwargs:
+            kwargs['view'] = 3
+        ax.setp(**kwargs)
+        self.gcf().setp(**kwargs)
+        self.setp(**kwargs)
+
+        if self.getp('interactive') and self.getp('show'):
+            self._replot()
+        return h
+
+    def threshold(self, *args, **kwargs):
+        '''Thresholding volumetric data
+
+        Calling::
+
+            threshold(X,Y,Z,V)
+
+        @return: A Volume object.
+
+        '''
+        kwargs['description'] = 'threshold: thresholding volumetric data'
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
         ax.add(h)

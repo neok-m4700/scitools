@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 # Examples taken from:
-# http://www.mathworks.com/access/helpdesk/help/techdoc/ref/isosurface.html and
-# http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3653.html
+# mathworks.com/access/helpdesk/help/techdoc/ref/isosurface.html and
+# mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3653.html
 import scitools.globaldata
 scitools.globaldata.DEBUG = False
 scitools.globaldata.backend = 'vtk_new'

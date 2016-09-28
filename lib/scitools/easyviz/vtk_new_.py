@@ -57,7 +57,6 @@ sys.path.extend(lib_dirs)
 
 check_if_module_exists('vtk', msg='You need to install the vtk package.', abort=False)
 import vtk
-# print(dir(vtk))
 
 # check_if_module_exists('tkinter', msg='You need to install the Tkinter package.')
 try:
@@ -1091,6 +1090,11 @@ class VTKBackend(BaseClass):
         scalars.SetName('scalars')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
+        if c is not None:
+            pseudoc = vtk.vtkFloatArray()
+            pseudoc.SetName('pseudocolor')
+            pseudoc.SetNumberOfTuples(item.getp('numberofpoints'))
+            pseudoc.SetNumberOfComponents(1)
         nx, ny, nz = shape(v)
 
         if OPTIMIZATION == 'numba':
@@ -1102,12 +1106,16 @@ class VTKBackend(BaseClass):
                     for i in range(nx):
                         points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
                         scalars.SetValue(ind, v[i, j, k])
+                        pseudoc.SetValue(ind, c[i, j, k]) if c is not None else None
                         ind += 1
 
         sgrid = vtk.vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
+        # public.kitware.com/pipermail/vtkusers/2004-August/026366.html
         sgrid.GetPointData().SetScalars(scalars)
+        # insert an additionnal array, but do not make it active
+        sgrid.GetPointData().AddArray(pseudoc) if c is not None else None
 
         self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
@@ -1533,9 +1541,9 @@ class VTKBackend(BaseClass):
         print('<isosurface +>') if DEBUG else None
 
         # grid components:
-        x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
-        v = item.getp('vdata')  # volume
-        c = item.getp('cdata')  # pseudocolor data
+        # x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
+        # v = item.getp('vdata')  # volume
+        # c = item.getp('cdata')  # pseudocolor data
         isovalue = item.getp('isovalue')
 
         sgrid = self._create_3D_scalar_data(item)
@@ -1570,7 +1578,6 @@ class VTKBackend(BaseClass):
         print('<slices vol +>') if DEBUG else None
 
         sgrid = self._create_3D_scalar_data(item)
-        # sgrid.Modified()
 
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
@@ -1664,6 +1671,99 @@ class VTKBackend(BaseClass):
 
         self._add_slices(item, contours=True)
 
+    def _add_volume(self, item):
+        '''pyscience.wordpress.com/2014/11/16/volume-rendering-with-python-and-vtk'''
+        print('<volume +>') if DEBUG else None
+
+        pass
+
+    def _add_threshold(self, item):
+        print('<threshold +>') if DEBUG else None
+
+        v = item.getp('vdata')  # volume data
+
+        sgrid = self._create_3D_scalar_data(item)
+        sgrid.Update(); sgrido = sgrid.GetOutput()
+        print(sgrido)
+        print(sgrid.GetOutputPort())
+        if False:
+            writer = vtk.vtkStructuredGridWriter()
+            writer.SetFileName('_add_threshold.vtk')
+            writer.SetInputConnection(sgrid.GetOutputPort())
+            writer.Write()
+
+        threshold = vtk.vtkThreshold()
+        threshold.DebugOn()
+        threshold.SetAttributeModeToUsePointData()  # normally this should be default ?
+        threshold.SetInputConnection(sgrid.GetOutputPort())
+        threshold.AllScalarsOff()  # process only one scalar array
+        # vtk.vtkDataSetAttributes.SCALARS or 'scalars'
+        # threshold.SetInputArrayToProcess(0, 0, 0, vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS, vtk.vtkDataSetAttributes.SCALARS)
+        threshold.ThresholdBetween(v.min(), v.max())
+        threshold.Update(); data = threshold.GetOutput()
+        print(data)
+        print(v.min(), v.max())
+
+        miniRep = vtk.vtkSliderRepresentation2D()
+        miniRep.SetMinimumValue(v.min())
+        miniRep.SetMaximumValue(v.max())
+        miniRep.SetTitleText('lowerbound')
+        miniRep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        miniRep.GetPoint1Coordinate().SetValue(.05, .7)
+        miniRep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        miniRep.GetPoint2Coordinate().SetValue(.2, .7)
+        miniRep.GetTitleProperty().SetFontFamilyToCourier()
+
+        # cannot change the fontsize so easily: vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
+        maxiRep = vtk.vtkSliderRepresentation2D()
+        maxiRep.SetMinimumValue(v.min())
+        maxiRep.SetMaximumValue(v.max())
+        maxiRep.SetTitleText('upperbound')
+        maxiRep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        maxiRep.GetPoint1Coordinate().SetValue(.05, .9)
+        maxiRep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        maxiRep.GetPoint2Coordinate().SetValue(.2, .9)
+        maxiRep.GetTitleProperty().SetFontFamilyToCourier()
+
+        miniSlider = vtk.vtkSliderWidget()
+        miniSlider.SetInteractor(self._g.iren)
+        miniSlider.SetRepresentation(miniRep)
+        miniSlider.SetAnimationModeToJump()
+        miniSlider.EnabledOn()
+
+        maxiSlider = vtk.vtkSliderWidget()
+        maxiSlider.SetInteractor(self._g.iren)
+        maxiSlider.SetRepresentation(maxiRep)
+        maxiSlider.SetAnimationModeToJump()
+        maxiSlider.EnabledOn()
+
+        def cb_mini(obj, event):
+            nonlocal threshold, miniRep, maxiRep
+            maxi = maxiRep.GetValue()
+            minbound = min(miniRep.GetValue(), maxi)
+            miniRep.SetValue(minbound)
+            threshold.ThresholdBetween(minbound, maxi)
+
+        def cb_maxi(obj, event):
+            nonlocal threshold, miniRep, maxiRep
+            mini = miniRep.GetValue()
+            maxbound = max(mini, maxiRep.GetValue())
+            threshold.ThresholdBetween(mini, maxbound)
+
+        miniSlider.AddObserver('EndInteractionEvent', cb_mini)
+        maxiSlider.AddObserver('EndInteractionEvent', cb_maxi)
+
+        ugrid2poly = vtk.vtkGeometryFilter()
+        ugrid2poly.SetInputConnection(threshold.GetOutputPort())
+
+        # or should we use a vtkDataSetMapper() and threshold.GetOutputPort() ?
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputConnection(ugrid2poly.GetOutputPort())
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        self._ax._renderer.AddActor(actor)
+        self._ax._apd.AddInputConnection(ugrid2poly.GetOutputPort())
+
     def _set_figure_size(self, fig):
         print('<figure size>') if DEBUG else None
 
@@ -1673,7 +1773,7 @@ class VTKBackend(BaseClass):
             self._g.set_size(width, height)
         else:
             # use the default width and height in plotting package
-            self._g.set_size(800, 600)
+            self._g.set_size(900, 600)
             pass
 
     def find_poked(self, event):
@@ -1775,7 +1875,7 @@ class VTKBackend(BaseClass):
                         return
                     # got camtarget value from paraview default
                     #  --------- /     ^
-                    # |camera-->|      |(view up)   x(focal point) ---> (direction of projection)
+                    # |camera-->|      |(view up)   x(focal point) ---> (direction of projection = view plane normal)
                     #  --------- \
                     elif key in ('kp_4', 'kp_left'):  # +X into the screen, Y up
                         _set_camera(ax, campos=(-1, 0, 0), camup=(0, 1, 0))
@@ -1973,6 +2073,10 @@ class VTKBackend(BaseClass):
                         self._add_slices(item)
                     elif func == 'contourslice':
                         self._add_contourslices(item)
+                    elif func == 'volume':
+                        self._add_volume(item)
+                    elif func == 'threshold':
+                        self._add_threshold(item)
                 # legend = self._fix_latex(item.getp('legend'))
                 legend = item.getp('legend')
                 if legend:
