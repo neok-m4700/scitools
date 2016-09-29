@@ -971,6 +971,7 @@ class Volume(PlotProperties):
     _local_prop = {
         'slices': None,
         'isovalue': None,
+        'allscalars': None,
         'clevels': 5,  # default number of contour lines per plane
         'cvector': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
@@ -994,6 +995,10 @@ class Volume(PlotProperties):
         if 'isovalue' in kwargs:
             _check_type(kwargs['isovalue'], 'isovalue', (float, int))
             self._prop['isovalue'] = float(kwargs['isovalue'])
+
+        if 'allscalars' in kwargs:
+            _check_type(kwargs['allscalars'], 'allscalars', bool)
+            self._prop['allscalars'] = kwargs.pop('allscalars')  # remove allscalars from kwargs
 
         if 'clevels' in kwargs:
             clevels = kwargs['clevels']
@@ -1072,14 +1077,14 @@ class Volume(PlotProperties):
     def _parseargs_threshold(self, *args):
         kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
-        if nargs >= 4 and nargs <= 5:  # isosurface(X,Y,Z,V)
+        if nargs >= 4 and nargs <= 5:  # threshold(X,Y,Z,V)
             x, y, z, v = _check_xyzv(*args[:4], **kwargs)
-        elif nargs >= 1 and nargs <= 2:  # isosurface(V)
+        elif nargs >= 1 and nargs <= 2:  # threshold(V)
             x, y, z, v = _check_xyzv(args[0], indexing=kwargs['indexing'])
         else:
             raise TypeError('Wrong number of arguments')
 
-        if nargs in (2, 5):  # isosurface(...,COLORS)
+        if nargs in (2, 5):  # threshold(...,COLORS)
             cdata = asarray(args[-1])
             assert v.shape == cdata.shape, 'COLORS must have shape {} (as V), not {}'.format(v.shape, cdata.shape)
             self._prop['cdata'] = cdata
