@@ -971,7 +971,7 @@ class Volume(PlotProperties):
     _local_prop = {
         'slices': None,
         'isovalue': None,
-        'allscalars': None,
+        'allscalars': True,
         'clevels': 5,  # default number of contour lines per plane
         'cvector': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components

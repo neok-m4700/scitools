@@ -26,8 +26,9 @@ v_vtk = data.GetPointData().GetArray(0)
 v = vtk_to_numpy(v_vtk).reshape(shape)
 x, y, z = (_.reshape(shape) for _ in (x, y, z))
 
-
-threshold(x, y, z, v, v.copy() + 100)
+# !! v.dtype=uint8: (0, 255), so c in in range (0, 255) too
+c = v + 150
+threshold(x, y, z, v, c)
 colorbar()
 
 plt.mainloop(show=True)

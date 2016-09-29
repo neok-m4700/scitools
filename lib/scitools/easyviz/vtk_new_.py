@@ -674,6 +674,8 @@ class VTKBackend(BaseClass):
             scalarBar.SetTitle(cbar.getp('cbtitle'))
             scalarBar.SetOrientationToHorizontal()
             scalarBar.SetBarRatio(.1 * scalarBar.GetBarRatio())
+            scalarBar.UnconstrainedFontSizeOn()
+            scalarBar.GetLabelTextProperty().SetFontSize(int(.8 * scalarBar.GetLabelTextProperty().GetFontSize()))
             ax._renderer.AddActor(scalarBar)
 
     def _set_caxis(self, ax):
@@ -1690,12 +1692,6 @@ class VTKBackend(BaseClass):
         sgrid = self._create_3D_scalar_data(item)
         sgrid.Update(); sgrido = sgrid.GetOutput()
 
-        # print(sgrido, 'sgrido')
-        # print('§§  ' * 25)
-        # print(sgrido.GetPointData())
-        # print('!!  ' * 25)
-        # print(sgrido.GetPointData().GetArray('pseudocolor'))
-        # print(sgrido.GetPointData().GetArray('pseudocolor').GetRange())
         if False:
             writer = vtkStructuredGridWriter()
             writer.SetFileName('_add_threshold.vtk')
@@ -1771,11 +1767,12 @@ class VTKBackend(BaseClass):
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(data.GetOutputPort())
-        mapper.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, 'pseudocolor')
+        mapper.SetScalarModeToUsePointFieldData()
+        mapper.SelectColorArray('pseudocolor' if item.getp('cdata') is not None else 'scalars')
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
-            cax = sgrido.GetPointData().GetArray('pseudocolor').GetRange()
+            cax = sgrido.GetPointData().GetArray('pseudocolor' if item.getp('cdata') is not None else 'scalars').GetRange()
         mapper.SetScalarRange(cax)
         actor = vtkActor()
         actor.SetMapper(mapper)
