@@ -63,7 +63,7 @@ All functions and modules must then be prefixed by ``st``:
 ``st.float_eq``, ``st.StringFunction``, ``st.plot``, etc.
 """
 
-__version__ = '0.9.0'
+__version__ = '1.0.0'
 version = __version__
 __author__ = 'Johannes H. Ring', 'Hans Petter Langtangen', \
 
@@ -76,7 +76,8 @@ __acknowledgments__ = 'Joachim Berdal Haga', 'Mario Pernici', \
 
 try:
     # for backward compatibility:
-    import sys, std
+    import sys
+    import std
     sys.modules['scitools.all'] = std
     try:
         from . import TkGUI

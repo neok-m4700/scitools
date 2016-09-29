@@ -26,7 +26,7 @@ methods below. The most important methods are figure, _replot, and hardcopy.
 REQUIREMENTS:
 
 VTK >= 4.2
-Python bindings for VTK.
+Python bindings for 
 
 Notes:
 
@@ -56,7 +56,7 @@ sys.path.extend(lib_dirs)
 # print(sys.path)
 
 check_if_module_exists('vtk', msg='You need to install the vtk package.', abort=False)
-import vtk
+from vtk import *
 
 # check_if_module_exists('tkinter', msg='You need to install the Tkinter package.')
 try:
@@ -70,17 +70,17 @@ except:
 try:
     import vtkTkRenderWidget
 except:
-    from vtk.tk import vtkTkRenderWidget
-    # print('from vtk.tk import vtkTkRenderWidget')
+    from tk import vtkTkRenderWidget
+    # print('from tk import vtkTkRenderWidget')
 
 try:
     import vtkTkRenderWindowInteractor
 except:
-    from vtk.tk import vtkTkRenderWindowInteractor
-    # print('from vtk.tk import vtkTkRenderWindowInteractor')
+    from tk import vtkTkRenderWindowInteractor
+    # print('from tk import vtkTkRenderWindowInteractor')
 
 
-from vtk.util.vtkAlgorithm import VTKPythonAlgorithmBase
+from util.vtkAlgorithm import VTKPythonAlgorithmBase
 
 _vtk_options = {'mesa': 0,
                 'vtk_inc_dir': inc_dirs,
@@ -88,10 +88,10 @@ _vtk_options = {'mesa': 0,
 _update_from_config_file(_vtk_options, section='vtk')
 
 if _vtk_options['mesa']:
-    _graphics_fact = vtk.vtkGraphicsFactory()
+    _graphics_fact = vtkGraphicsFactory()
     _graphics_fact.SetOffScreenOnlyMode(1)
     _graphics_fact.SetUseMesaClasses(1)
-    _imaging_fact = vtk.vtkImagingFactory()
+    _imaging_fact = vtkImagingFactory()
     _imaging_fact.SetUseMesaClasses(1)
     del _graphics_fact
     del _imaging_fact
@@ -127,7 +127,7 @@ class _VTKFigure:
         self.renwin.SetSize(self.width, self.height)
         self.iren = self.renwin.GetInteractor()
         # force trackball mode, see also vtkInteractorObserver::OnChar or vtk3DWidget
-        self.iren.SetInteractorStyle(vtk.vtkInteractorStyleTrackballCamera())
+        self.iren.SetInteractorStyle(vtkInteractorStyleTrackballCamera())
         self.tkw.focus_force()  # needed for the callback to work
         self.tkw.update()
         print('<_init>') if DEBUG else None
@@ -227,9 +227,9 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
 
     def RequestData(self, request, inInfo, outInfo):
         if self.outputType == 'vtkStructuredGrid':
-            dset = vtk.vtkStructuredGrid
+            dset = vtkStructuredGrid
         elif self.outputType == 'vtkPolyData':
-            dset = vtk.vtkPolyData
+            dset = vtkPolyData
         opt = dset.GetData(outInfo)
         opt.ShallowCopy(self.data)
         return 1
@@ -240,9 +240,9 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
 
 def vtkInteractiveWidget(parent, **kwargs):
     if 'boxwidget' in parent.lower():
-        klass, plane = vtk.vtkBoxWidget, vtk.vtkPlanes()
+        klass, plane = vtkBoxWidget, vtkPlanes()
     elif 'implicitplanewidget' in parent.lower():
-        klass, plane = vtk.vtkImplicitPlaneWidget, vtk.vtkPlane()
+        klass, plane = vtkImplicitPlaneWidget, vtkPlane()
     else:
         raise NotImplementedError('wrong type of parent: {}'.format(parent))
 
@@ -257,11 +257,11 @@ def vtkInteractiveWidget(parent, **kwargs):
             old = getattr(self.ax, '_iw', None)
             self._hs = getattr(old, '_hs', self.GetHandleSize() / 3)
             self._on = getattr(old, '_on', False)
-            if isinstance(self, vtk.vtkBoxWidget):
-                self._t = vtk.vtkTransform()
-                if isinstance(old, vtk.vtkBoxWidget):
+            if isinstance(self, vtkBoxWidget):
+                self._t = vtkTransform()
+                if isinstance(old, vtkBoxWidget):
                     old.GetTransform(self._t)
-            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+            elif isinstance(self, vtkImplicitPlaneWidget):
                 self._b = getattr(old, '_b', (-1, 1, -1, 1, -1, 1))
             if len(getattr(old, '_obs', [])) > 0:
                 old._RemoveObservers()
@@ -273,18 +273,18 @@ def vtkInteractiveWidget(parent, **kwargs):
             self.SetPlaceFactor(1.01)
             self.SetInputConnection(kwargs.get('ic'))
             self.PlaceWidget()
-            if isinstance(self, vtk.vtkBoxWidget):
+            if isinstance(self, vtkBoxWidget):
                 self.GetOutlineProperty().SetColor(self.ax.getp('axiscolor'))
                 self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
                 self.SetTransform(self._t)
-            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+            elif isinstance(self, vtkImplicitPlaneWidget):
                 [_.SetColor(self.ax.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
-                self._pd = vtk.vtkPolyData()
+                self._pd = vtkPolyData()
 
         def _GetPlane(self):
-            if isinstance(self, vtk.vtkBoxWidget):
+            if isinstance(self, vtkBoxWidget):
                 self.GetPlanes(self._p)
-            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+            elif isinstance(self, vtkImplicitPlaneWidget):
                 self.GetPlane(self._p)
 
         def _RemoveObservers(self):
@@ -302,9 +302,9 @@ def vtkInteractiveWidget(parent, **kwargs):
                 self._obs.append(self.AddObserver(e, c))
 
         def _SaveWidget(self):
-            if isinstance(self, vtk.vtkBoxWidget):
+            if isinstance(self, vtkBoxWidget):
                 self.GetTransform(self._t)
-            elif isinstance(self, vtk.vtkImplicitPlaneWidget):
+            elif isinstance(self, vtkImplicitPlaneWidget):
                 self.GetPolyData(self._pd)
                 pts = self._pd.GetPoints()
                 if pts:
@@ -315,11 +315,11 @@ def vtkInteractiveWidget(parent, **kwargs):
                 if ax == self.ax:
                     continue
                 if ax._iw is not None:
-                    if all(isinstance(_, vtk.vtkBoxWidget) for _ in (self, ax._iw)):
+                    if all(isinstance(_, vtkBoxWidget) for _ in (self, ax._iw)):
                         ax._iw._t = self._t
                         ax._iw.SetTransform(self._t)
                         ax._iw.InvokeEvent('InteractionEvent')
-                    elif all(isinstance(_, vtk.vtkImplicitPlaneWidget) for _ in (self, ax._iw)):
+                    elif all(isinstance(_, vtkImplicitPlaneWidget) for _ in (self, ax._iw)):
                         ax._iw._pd = self._pd
                         ax._iw._b = self._b
                         ax._iw.PlaceWidget(ax._iw._b)
@@ -476,17 +476,17 @@ class VTKBackend(BaseClass):
         title = ax.getp('title')
         if title:
             print('<title>') if DEBUG else None
-            tprop = vtk.vtkTextProperty()
+            tprop = vtkTextProperty()
             tprop.BoldOff()
             tprop.SetFontSize(ax.getp('fontsize'))
             tprop.SetColor(ax.getp('fgcolor'))
             tprop.SetFontFamilyToArial()
             tprop.SetVerticalJustificationToTop()
             tprop.SetJustificationToCentered()
-            tmapper = vtk.vtkTextMapper()
+            tmapper = vtkTextMapper()
             tmapper.SetInput(title)
             tmapper.SetTextProperty(tprop)
-            tactor = vtk.vtkActor2D()
+            tactor = vtkActor2D()
             tactor.SetMapper(tmapper)
             tactor.GetPositionCoordinate().SetCoordinateSystemToView()
             tactor.GetPositionCoordinate().SetValue(.0, .95)
@@ -504,8 +504,7 @@ class VTKBackend(BaseClass):
             xmin, xmax, ymin, ymax, zmin, zmax = ax.get_limits()
         elif mode == 'manual':
             # (some) axis limits are frozen
-            xmin = ax.getp('xmin')
-            xmax = ax.getp('xmax')
+            xmin, xmax = ax.getp('xmin'), ax.getp('xmax')
             if xmin is not None and xmax is not None:
                 # set x-axis limits
                 pass
@@ -513,8 +512,7 @@ class VTKBackend(BaseClass):
                 # let plotting package set x-axis limits or use
                 xmin, xmax = ax.getp('xlim')
 
-            ymin = ax.getp('ymin')
-            ymax = ax.getp('ymax')
+            ymin, ymax = ax.getp('ymin'), ax.getp('ymax')
             if ymin is not None and ymax is not None:
                 # set y-axis limits
                 pass
@@ -522,8 +520,7 @@ class VTKBackend(BaseClass):
                 # let plotting package set y-axis limits or use
                 ymin, ymax = ax.getp('ylim')
 
-            zmin = ax.getp('zmin')
-            zmax = ax.getp('zmax')
+            zmin, zmax = ax.getp('zmin'), ax.getp('zmax')
             if zmin is not None and zmax is not None:
                 # set z-axis limits
                 pass
@@ -606,19 +603,19 @@ class VTKBackend(BaseClass):
         # see cubeAxes.py
         if ax.getp('box'):
             print('<box>') if DEBUG else None
-            normals = vtk.vtkPolyDataNormals()
+            normals = vtkPolyDataNormals()
             normals.SetInputConnection(ax._apd.GetOutputPort())
-            outline = vtk.vtkOutlineFilter()
+            outline = vtkOutlineFilter()
             outline.SetInputConnection(normals.GetOutputPort())
-            mapOutline = vtk.vtkPolyDataMapper()
+            mapOutline = vtkPolyDataMapper()
             mapOutline.SetInputConnection(outline.GetOutputPort())
-            outlineActor = vtk.vtkActor()
+            outlineActor = vtkActor()
             outlineActor.SetMapper(mapOutline)
             outlineActor.GetProperty().SetColor(0, 0, 0)
-            tprop = vtk.vtkTextProperty()
+            tprop = vtkTextProperty()
             tprop.SetColor(1, 1, 1)
             tprop.ShadowOn()
-            axes = vtk.vtkCubeAxesActor2D()
+            axes = vtkCubeAxesActor2D()
             axes.SetInputConnection(normals.GetOutputPort())
             axes.SetCamera(ax._renderer.GetActiveCamera())
             axes.SetLabelFormat('%6.4g')
@@ -638,13 +635,13 @@ class VTKBackend(BaseClass):
         if ax.getp('grid'):
             print('<grid>') if DEBUG else None
             # turn grid lines on
-            geom = vtk.vtkStructuredGridGeometryFilter()
+            geom = vtkStructuredGridGeometryFilter()
             geom.SetInputConnection(self.sgrid.GetOutputPort())
-            mapper = vtk.vtkPolyDataMapper()
+            mapper = vtkPolyDataMapper()
             mapper.SetInputConnection(geom.GetOutputPort())
             mapper.ScalarVisibilityOff()
             # mapper.SetLookupTable(self._ax._colormap)  # why use a colormap on grid points ?
-            actor = vtk.vtkActor()
+            actor = vtkActor()
             actor.SetMapper(mapper)
             actor.GetProperty().SetColor(*ax.getp('axiscolor'))
             ax._renderer.AddActor(actor)
@@ -668,14 +665,14 @@ class VTKBackend(BaseClass):
             print('<colorbar>') if DEBUG else None
             cbar_title = cbar.getp('cbtitle')
             # TODO: position the scalarbar actor according to cbar_location
+            # The initial scalar bar size is (.05 x .8) of the viewport size (doc vtk)
             cbar_location = self._colorbar_locations[cbar.getp('cblocation')]
-            scalarBar = vtk.vtkScalarBarActor()
+            scalarBar = vtkScalarBarActor()
             scalarBar.SetLookupTable(ax._colormap)
             scalarBar.SetTitle(cbar.getp('cbtitle'))
             scalarBar.SetOrientationToHorizontal()
+            scalarBar.SetBarRatio(.1 * scalarBar.GetBarRatio())
             ax._renderer.AddActor(scalarBar)
-        else:
-            pass
 
     def _set_caxis(self, ax):
         '''set the color axis scale'''
@@ -698,7 +695,7 @@ class VTKBackend(BaseClass):
 
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
-        if not isinstance(cmap, vtk.vtkLookupTable):
+        if not isinstance(cmap, vtkLookupTable):
             cmap = self.viridis()  # use default colormap
         ax._colormap = cmap
 
@@ -716,8 +713,12 @@ class VTKBackend(BaseClass):
 
         # unit axes
         if ax.getp('unit'):
-            axes = vtk.vtkAxesActor()
-            [_.GetTextActor().SetTextScaleModeToNone() for _ in (axes.GetXAxisCaptionActor2D(), axes.GetYAxisCaptionActor2D(), axes.GetZAxisCaptionActor2D())]
+            axes = vtkAxesActor()
+            xmin, xmax, ymin, ymax, zmin, zmax = ax._scaled_limits
+            xspan, yspan, zspan = .5 * abs(xmax - xmin), .5 * abs(ymax - ymin), .5 * abs(zmax - zmin)
+            axes.SetTotalLength((.2 * max(xspan, yspan, zspan),) * 3)
+            for _ in (axes.GetXAxisCaptionActor2D(), axes.GetYAxisCaptionActor2D(), axes.GetZAxisCaptionActor2D()):
+                _.GetTextActor().SetTextScaleModeToNone()
             # axes.SetScale(.5)
             ax._renderer.AddActor(axes)
 
@@ -725,7 +726,7 @@ class VTKBackend(BaseClass):
         view, focalpoint, position, upvector = cam.getp('view'), cam.getp('camtarget'), cam.getp('campos'), cam.getp('camup')
         camroll, viewangle = cam.getp('camroll'), cam.getp('camva')
 
-        camera = vtk.vtkCamera()
+        camera = vtkCamera()
         for axis in self.gcf().getp('axes').values():
             _ = getattr(axis, '_camera', None)
             if _ is not None:
@@ -832,10 +833,10 @@ class VTKBackend(BaseClass):
         islice = item.getp('islice')
 
         # data boundaries clipper
-        box = vtk.vtkBox()
+        box = vtkBox()
         box.SetBounds(self._ax._scaled_limits)
 
-        clipper = vtk.vtkClipPolyData()
+        clipper = vtkClipPolyData()
         clipper.SetInputConnection(data.GetOutputPort())
         clipper.SetClipFunction(box)
         clipper.SetValue(0)
@@ -850,7 +851,7 @@ class VTKBackend(BaseClass):
                 ic=data.GetOutputPort()
             )
 
-            iclipper = vtk.vtkClipPolyData()
+            iclipper = vtkClipPolyData()
             iclipper.SetInputConnection(data.GetOutputPort())
             iclipper.SetClipFunction(self._ax._iw._p)
             iclipper.SetValue(0)
@@ -861,13 +862,13 @@ class VTKBackend(BaseClass):
                 obj._GetPlane()
 
             def pw_start_interaction(obj, event):
-                if isinstance(obj, vtk.vtkBoxWidget):
+                if isinstance(obj, vtkBoxWidget):
                     obj.OutlineCursorWiresOn()
                     obj.GetHandleProperty().SetOpacity(.5)
                 obj.GetOutlineProperty().SetOpacity(.5)
 
             def pw_end_interaction(obj, event):
-                if isinstance(obj, vtk.vtkBoxWidget):
+                if isinstance(obj, vtkBoxWidget):
                     obj.OutlineCursorWiresOff()
                     obj.GetHandleProperty().SetOpacity(.2)
                 obj.GetOutlineProperty().SetOpacity(0)
@@ -909,9 +910,9 @@ class VTKBackend(BaseClass):
             actor.GetProperty().SetInterpolationToFlat()
         else:
             actor.GetProperty().SetInterpolationToPhong()
-            edges = vtk.vtkExtractEdges()
+            edges = vtkExtractEdges()
             edges.SetInputConnection(source.GetOutputPort())
-            mapper = vtk.vtkPolyDataMapper()
+            mapper = vtkPolyDataMapper()
             mapper.SetInputConnection(edges.GetOutputPort())
             mapper.ScalarVisibilityOff()
             mapper.SetResolveCoincidentTopologyToPolygonOffset()
@@ -922,7 +923,7 @@ class VTKBackend(BaseClass):
                 edgecolor = self._colors.get(item.getp('linecolor'), None)
 
             if edgecolor is not None:
-                mesh = vtk.vtkActor()
+                mesh = vtkActor()
                 mesh.SetMapper(mapper)
                 mesh.GetProperty().SetColor(edgecolor)
                 self._ax._renderer.AddActor(mesh)
@@ -990,9 +991,9 @@ class VTKBackend(BaseClass):
             z *= 0
             z += self._ax._scaled_limits[4] + np.finfo(np.float32).eps
 
-        points = vtk.vtkPoints()
+        points = vtkPoints()
         points.SetNumberOfPoints(item.getp('numberofpoints'))
-        scalars = vtk.vtkFloatArray()
+        scalars = vtkFloatArray()
         scalars.SetName('vectors')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
@@ -1008,7 +1009,7 @@ class VTKBackend(BaseClass):
                     scalars.SetValue(ind, c[i, j])
                     ind += 1
 
-        sgrid = vtk.vtkStructuredGrid()
+        sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetScalars(scalars)
@@ -1041,9 +1042,9 @@ class VTKBackend(BaseClass):
         assert shape(x) == shape(u) and shape(y) == shape(u) and shape(z) == shape(u) and shape(v) == shape(u) and shape(w) == shape(u)
 
         n = item.getp('numberofpoints')
-        points = vtk.vtkPoints()
+        points = vtkPoints()
         points.SetNumberOfPoints(n)
-        vectors = vtk.vtkFloatArray()
+        vectors = vtkFloatArray()
         vectors.SetName('vectors')
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
@@ -1060,7 +1061,7 @@ class VTKBackend(BaseClass):
                     vectors.SetTuple3(ind, u[i, j], v[i, j], w[i, j])
                     ind += 1
 
-        sgrid = vtk.vtkStructuredGrid()
+        sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetVectors(vectors)
@@ -1084,14 +1085,14 @@ class VTKBackend(BaseClass):
         dx, dy, dz = self._ax.getp('daspect')
         x, y, z = x / dx, y / dy, z / dz
 
-        points = vtk.vtkPoints()
+        points = vtkPoints()
         points.SetNumberOfPoints(item.getp('numberofpoints'))
-        scalars = vtk.vtkFloatArray()
+        scalars = vtkFloatArray()
         scalars.SetName('scalars')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
         if c is not None:
-            pseudoc = vtk.vtkFloatArray()
+            pseudoc = vtkFloatArray()
             pseudoc.SetName('pseudocolor')
             pseudoc.SetNumberOfTuples(item.getp('numberofpoints'))
             pseudoc.SetNumberOfComponents(1)
@@ -1109,7 +1110,7 @@ class VTKBackend(BaseClass):
                         pseudoc.SetValue(ind, c[i, j, k]) if c is not None else None
                         ind += 1
 
-        sgrid = vtk.vtkStructuredGrid()
+        sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
         # public.kitware.com/pipermail/vtkusers/2004-August/026366.html
@@ -1137,16 +1138,16 @@ class VTKBackend(BaseClass):
         assert shape(x) == shape(u) and shape(y) == shape(u) and shape(z) == shape(u) and shape(v) == shape(u) and shape(w) == shape(u)
 
         n = item.getp('numberofpoints')
-        points = vtk.vtkPoints()
+        points = vtkPoints()
         points.SetNumberOfPoints(n)
-        vectors = vtk.vtkFloatArray()
+        vectors = vtkFloatArray()
         vectors.SetName('vectors')
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
         nx, ny, nz = shape(u)
         nc = (nx - 1) * (ny - 1) * (nz - 1)
-        scalars = vtk.vtkFloatArray()
+        scalars = vtkFloatArray()
         scalars.SetName('scalars')
         scalars.SetNumberOfTuples(nc)
         scalars.SetNumberOfComponents(1)
@@ -1171,7 +1172,7 @@ class VTKBackend(BaseClass):
                         scalars.SetValue(ind, sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
                         ind += 1
 
-        sgrid = vtk.vtkStructuredGrid()
+        sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetScalars(scalars)
@@ -1186,20 +1187,20 @@ class VTKBackend(BaseClass):
         if z is None:
             z = zeros(x.shape)
 
-        points = vtk.vtkPoints()
+        points = vtkPoints()
         [points.InsertPoint(_, x[_], y[_], z[_]) for _ in range(len(x))]
 
-        lines = vtk.vtkCellArray()
+        lines = vtkCellArray()
         lines.InsertNextCell(len(x))
 
         [lines.InsertCellPoint(_) for _ in range(len(x) - 1)]
         lines.InsertCellPoint(0)
 
-        polydata = vtk.vtkPolyData()
+        polydata = vtkPolyData()
         polydata.SetPoints(points)
         polydata.SetLines(lines)
 
-        sgrid = vtk.vtkStructuredGrid()
+        sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
         self.sgrid = vtkAlgorithmSource(sgrid)
@@ -1224,15 +1225,14 @@ class VTKBackend(BaseClass):
         line3D = self._create_3D_line_data(item)
 
         data = self._cut_data(line3D, item)
-        mapper = vtk.vtkDataSetMapper()
+        mapper = vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
-            data.Update()
-            cax = data.GetOutput().GetScalarRange()
+            data.Update(); cax = data.GetOutput().GetScalarRange()
         mapper.SetScalarRange(cax)
-        actor = vtk.vtkActor()
+        actor = vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
@@ -1255,21 +1255,20 @@ class VTKBackend(BaseClass):
             # colored surface (as produced by surf, surfc, or pcolor)
             # use keyword argument shading to set the color shading mode
             pass
-        plane = vtk.vtkStructuredGridGeometryFilter()
+        plane = vtkStructuredGridGeometryFilter()
         plane.SetInputConnection(sgrid.GetOutputPort())
         data = self._cut_data(plane, item)
-        normals = vtk.vtkPolyDataNormals()
+        normals = vtkPolyDataNormals()
         normals.SetInputConnection(data.GetOutputPort())
         normals.SetFeatureAngle(45)
-        mapper = vtk.vtkDataSetMapper()
+        mapper = vtkDataSetMapper()
         mapper.SetInputConnection(normals.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
-            data.Update()
-            cax = data.GetOutput().GetScalarRange()
+            data.Update(); cax = data.GetOutput().GetScalarRange()
         mapper.SetScalarRange(cax)
-        actor = vtk.vtkActor()
+        actor = vtkActor()
         actor.SetMapper(mapper)
         if item.getp('wireframe'):
             actor.GetProperty().SetRepresentationToWireframe()
@@ -1285,7 +1284,7 @@ class VTKBackend(BaseClass):
         # The placement keyword can be either None or 'bottom'. The latter specifies that the contours should be placed at the  bottom (as in meshc or surfc)
         print('<contours +>') if DEBUG else None
         sgrid = self._create_2D_scalar_data(item)
-        plane = vtk.vtkStructuredGridGeometryFilter()
+        plane = vtkStructuredGridGeometryFilter()
         plane.SetInputConnection(sgrid.GetOutputPort())
         data = self._cut_data(plane, item)
 
@@ -1294,12 +1293,12 @@ class VTKBackend(BaseClass):
         # print('is filled', filled)
         # print('function', item.getp('function'))
         if filled:
-            iso = vtk.vtkBandedPolyDataContourFilter()
+            iso = vtkBandedPolyDataContourFilter()
             iso.SetScalarModeToValue()
             # iso.SetScalarModeToIndex()
             iso.GenerateContourEdgesOn()
         else:
-            iso = vtk.vtkContourFilter()
+            iso = vtkContourFilter()
         iso.SetInputConnection(data.GetOutputPort())
 
         cvector, clevels = item.getp('cvector'), item.getp('clevels')
@@ -1313,7 +1312,7 @@ class VTKBackend(BaseClass):
         else:
             [iso.SetValue(_, cvector[_]) for _ in range(clevels)]
 
-        isoMapper = vtk.vtkPolyDataMapper()
+        isoMapper = vtkPolyDataMapper()
         isoMapper.SetInputConnection(iso.GetOutputPort())
         cmap = self._ax._colormap
         if filled:
@@ -1327,7 +1326,7 @@ class VTKBackend(BaseClass):
         if item.getp('linecolor'):  # linecolor is defined
             isoMapper.ScalarVisibilityOff()
 
-        isoActor = vtk.vtkActor()
+        isoActor = vtkActor()
         isoActor.SetMapper(isoMapper)
         self._set_actor_properties(item, isoActor)
         # self.add_legend(item, iso.GetOutput())
@@ -1339,10 +1338,10 @@ class VTKBackend(BaseClass):
 
         if filled:
             # create contour edges:
-            edgeMapper = vtk.vtkPolyDataMapper()
+            edgeMapper = vtkPolyDataMapper()
             edgeMapper.SetInputData(iso.GetContourEdgesOutput())
             edgeMapper.SetResolveCoincidentTopologyToPolygonOffset()
-            edgeActor = vtk.vtkActor()
+            edgeActor = vtkActor()
             edgeActor.SetMapper(edgeMapper)
             edgeActor.GetProperty().SetColor(edgecolor)
             self._ax._renderer.AddActor(edgeActor)
@@ -1351,18 +1350,18 @@ class VTKBackend(BaseClass):
             # add labels on the contour curves subsample the points and label them
             # print('    adding labels', 'fgcolor', fgcolor, 'edgecolor', edgecolor, 'bgcolor', self._ax.getp('bgcolor'))
             # print('    ratio', int(datao.GetNumberOfPoints() / 50))
-            mask = vtk.vtkMaskPoints()
+            mask = vtkMaskPoints()
             mask.SetInputConnection(iso.GetOutputPort())
             mask.SetOnRatio(int(datao.GetNumberOfPoints() / 50))
             mask.SetMaximumNumberOfPoints(100)
             mask.RandomModeOn()
 
             # create labels for points - only show visible points
-            visPts = vtk.vtkSelectVisiblePoints()
+            visPts = vtkSelectVisiblePoints()
             visPts.SetInputConnection(mask.GetOutputPort())
             visPts.SetRenderer(self._ax._renderer)
             visPts.Update()  # needed, else data is out of date, see classvtkSelectVisiblePoints.html
-            ldm = vtk.vtkLabeledDataMapper()
+            ldm = vtkLabeledDataMapper()
             ldm.SetInputData(mask.GetOutput())  # vtkLabeledDataMapper has no attribute 'SetInputConnnection'
             ldm.SetLabelFormat('%.1g')
             ldm.SetLabelModeToLabelScalars()
@@ -1372,7 +1371,7 @@ class VTKBackend(BaseClass):
             tprop.SetColor(edgecolor)
             tprop.ShadowOff()
             tprop.BoldOff()
-            contourLabels = vtk.vtkActor2D()
+            contourLabels = vtkActor2D()
             contourLabels.SetMapper(ldm)
             self._ax._renderer.AddActor(contourLabels)
 
@@ -1395,16 +1394,16 @@ class VTKBackend(BaseClass):
         cone_resolution = item.getp('cone_resolution')
         marker, rotation = self._arrow_types[item.getp('linemarker')]
 
-        geom = vtk.vtkStructuredGridGeometryFilter()
+        geom = vtkStructuredGridGeometryFilter()
         geom.SetInputConnection(sgrid.GetOutputPort())
         dataset = self._cut_data(geom, item)
         dataset.Update(); datao = dataset.GetOutput()
-        glyph = vtk.vtkGlyph3D()
+        glyph = vtkGlyph3D()
 
         if cone_resolution:
             # tip_radius, shaft_radius, tip_length = .1, .03, .35  # default vtk values
             tip_resolution, shaft_resolution = 6, 6
-            arrow = vtk.vtkArrowSource()
+            arrow = vtkArrowSource()
             # arrow.SetTipLength(tip_length)
             # arrow.SetTipRadius(tip_radius)
             # arrow.SetShaftRadius(shaft_radius)
@@ -1412,7 +1411,7 @@ class VTKBackend(BaseClass):
             arrow.SetShaftResolution(cone_resolution * shaft_resolution)
 
         else:
-            arrow = vtk.vtkGlyphSource2D()
+            arrow = vtkGlyphSource2D()
             arrow.SetGlyphType(marker)
             arrow.SetFilled(item.getp('filledarrows'))
             arrow.SetRotationAngle(rotation)
@@ -1433,12 +1432,12 @@ class VTKBackend(BaseClass):
         glyph.SetVectorModeToUseVector()
         glyph.SetScaleFactor(arrowscale)
 
-        mapper = vtk.vtkPolyDataMapper()
+        mapper = vtkPolyDataMapper()
         mapper.ScalarVisibilityOff()
         mapper.SetInputConnection(glyph.GetOutputPort())
 
         # glyph are costly in terms of rendering, use a LODActor
-        LODActor = vtk.vtkLODActor()
+        LODActor = vtkLODActor()
         LODActor.SetMapper(mapper)
         self._set_actor_properties(item, LODActor)
         self._ax._renderer.AddActor(LODActor)
@@ -1461,12 +1460,12 @@ class VTKBackend(BaseClass):
         sy = ravel(item.getp('starty')) / dy
         sz = ravel(zeros(sx.shape)) if item.getp('startz') is None else ravel(item.getp('startz')) / dz
 
-        seeds = vtk.vtkProgrammableSource()
+        seeds = vtkProgrammableSource()
 
         def seeds_pts():
             output = seeds.GetPolyDataOutput()
-            points = vtk.vtkPoints()
-            verts = vtk.vtkCellArray()
+            points = vtkPoints()
+            verts = vtkCellArray()
             verts.InsertNextCell(item.getp('numberofstreams'))
 
             for i in range(item.getp('numberofstreams')):
@@ -1480,7 +1479,7 @@ class VTKBackend(BaseClass):
 
         # The starting point, or the so-called 'seed', of a streamline may be set in two different ways. Starting from global x-y-z 'position' allows you to start a single trace at a specified x-y-z coordinate. If you specify a source object, traces will be generated from each point in the source that is inside the dataset
 
-        streamer = vtk.vtkStreamTracer()
+        streamer = vtkStreamTracer()
 
         streamer.SetInputData(sgrid.GetOutput())
         streamer.SetSourceConnection(seeds.GetOutputPort())
@@ -1495,7 +1494,7 @@ class VTKBackend(BaseClass):
         if item.getp('tubes'):
             ncirc = item.getp('n')
             radius = item.getp('radius')
-            streamtube = vtk.vtkTubeFilter()
+            streamtube = vtkTubeFilter()
             streamtube.SetInputConnection(data.GetOutputPort())
             streamtube.SetRadius(radius)
             streamtube.SetNumberOfSides(ncirc)
@@ -1504,7 +1503,7 @@ class VTKBackend(BaseClass):
 
         elif item.getp('ribbons'):
             width = item.getp('ribbonwidth')
-            streamribbon = vtk.vtkRibbonFilter()
+            streamribbon = vtkRibbonFilter()
             streamribbon.SetInputConnection(data.GetOutputPort())
             streamribbon.VaryWidthOn()
             streamribbon.SetWidthFactor(width)
@@ -1516,18 +1515,17 @@ class VTKBackend(BaseClass):
         else:
             output = data
 
-        mapper = vtk.vtkPolyDataMapper()
+        mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(output.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
 
         if cax is None:
             # because of GetInput()
-            mapper.Update()
-            cax = mapper.GetInput().GetBounds()[4:]
+            mapper.Update(); cax = mapper.GetInput().GetBounds()[4:]
             # cax = sgrid.GetScalarRange()
         mapper.SetScalarRange(cax)
-        actor = vtk.vtkActor()
+        actor = vtkActor()
         actor.SetMapper(mapper)
 
         self._set_shading(item, output, actor)
@@ -1548,26 +1546,25 @@ class VTKBackend(BaseClass):
 
         sgrid = self._create_3D_scalar_data(item)
 
-        iso = vtk.vtkContourFilter()
+        iso = vtkContourFilter()
         iso.SetInputData(sgrid.GetOutput())
         iso.SetValue(0, isovalue)
         data = self._cut_data(iso, item)
 
-        normals = vtk.vtkPolyDataNormals()
+        normals = vtkPolyDataNormals()
         normals.SetInputConnection(data.GetOutputPort())
         normals.SetFeatureAngle(45)
 
-        mapper = vtk.vtkPolyDataMapper()
+        mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(normals.GetOutputPort())
         # mapper.SetScalarModeToUsePointFieldData()
         mapper.SetLookupTable(self._ax._colormap)
 
         cax = self._ax._caxis
         if cax is None:
-            cax = sgrid.GetOutput().GetScalarRange()
-
+            sgrid.Update(); cax = sgrid.GetOutput().GetScalarRange()
         mapper.SetScalarRange(cax)
-        actor = vtk.vtkActor()
+        actor = vtkActor()
         actor.SetMapper(mapper)
         # self._set_shading(item, normals, actor)
         self._set_actor_properties(item, actor)
@@ -1584,27 +1581,27 @@ class VTKBackend(BaseClass):
             # sx, sy, and sz defines a surface
             h = Surface(sx, sy, sz)
             sgrid2 = self._create_2D_scalar_data(h)
-            plane = vtk.vtkStructuredGridGeometryFilter()
+            plane = vtkStructuredGridGeometryFilter()
             plane.SetInputConnection(sgrid2.GetOutputPort())
             data = self._cut_data(plane, item)
             data.Update()
             datao = data.GetOutput()
-            implds = vtk.vtkImplicitDataSet()
+            implds = vtkImplicitDataSet()
             implds.SetDataSet(datao)
             implds.Modified()
-            cut = vtk.vtkCutter()
+            cut = vtkCutter()
             cut.SetInputConnection(sgrid.GetOutputPort())
             cut.SetCutFunction(implds)
             cut.GenerateValues(10, -2, 2)
             cut.GenerateCutScalarsOn()
-            mapper = vtk.vtkPolyDataMapper()
+            mapper = vtkPolyDataMapper()
             mapper.SetInputConnection(cut.GetOutputPort())
             mapper.SetLookupTable(self._ax._colormap)
             cax = self._ax._caxis
             if cax is None:
                 cax = datao.GetScalarRange()
             mapper.SetScalarRange(cax)
-            actor = vtk.vtkActor()
+            actor = vtkActor()
             actor.SetMapper(mapper)
             if not contours:
                 self._set_shading(item, data, actor)
@@ -1630,23 +1627,22 @@ class VTKBackend(BaseClass):
                 normals.append([0, 0, 1])
                 origins.append([center[0], center[1], sz[i]])
             for i in range(len(normals)):
-                plane = vtk.vtkPlane()
+                plane = vtkPlane()
                 plane.SetOrigin(origins[i])
                 plane.SetNormal(normals[i])
-                cut = vtk.vtkCutter()
+                cut = vtkCutter()
                 cut.SetInputData(sgrido)
                 cut.SetCutFunction(plane)
                 data = self._cut_data(cut, item)
                 datao = data.GetOutput()
                 # print('datao', datao.GetNumberOfCells(), datao.GetNumberOfPoints())
-                mapper = vtk.vtkPolyDataMapper()
+                mapper = vtkPolyDataMapper()
                 if contours:
-                    iso = vtk.vtkContourFilter()
+                    iso = vtkContourFilter()
                     iso.SetInputConnection(data.GetOutputPort())
                     cvector = item.getp('cvector')
                     if cvector is not None:
-                        for i in range(len(cvector)):
-                            iso.SetValue(i, cvector[i])
+                        [iso.SetValue(_, cvector[_]) for _ in range(len(cvector))]
                     else:
                         zmin, zmax = datao.GetScalarRange()
                         iso.GenerateValues(item.getp('clevels'), zmin, zmax)
@@ -1658,7 +1654,7 @@ class VTKBackend(BaseClass):
                 if cax is None:
                     cax = sgrido.GetScalarRange()
                 mapper.SetScalarRange(cax)
-                actor = vtk.vtkActor()
+                actor = vtkActor()
                 actor.SetMapper(mapper)
                 if not contours:
                     self._set_shading(item, data, actor)
@@ -1684,58 +1680,61 @@ class VTKBackend(BaseClass):
 
         sgrid = self._create_3D_scalar_data(item)
         sgrid.Update(); sgrido = sgrid.GetOutput()
-        print(sgrido)
-        print(sgrid.GetOutputPort())
         if False:
-            writer = vtk.vtkStructuredGridWriter()
+            writer = vtkStructuredGridWriter()
             writer.SetFileName('_add_threshold.vtk')
             writer.SetInputConnection(sgrid.GetOutputPort())
             writer.Write()
 
-        threshold = vtk.vtkThreshold()
-        threshold.DebugOn()
-        threshold.SetAttributeModeToUsePointData()  # normally this should be default ?
-        threshold.SetInputConnection(sgrid.GetOutputPort())
-        threshold.AllScalarsOff()  # process only one scalar array
-        # vtk.vtkDataSetAttributes.SCALARS or 'scalars'
-        # threshold.SetInputArrayToProcess(0, 0, 0, vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS, vtk.vtkDataSetAttributes.SCALARS)
+        threshold = vtkThreshold()
+        # threshold.DebugOn()
+        # threshold.SetInputConnection(sgrid.GetOutputPort()) # not working, we explicitly provide the data with SetInputData
+        threshold.SetInputData(sgrido)
+        threshold.AllScalarsOn()  # all points of the cell have to satisfy the criterion
+        # vtkDataSetAttributes.SCALARS or 'scalars'
+        # threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, 'scalars')
+        threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes.SCALARS)
         threshold.ThresholdBetween(v.min(), v.max())
-        threshold.Update(); data = threshold.GetOutput()
-        print(data)
-        print(v.min(), v.max())
 
-        miniRep = vtk.vtkSliderRepresentation2D()
+        # threshold.Update(); data = threshold.GetOutput()
+        # print(data)
+
+        miniRep = vtkSliderRepresentation2D()
         miniRep.SetMinimumValue(v.min())
         miniRep.SetMaximumValue(v.max())
+        miniRep.SetValue(miniRep.GetMinimumValue())
         miniRep.SetTitleText('lowerbound')
         miniRep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
         miniRep.GetPoint1Coordinate().SetValue(.05, .7)
         miniRep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
         miniRep.GetPoint2Coordinate().SetValue(.2, .7)
-        miniRep.GetTitleProperty().SetFontFamilyToCourier()
+        miniRep.SetTitleHeight(.75 * miniRep.GetTitleHeight())
+        miniRep.SetLabelHeight(.75 * miniRep.GetLabelHeight())
 
         # cannot change the fontsize so easily: vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
-        maxiRep = vtk.vtkSliderRepresentation2D()
+        maxiRep = vtkSliderRepresentation2D()
         maxiRep.SetMinimumValue(v.min())
         maxiRep.SetMaximumValue(v.max())
+        maxiRep.SetValue(maxiRep.GetMaximumValue())
         maxiRep.SetTitleText('upperbound')
         maxiRep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
         maxiRep.GetPoint1Coordinate().SetValue(.05, .9)
         maxiRep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
         maxiRep.GetPoint2Coordinate().SetValue(.2, .9)
-        maxiRep.GetTitleProperty().SetFontFamilyToCourier()
+        maxiRep.SetTitleHeight(.75 * maxiRep.GetTitleHeight())
+        maxiRep.SetLabelHeight(.75 * maxiRep.GetLabelHeight())
 
-        miniSlider = vtk.vtkSliderWidget()
-        miniSlider.SetInteractor(self._g.iren)
+        miniSlider = vtkSliderWidget()
         miniSlider.SetRepresentation(miniRep)
         miniSlider.SetAnimationModeToJump()
-        miniSlider.EnabledOn()
+        miniSlider.SetInteractor(self._g.iren)
+        miniSlider.On()
 
-        maxiSlider = vtk.vtkSliderWidget()
-        maxiSlider.SetInteractor(self._g.iren)
+        maxiSlider = vtkSliderWidget()
         maxiSlider.SetRepresentation(maxiRep)
         maxiSlider.SetAnimationModeToJump()
-        maxiSlider.EnabledOn()
+        maxiSlider.SetInteractor(self._g.iren)
+        maxiSlider.On()
 
         def cb_mini(obj, event):
             nonlocal threshold, miniRep, maxiRep
@@ -1753,16 +1752,28 @@ class VTKBackend(BaseClass):
         miniSlider.AddObserver('EndInteractionEvent', cb_mini)
         maxiSlider.AddObserver('EndInteractionEvent', cb_maxi)
 
-        ugrid2poly = vtk.vtkGeometryFilter()
-        ugrid2poly.SetInputConnection(threshold.GetOutputPort())
+        # FIXME: we have to make iren aware of the sliders, this is ugly
+        def cb_iren(obj, event):
+            nonlocal miniSlider, maxiSlider
 
-        # or should we use a vtkDataSetMapper() and threshold.GetOutputPort() ?
-        mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputConnection(ugrid2poly.GetOutputPort())
-        actor = vtk.vtkActor()
+        self._g.iren.AddObserver('EnterEvent', cb_iren)
+
+        mapper = vtkDataSetMapper()
+        mapper.SetInputConnection(threshold.GetOutputPort())
+        mapper.SetLookupTable(self._ax._colormap)
+        cax = self._ax._caxis
+        if cax is None:
+            cax = sgrido.GetScalarRange()
+        mapper.SetScalarRange(cax)
+        actor = vtkActor()
         actor.SetMapper(mapper)
+        self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
-        self._ax._apd.AddInputConnection(ugrid2poly.GetOutputPort())
+
+        geom = vtkGeometryFilter()
+        geom.SetInputConnection(threshold.GetOutputPort())
+
+        self._ax._apd.AddInputConnection(geom.GetOutputPort())
 
     def _set_figure_size(self, fig):
         print('<figure size>') if DEBUG else None
@@ -1984,7 +1995,7 @@ class VTKBackend(BaseClass):
         self._set_caxis(ax)
 
         # create a renderer for this axis and add it to the current figures renderer window
-        ax._renderer = vtk.vtkRenderer()
+        ax._renderer = vtkRenderer()
         self._g.renwin.AddRenderer(ax._renderer)
 
         # Set the renderers background color:
@@ -1998,7 +2009,7 @@ class VTKBackend(BaseClass):
         # axshape = self.gcf().getp('axshape')
         # ax._renderer.SetPixelAspect(axshape[1], axshape[0])
 
-        ax._apd = vtk.vtkAppendPolyData()
+        ax._apd = vtkAppendPolyData()
         if getattr(ax, '_iw', None) is not None:
             if ax._iw._on:  # else iwidget crashes without any information
                 ax._iw.Off()
@@ -2081,10 +2092,10 @@ class VTKBackend(BaseClass):
                 legend = item.getp('legend')
                 if legend:
                     # add legend to plot
-                    legendActor = vtk.vtkLegendBoxActor()
+                    legendActor = vtkLegendBoxActor()
                     legendActor.SetNumberOfEntries(1)
-                    # symbol = vtk.vtkSphereSource(); symbol.Update()  # for an empty symbol, pass an empty vtkPolyData instance
-                    legendActor.SetEntry(0, vtk.vtkPolyData(), legend, ax.getp('axiscolor'))
+                    # symbol = vtkSphereSource(); symbol.Update()  # for an empty symbol, pass an empty vtkPolyData instance
+                    legendActor.SetEntry(0, vtkPolyData(), legend, ax.getp('axiscolor'))
                     legendActor.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
                     legendActor.GetPositionCoordinate().SetValue(0, .8)
                     textProp = legendActor.GetEntryTextProperty()
@@ -2229,7 +2240,7 @@ class VTKBackend(BaseClass):
 
         vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3}
         if vector_file and ext.lower() in vector_file_formats:
-            exp = vtk.vtkGL2PSExporter()
+            exp = vtkGL2PSExporter()
             exp.SetBufferSize(50 * 1024 * 1024)  #  50MB
             exp.SetRenderWindow(self._g.renwin)
             exp.SetFilePrefix(basename)
@@ -2244,17 +2255,17 @@ class VTKBackend(BaseClass):
 
         elif ext.lower() in ('.tif', '.tiff', '.bmp', '.pnm', '.png', '.jpg', '.jpeg', '.ps', '.eps'):
             vtk_image_writers = {
-                '.tif': vtk.vtkTIFFWriter(),
-                '.tiff': vtk.vtkTIFFWriter(),
-                '.bmp': vtk.vtkBMPWriter(),
-                '.pnm': vtk.vtkPNMWriter(),
-                '.png': vtk.vtkPNGWriter(),
-                '.jpg': vtk.vtkJPEGWriter(),
-                '.jpeg': vtk.vtkJPEGWriter(),
-                '.ps': vtk.vtkPostScriptWriter(),
-                '.eps': vtk.vtkPostScriptWriter(),  # gives a normal PS file
+                '.tif': vtkTIFFWriter(),
+                '.tiff': vtkTIFFWriter(),
+                '.bmp': vtkBMPWriter(),
+                '.pnm': vtkPNMWriter(),
+                '.png': vtkPNGWriter(),
+                '.jpg': vtkJPEGWriter(),
+                '.jpeg': vtkJPEGWriter(),
+                '.ps': vtkPostScriptWriter(),
+                '.eps': vtkPostScriptWriter(),  # gives a normal PS file
             }
-            w2if = vtk.vtkWindowToImageFilter()
+            w2if = vtkWindowToImageFilter()
             w2if.SetMagnification(magnification)
             w2if.SetInput(self._g.renwin)
             if ext.lower() in ('.ps', '.eps'):
@@ -2285,7 +2296,7 @@ class VTKBackend(BaseClass):
     # closefig, and closefigs here.
 
     def hsv(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetHueRange(0, 1)
         lut.SetSaturationRange(1, 1)
         lut.SetValueRange(1, 1)
@@ -2294,7 +2305,7 @@ class VTKBackend(BaseClass):
         return lut
 
     def gray(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetHueRange(0, 0)
         lut.SetSaturationRange(0, 0)
         lut.SetValueRange(0, 1)
@@ -2303,7 +2314,7 @@ class VTKBackend(BaseClass):
         return lut
 
     def hot(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         inc = .01175
         lut.SetNumberOfColors(256)
         i = 0
@@ -2326,7 +2337,7 @@ class VTKBackend(BaseClass):
 
     def flag(self, m=64):
         assert m % 4 == 0, 'flag: the number of colors must be a multiple of 4.'
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfColors(m)
         # the last parameter alpha is set to 1 by default  in method declaration
         for i in range(0, m, 4):
@@ -2339,14 +2350,14 @@ class VTKBackend(BaseClass):
 
     def jet(self, m=64):
         # blue, cyan, green, yellow, red, black
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfColors(m)
         lut.SetHueRange(.667, 0)
         lut.Build()
         return lut
 
     def spring(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfColors(m)
         lut.SetHueRange(0, .17)
         lut.SetSaturationRange(.5, 1)
@@ -2355,7 +2366,7 @@ class VTKBackend(BaseClass):
         return lut
 
     def summer(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfColors(m)
         lut.SetHueRange(.47, .17)
         lut.SetSaturationRange(1, .6)
@@ -2364,7 +2375,7 @@ class VTKBackend(BaseClass):
         return lut
 
     def winter(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfColors(m)
         lut.SetHueRange(.8, .42)
         lut.SetSaturationRange(1, 1)
@@ -2373,7 +2384,7 @@ class VTKBackend(BaseClass):
         return lut
 
     def autumn(self, m=64):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfColors(m)
         lut.SetHueRange(0, .15)
         lut.SetSaturationRange(1, 1)
@@ -2382,25 +2393,25 @@ class VTKBackend(BaseClass):
         return lut
 
     def viridis(self):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfTableValues(len(_viridis_data))
         [lut.SetTableValue(i, *_viridis_data[i]) for i in range(len(_viridis_data))]
         return lut
 
     def magma(self):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfTableValues(len(_magma_data))
         [lut.SetTableValue(i, *_magma_data[i]) for i in range(len(_magma_data))]
         return lut
 
     def inferno(self):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfTableValues(len(_inferno_data))
         [lut.SetTableValue(i, *_inferno_data[i]) for i in range(len(_inferno_data))]
         return lut
 
     def plasma(self):
-        lut = vtk.vtkLookupTable()
+        lut = vtkLookupTable()
         lut.SetNumberOfTableValues(len(_plasma_data))
         [lut.SetTableValue(i, *_plasma_data[i]) for i in range(len(_plasma_data))]
         return lut
@@ -2428,7 +2439,7 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 # OBSOLETE #
 ############
 
-# self._g.tkw.bind('<KeyPress-a>', lambda e, s=lineWidget: s.InvokeEvent(vtk.vtkCommand.StartInteractionEvent))
+# self._g.tkw.bind('<KeyPress-a>', lambda e, s=lineWidget: s.InvokeEvent(vtkCommand.StartInteractionEvent))
 
 # def foo2(e):
 #     print(repr(e.char))
@@ -2451,19 +2462,19 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 #     print('done')
 
 # self._g.tkw.bind('<KeyPress-l>', foo)
-# wr = vtk.vtkPolyDataWriter()
+# wr = vtkPolyDataWriter()
 # wr.SetInputData(seeds.GetOutput())
 # wr.SetFileName('/home/tb246060/Bureau/seeds.vtk')
 # wr.Write()
 
 
-# wr = vtk.vtkStructuredGridWriter()
+# wr = vtkStructuredGridWriter()
 # wr.SetInputData(sgrid.GetOutput(2))
 # wr.SetFileName('/home/tb246060/Bureau/sgrid.vtk')
 # wr.Write()
 
 
-# sgrid = vtk.vtkPointDataToCellData()
+# sgrid = vtkPointDataToCellData()
 # sgrid.SetInputConnection(ps.GetOutputPort(2))
 # sgrid.PassPointDataOn()
 # sgrid.Update()
@@ -2478,22 +2489,22 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 # rt = streamer.GetOutput().GetCellData().GetArray('ReasonForTermination')
 # print('ReasonForTermination', rt)
 
-# rf = vtk.vtkRibbonFilter()
+# rf = vtkRibbonFilter()
 # rf.SetInputConnection(streamer.GetOutputPort())
 # rf.SetWidth(.1)
 # rf.SetWidthFactor(5)
-# streamMapper = vtk.vtkPolyDataMapper()
+# streamMapper = vtkPolyDataMapper()
 # streamMapper.SetInputConnection(rf.GetOutputPort())
 # streamMapper.SetScalarRange(sgrid.GetOutput().GetScalarRange())
-# streamline = vtk.vtkActor()
+# streamline = vtkActor()
 # streamline.SetMapper(streamMapper)
 # streamline.VisibilityOff()
 
-# outline = vtk.vtkStructuredGridOutlineFilter()
+# outline = vtkStructuredGridOutlineFilter()
 # outline.SetInputData(pl3d_output)
-# outlineMapper = vtk.vtkPolyDataMapper()
+# outlineMapper = vtkPolyDataMapper()
 # outlineMapper.SetInputConnection(outline.GetOutputPort())
-# outlineActor = vtk.vtkActor()
+# outlineActor = vtkActor()
 # outlineActor.SetMapper(outlineMapper)
 
 # def BeginInteraction(obj, event):
@@ -2516,7 +2527,7 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 ##########################
 # fully functionnal structuredgrid with programmable source
 #########################
-# sgrid = vtk.vtkProgrammableSource()
+# sgrid = vtkProgrammableSource()
 # sgrid.DebugOn()
 
 # def add_vect():
@@ -2583,7 +2594,7 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 #     return
 # else:
 #     # existing shared camera from another axis or newcamera if None exists
-#     camera = vtk.vtkCamera()
+#     camera = vtkCamera()
 #     for _, axis in list(fig.getp('axes').items()):
 #         if axis.getp('camera'):
 #             if axis.getp('camera').getp('camshare'):

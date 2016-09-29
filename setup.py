@@ -85,28 +85,28 @@ else:
 
 # Make sure we import from the source code in lib/scitools,
 # not an installed scitools package
-sys.path.insert(0, os.path.join('lib')); import scitools
+sys.path.insert(0, os.path.join('lib'))
+import scitools
 
-setup(
-    version=str(scitools.version),
-    author=', '.join(scitools.author),
-    author_email="<hpl@simula.no>",
-    description=scitools.__doc__,
-    license="BSD",
-    name="SciTools",
-    url="http://scitools.googlecode.com",
-    package_dir={'': 'lib'},
-    # Must specify package directories and not individual module files
-    # (py_modules) since package_data= only works with packages=
-    packages=["scitools",
-              os.path.join("scitools", "easyviz"),
-              os.path.join("scitools", "pyreport"),
-              ],
-    package_data={'': ['scitools.cfg']},
-    scripts=scripts,
-    data_files=[(os.path.join("share", "man", "man1"),
-                 [os.path.join("doc", "man", "man1", "scitools.1.gz"), ])],
-)
+setup(version=str(scitools.version),
+      author=', '.join(scitools.author),
+      author_email="<hpl@simula.no>",
+      description=scitools.__doc__,
+      license="BSD",
+      name="SciTools",
+      url="http://scitools.googlecode.com",
+      package_dir={'': 'lib'},
+      # Must specify package directories and not individual module files
+      # (py_modules) since package_data= only works with packages=
+      packages=["scitools",
+                os.path.join("scitools", "easyviz"),
+                os.path.join("scitools", "pyreport"),
+                ],
+      package_data={'': ['scitools.cfg']},
+      scripts=scripts,
+      data_files=[(os.path.join("share", "man", "man1"),
+                   [os.path.join("doc", "man", "man1", "scitools.1.gz"), ])],
+      )
 
 if os.path.isfile(config_file + '.cop'):
     os.rename(config_file + '.cop', config_file)

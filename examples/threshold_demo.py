@@ -20,20 +20,14 @@ y, z = x.copy(), x.copy()
 for _ in range(data.GetNumberOfPoints()):
     x[_], y[_], z[_] = data.GetPoint(_)
 
-# print(type(data))
-# print(type(data.GetPointData()))
 v_vtk = data.GetPointData().GetArray(0)
 
 # convert to numpy array, we have to reshape for a 3D array
 v = vtk_to_numpy(v_vtk).reshape(shape)
 x, y, z = (_.reshape(shape) for _ in (x, y, z))
 
-# print(x)
-# print(v)
 
-h = threshold(x, y, z, v, v.copy() + 100)
-daspect([1, 1, 1])
-view(3)
-axis('tight')
+threshold(x, y, z, v, v.copy() + 100)
+colorbar()
 
 plt.mainloop(show=True)
