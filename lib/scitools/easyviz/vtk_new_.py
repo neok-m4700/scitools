@@ -40,7 +40,7 @@ from scitools.globaldata import DEBUG, VERBOSE, OPTIMIZATION
 from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
 from .misc import _update_from_config_file
-from .colormaps import _magma_data, _inferno_data, _plasma_data, _viridis_data
+from .colormaps import _cmaps
 import numpy as np
 from copy import deepcopy
 import os
@@ -699,8 +699,10 @@ class VTKBackend(BaseClass):
 
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
-        if not isinstance(cmap, vtkLookupTable):
-            cmap = self.viridis()  # use default colormap
+        if cmap is None:
+            cmap = self.vtk_lut_from_mpl('viridis')  # use default colormap
+        elif not isinstance(cmap, vtkLookupTable):
+            cmap = self.vtk_lut_from_mpl(cmap)  # construct lut from the given cmap (could be matplotlib, ...)
         ax._colormap = cmap
 
     def _set_view(self, ax):
@@ -832,7 +834,11 @@ class VTKBackend(BaseClass):
         return True
 
     def _cut_data(self, data, item):
-        '''return cutted data if limits is outside (scaled) axis limits'''
+        '''
+        return cutted data if limits is outside (scaled) axis limits
+        NOTE: slicing should be made before the call to scitools
+        (when performance issue with glyphs and multiple subplots for example)
+        '''
         islice = item.getp('islice')
 
         # data boundaries clipper
@@ -879,17 +885,16 @@ class VTKBackend(BaseClass):
 
             def pw_enable(obj, event):
                 nonlocal iclipper, clipper
-                # TODO: restore the pwidget parameters
                 clipper.SetInputConnection(iclipper.GetOutputPort())
                 obj._on = True
-                print('enabling')
+                print('on')
                 pw_interaction(obj, event)
                 pw_end_interaction(obj, event)
 
             def pw_disable(obj, event):
                 nonlocal data, clipper
                 obj._on = False
-                print('disabling')
+                print('off')
                 clipper.SetInputConnection(data.GetOutputPort())
                 obj._SaveWidget()
 
@@ -1413,7 +1418,7 @@ class VTKBackend(BaseClass):
 
         if cone_resolution:
             # tip_radius, shaft_radius, tip_length = .1, .03, .35  # default vtk values
-            tip_resolution, shaft_resolution = 6, 6
+            tip_resolution, shaft_resolution = 2, 2
             arrow = vtkArrowSource()
             # arrow.SetTipLength(tip_length)
             # arrow.SetTipRadius(tip_radius)
@@ -1684,6 +1689,47 @@ class VTKBackend(BaseClass):
 
         pass
 
+    def _setImage(self, img, color, dim):
+        '''helper for setting texture of a vtkButtonWidget'''
+        img.SetDimensions(dim, dim, 1)
+        img.AllocateScalars(VTK_UNSIGNED_CHAR, 3)
+        dims = img.GetDimensions()
+        for z in range(dims[2]):
+            for y in range(dims[1]):
+                for x in range(dims[0]):
+                    [img.SetScalarComponentFromFloat(x, y, z, i, val) for i, val in enumerate(color)]
+
+    def _setButtonWidget(self, widget, representation, on, off, dim=6):
+        '''configure the vtkButtonWidget, texture, state, ...'''
+        self._setImage(on, (0, 150, 0), dim)
+        self._setImage(off, [256 * _ for _ in self._ax._renderer.GetBackground()], dim)
+        representation.SetNumberOfStates(2)
+        representation.SetButtonTexture(1, on)
+        representation.SetButtonTexture(0, off)
+        # representation.PlaceWidget(bds) # optionnal, position the widget, we have to use displayCoordinates !
+        widget.SetRepresentation(representation)
+        widget.SetInteractor(self._g.iren)
+        widget.On()
+
+    def _setSliderWidget(self, widget, representation, minval, maxval, val, p1, p2, ttl):
+        representation.SetMinimumValue(minval)
+        representation.SetMaximumValue(maxval)
+        representation.SetValue(val)
+        # cannot change the FontSize so easily, the trick is to set the Height
+        # vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
+        representation.SetTitleHeight(.75 * representation.GetTitleHeight())
+        representation.SetLabelHeight(.75 * representation.GetLabelHeight())
+        representation.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        representation.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        representation.GetPoint1Coordinate().SetValue(p1)
+        representation.GetPoint2Coordinate().SetValue(p2)
+        representation.SetTitleText(ttl)
+        widget.SetRepresentation(representation)
+        widget.SetAnimationModeToJump()
+        # widget.SetAnimationModeToAnimate(); widget.SetNumberOfAnimationSteps(10)
+        widget.SetInteractor(self._g.iren)
+        widget.On()
+
     def _add_threshold(self, item):
         print('<threshold +>') if DEBUG else None
 
@@ -1709,36 +1755,16 @@ class VTKBackend(BaseClass):
         # threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes.SCALARS)
         threshold.ThresholdBetween(v.min(), v.max())
 
-        miniRep, maxiRep = vtkSliderRepresentation2D(), vtkSliderRepresentation2D()
+        miniSlider, miniRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+        maxiSlider, maxiRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+        contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
-        for _ in (miniRep, maxiRep):
-            _.SetMinimumValue(v.min())
-            _.SetMaximumValue(v.max())
-            # cannot change the FontSize so easily, the trick is to set the Height
-            # vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
-            _.SetTitleHeight(.75 * maxiRep.GetTitleHeight())
-            _.SetLabelHeight(.75 * maxiRep.GetLabelHeight())
-            _.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
-            _.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
+        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min(), (.05, .7, 0), (.2, .7, 0), 'lowerbound')
+        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.05, .9, 0), (.2, .9, 0), 'upperbound')
+        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.05, .5, 0), (.2, .5, 0), 'contour isovalue')
 
-        miniRep.SetValue(miniRep.GetMinimumValue())
-        miniRep.GetPoint1Coordinate().SetValue(.05, .7)
-        miniRep.GetPoint2Coordinate().SetValue(.2, .7)
-        miniRep.SetTitleText('lowerbound')
-        maxiRep.GetPoint1Coordinate().SetValue(.05, .9)
-        maxiRep.GetPoint2Coordinate().SetValue(.2, .9)
-        maxiRep.SetValue(maxiRep.GetMaximumValue())
-        maxiRep.SetTitleText('upperbound')
-
-        miniSlider, maxiSlider = vtkSliderWidget(), vtkSliderWidget()
-        miniSlider.SetRepresentation(miniRep)
-        maxiSlider.SetRepresentation(maxiRep)
-
-        for _ in (miniSlider, maxiSlider):
-            _.SetAnimationModeToJump()
-            # _.SetAnimationModeToAnimate(); _.SetNumberOfAnimationSteps(10)
-            _.SetInteractor(self._g.iren)
-            _.On()
+        button, rep, on, off = vtkButtonWidget(), vtkTexturedButtonRepresentation2D(), vtkImageData(), vtkImageData()
+        self._setButtonWidget(button, rep, on, off)
 
         def cb_slider(obj, event):
             nonlocal threshold, miniRep, maxiRep, miniSlider, maxiSlider
@@ -1754,19 +1780,40 @@ class VTKBackend(BaseClass):
         miniSlider.AddObserver('EndInteractionEvent', cb_slider)
         maxiSlider.AddObserver('EndInteractionEvent', cb_slider)
 
-        # FIXME: we have to make iren aware of the sliders, this is ugly
-        def cb_iren(obj, event):
-            nonlocal miniSlider, maxiSlider
-
-        self._g.iren.AddObserver('EnterEvent', cb_iren)
-
         geom = vtkDataSetSurfaceFilter()
         geom.SetInputConnection(threshold.GetOutputPort())
 
         data = self._cut_data(geom, item)
 
+        iso = vtkContourFilter()
+        iso.SetInputConnection(threshold.GetOutputPort())
+
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(data.GetOutputPort())
+
+        def cb_button(obj, event):
+            nonlocal iso, mapper, contSlider, contRep, data
+            state = obj.GetRepresentation().GetState()
+            # print('state', state, contRep.GetValue())
+            iso.SetValue(0, contRep.GetValue())
+            contSlider.SetEnabled(state)
+            mapper.SetInputConnection(iso.GetOutputPort() if state > 0 else data.GetOutputPort())
+
+        button.AddObserver('StateChangedEvent', cb_button)
+        button.InvokeEvent('StateChangedEvent')  # init the slider state with the state from button
+
+        def cb_contour(obj, event):
+            nonlocal iso
+            iso.SetValue(0, obj.GetRepresentation().GetValue())
+
+        contSlider.AddObserver('EndInteractionEvent', cb_contour)
+
+        # FIXME: we have to make iren aware of the sliders, this is ugly
+        def cb_iren(obj, event):
+            nonlocal miniSlider, maxiSlider, contSlider, button
+
+        self._g.iren.AddObserver('EnterEvent', cb_iren)
+
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray('pseudocolor' if item.getp('cdata') is not None else 'scalars')
         mapper.SetLookupTable(self._ax._colormap)
@@ -1784,15 +1831,9 @@ class VTKBackend(BaseClass):
         print('<figure size>') if DEBUG else None
 
         width, height = fig.getp('size')
-        if width and height:
-            # set figure width and height
-            self._g.set_size(width, height)
-        else:
-            # use the default width and height in plotting package
-            self._g.set_size(900, 600)
-            pass
+        self._g.set_size(width, height) if width and height else self._g.set_size(900, 600)
 
-    def find_poked(self, event):
+    def _find_poked(self, event):
         '''get the vtkTkRenderWindowIntesractor widget and renderer on which the event has been triggered'''
         # print(dir(event))
         # print(vars(event))
@@ -1821,7 +1862,7 @@ class VTKBackend(BaseClass):
 
         return fig, ax
 
-    def register_bindings(self, tkw):
+    def _register_bindings(self, tkw):
         '''we must register the figure bindings in the backend because we have to have access to the backend properties'''
         def _toggle_state(obj, key):
             boolean = obj.getp(key)
@@ -1846,7 +1887,7 @@ class VTKBackend(BaseClass):
             # print(dir(e))
             # print(vars(e))
 
-            fig, ax = self.find_poked(e)
+            fig, ax = self._find_poked(e)
             if ctrl:
                 axs = (ax,)
             elif shift:
@@ -1886,8 +1927,11 @@ class VTKBackend(BaseClass):
                     elif key == 'c':
                         cbar = ax.getp('colorbar')
                         _toggle_state(cbar, 'visible')
+                    elif key == 't':
+                        cbar = ax.getp('colorbar')
+                        _toggle_state(cbar, 'visible')
                     elif key == 's':
-                        self.hardcopy('fig.pdf', replot=False, vector_file=True, magnification=1, compression=False)
+                        self.hardcopy('fig.pdf', replot=False, vector_file=True, magnification=1, raster3d=False, compression=True)
                         return
                     # got camtarget value from paraview default
                     #  --------- /     ^
@@ -1933,7 +1977,7 @@ class VTKBackend(BaseClass):
         tkw.bind('<Shift-Key>', shift_callback)
 
         def key_callback(e):
-            fig, ax = self.find_poked(e)
+            fig, ax = self._find_poked(e)
             if e.keysym == 'i':
                 if getattr(ax, '_iw', None) is not None:
                     fig._g.iren.SetKeyCode('i')
@@ -1963,7 +2007,7 @@ class VTKBackend(BaseClass):
             print('creating figure {} in backend'.format(self.name)) if DEBUG else None
 
             fig._g = _VTKFigure(self, title=self.name)
-            self.register_bindings(fig._g.tkw)
+            self._register_bindings(fig._g.tkw)
 
         self.fig = fig
         self._g = fig._g  # link for faster access
@@ -2041,12 +2085,12 @@ class VTKBackend(BaseClass):
         if axs and all(_ in fig_axes for _ in axs) and len(axs) == len(fig_axes):
             print('--> hard reset')
             fig._g.hard_reset()
-            self.register_bindings(fig._g.tkw)
+            self._register_bindings(fig._g.tkw)
             self._set_figure_size(fig)
         else:
             if False:
                 fig._g.hard_reset()
-                self.register_bindings(fig._g.tkw)
+                self._register_bindings(fig._g.tkw)
                 self._set_figure_size(fig)
             else:
                 fig._g.soft_reset(axs)
@@ -2168,6 +2212,7 @@ class VTKBackend(BaseClass):
           * '.ps'  (PostScript)
           * '.eps' (Encapsualted PostScript)
           * '.pdf' (Portable Document Format)
+          * '.svg' (Scalable Vector Graphics)
           * '.jpg' (Joint Photographic Experts Group)
           * '.png' (Portable Network Graphics)
           * '.pnm' (Portable Any Map)
@@ -2215,6 +2260,7 @@ class VTKBackend(BaseClass):
         self.setp(**kwargs)
 
         if not self.getp('show'):  # don't render to screen
+            print('offscreen')
             off_ren = self._g.renwin.GetOffScreenRendering()
             self._g.renwin.OffScreenRenderingOn()
 
@@ -2228,25 +2274,24 @@ class VTKBackend(BaseClass):
             filename += ext
 
         jpeg_quality = int(kwargs.get('quality', 100))
-        progressive = bool(kwargs.get('progressive', False))
-        vector_file = bool(kwargs.get('vector_file', False))
-        orientation = kwargs.get('orientation', 'portrait')
-        raster3d = bool(kwargs.get('raster3d', False))
-        compression = bool(kwargs.get('compression', True))
+        progressive = int(kwargs.get('progressive', False))
+        vector_file = int(kwargs.get('vector_file', False))
+        landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
+        raster3d = int(kwargs.get('raster3d', False))
+        compression = int(kwargs.get('compression', True))
         magnification = int(kwargs.get('magnification', 2))
 
         if DEBUG:
-            for _ in ('jpeg_quality', 'progressive', 'vector_file', 'orientation', 'raster3d', 'compression'):
+            for _ in ('jpeg_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression'):
                 print('   ', _, '=', locals()[_])
 
-        landscape = False
-        if orientation.lower() == 'landscape':
-            landscape = True
 
-        vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3}
+        vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3, '.svg': 4}
         if vector_file and ext.lower() in vector_file_formats:
             exp = vtkGL2PSExporter()
-            exp.SetBufferSize(50 * 1024 * 1024)  #  50MB
+            if DEBUG:
+                exp.DebugOn()
+            exp.SetBufferSize(50 * 1024**2)  #  50MB
             exp.SetRenderWindow(self._g.renwin)
             exp.SetFilePrefix(basename)
             exp.SetFileFormat(vector_file_formats[ext.lower()])
@@ -2299,6 +2344,17 @@ class VTKBackend(BaseClass):
 
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.
+
+    def vtk_lut_from_mpl(self, ls_cmap_or_name='viridis'):
+        '''cosntruct a vtkLookupTable from a string or a LinearSegmentedColormap'''
+        lut = vtkLookupTable()
+        if isinstance(ls_cmap_or_name, str):
+            _data = _cmaps[ls_cmap_or_name].colors
+        elif isinstance(ls_cmap_or_name, (list, tuple, ndarray)):
+            _data = ls_cmap_or_name
+        lut.SetNumberOfTableValues(len(_data))
+        [lut.SetTableValue(_, *_data[_]) for _ in range(len(_data))]
+        return lut
 
     def hsv(self, m=64):
         lut = vtkLookupTable()
@@ -2395,30 +2451,6 @@ class VTKBackend(BaseClass):
         lut.SetSaturationRange(1, 1)
         lut.SetValueRange(1, 1)
         lut.Build()
-        return lut
-
-    def viridis(self):
-        lut = vtkLookupTable()
-        lut.SetNumberOfTableValues(len(_viridis_data))
-        [lut.SetTableValue(i, *_viridis_data[i]) for i in range(len(_viridis_data))]
-        return lut
-
-    def magma(self):
-        lut = vtkLookupTable()
-        lut.SetNumberOfTableValues(len(_magma_data))
-        [lut.SetTableValue(i, *_magma_data[i]) for i in range(len(_magma_data))]
-        return lut
-
-    def inferno(self):
-        lut = vtkLookupTable()
-        lut.SetNumberOfTableValues(len(_inferno_data))
-        [lut.SetTableValue(i, *_inferno_data[i]) for i in range(len(_inferno_data))]
-        return lut
-
-    def plasma(self):
-        lut = vtkLookupTable()
-        lut.SetNumberOfTableValues(len(_plasma_data))
-        [lut.SetTableValue(i, *_plasma_data[i]) for i in range(len(_plasma_data))]
         return lut
 
     # Now we add the doc string from the methods in BaseClass to the

@@ -971,8 +971,9 @@ class Volume(PlotProperties):
     _local_prop = {
         'slices': None,
         'isovalue': None,
-        'allscalars': True,
-        'clevels': 5,  # default number of contour lines per plane
+        'allscalars': True,     # allscalars for threshold
+        # 'contourf': True,       # contour filter for threshold
+        'clevels': 5,           # default number of contour lines per plane
         'cvector': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
         'vdata': None,  # data values at grid points
@@ -4964,10 +4965,8 @@ class BaseClass:
         if nargs == 0:
             return ax.getp('colormap')
         elif nargs == 1:
-            if args[0] == 'default':
-                ax.setp(colormap=self.jet())
-            else:
-                ax.setp(colormap=args[0])  # backend dependent
+            # backend dependent
+            ax.setp(colormap=self.jet() if isinstance(args[0], str) and 'default' in args[0] else args[0])
         else:
             raise TypeError('colormap: wrong number of arguments')
 

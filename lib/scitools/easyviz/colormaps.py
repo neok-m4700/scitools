@@ -1042,17 +1042,18 @@ _viridis_data = [[0.267004, 0.004874, 0.329415],
                  [0.983868, 0.904867, 0.136897],
                  [0.993248, 0.906157, 0.143936]]
 
+# here we also import LinearSegmentedColormap for convenience usage in vtk_new_
 from matplotlib.colors import ListedColormap
 
-cmaps = {}
+_cmaps = dict()
 for (name, data) in (('magma', _magma_data),
                      ('inferno', _inferno_data),
                      ('plasma', _plasma_data),
                      ('viridis', _viridis_data)):
 
-    cmaps[name] = ListedColormap(data, name=name)
+    _cmaps[name] = ListedColormap(data, name=name)
 
-magma = cmaps['magma']
-inferno = cmaps['inferno']
-plasma = cmaps['plasma']
-viridis = cmaps['viridis']
+# magma = _cmaps['magma']
+# inferno = _cmaps['inferno']
+# plasma = _cmaps['plasma']
+# viridis = _cmaps['viridis']
