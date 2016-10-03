@@ -82,9 +82,7 @@ except:
 
 from util.vtkAlgorithm import VTKPythonAlgorithmBase
 
-_vtk_options = {'mesa': 0,
-                'vtk_inc_dir': inc_dirs,
-                'vtk_lib_dir': lib_dirs}
+_vtk_options = dict(mesa=0, vtk_inc_dir=inc_dirs, vtk_lib_dir=lib_dirs)
 _update_from_config_file(_vtk_options, section='vtk')
 
 if _vtk_options['mesa']:
@@ -105,7 +103,7 @@ if OPTIMIZATION == 'numba':
 
 class _VTKFigure:
 
-    def __init__(self, plt, width=800, height=600, title=''):
+    def __init__(self, plt, width=1024, height=768, title=''):
         # create the GUI:
         self.plt = plt
         self.width = width
@@ -218,22 +216,69 @@ class _VTKFigure:
 
 
 class vtkAlgorithmSource(VTKPythonAlgorithmBase):
-    '''berkgeveci.github.io/2014/09/18/pipeline'''
+    '''
+    berkgeveci.github.io/2014/09/18/pipeline
+
+    SetInputConnection vs SetInputData
+    ----------------------------------
+    the problems might be related to the type of vtkExecutive, i.e. vtkStreamingDemandDrivenPipeline or vtkCompositeDataPipeline
+
+    Vocable
+    -------
+    Extents: Extents are only applicable to structured datasets. An extent is a logical subset of a structured dataset defined by providing min and max IJK values (VOI).
+    Pieces: Pieces are only applicable to unstructured datasets. A piece is a subset of an unstructured dataset. What a "piece" means is determined by the producer of such dataset.
+    '''
 
     def __init__(self, data=None, outputType='vtkStructuredGrid'):
-        super().__init__(nInputPorts=0, nOutputPorts=len(data), outputType=outputType)
-        self.data = data
-        self.Update()
+        try:
+            iter(data)
+            self.data = list(data)
+        except:
+            self.data = list([data])
+        super().__init__(nInputPorts=0, nOutputPorts=len(self.data), outputType=outputType)
+        # self.DebugOn()
+        # self.SetExecutive(vtkStreamingDemandDrivenPipeline())
+        # self.Update()
+        # self.Modified()
+
+    '''
+    def RequestInformation(self, request, inInfo, outInfo):
+        print('_i', end=' ')
+        for _ in range(self.GetNumberOfOutputPorts()):
+            info = outInfo.GetInformationObject(_)
+            opt = info.Get(vtkDataObject.DATA_OBJECT())
+            # opt.SetDataDimensions(self.data.GetDataDimensions())
+            # info.Set(vtkCompositeDataPipeline.WHOLE_EXTENT(), info.Get(vtkCompositeDataPipeline.WHOLE_EXTENT()), 6)
+            # vtkDataObject.SetPointDataActiveScalarInfo(outInfo, VTK_DOUBLE, 1)
+        return 1
+
+    def RequestUpdateExtent(self, request, inInfo, outInfo):
+        print('_e', end=' ')
+        for _ in range(self.GetNumberOfOutputPorts()):
+            opt = outInfo.GetInformationObject(_).Get(vtkDataObject.DATA_OBJECT())
+        return 1
+
+    def RequestDataObject(self, request, inInfo, outInfo):
+        print('_o')
+        dset = getattr(vtk, self.OutputType)
+        for _ in range(self.GetNumberOfOutputPorts()):
+            info = outInfo.GetInformationObject(_)
+            if not info:
+                opt = dset()
+            else:
+                opt = info.Get(vtkDataObject.DATA_OBJECT())
+            self.GetExecutive().SetOutputData(_, opt)
+            # self.GetOutputPortInformation(_).Set(vtkDataObject.DATA_EXTENT_TYPE(), opt.GetExtentType())
+        return 1
+    '''
 
     def RequestData(self, request, inInfo, outInfo):
-        if self.OutputType == 'vtkStructuredGrid':
-            dset = vtkStructuredGrid
-        elif self.OutputType == 'vtkPolyData':
-            dset = vtkPolyData
-
+        # dset = getattr(vtk, self.OutputType)
         for _ in range(self.GetNumberOfOutputPorts()):
-            opt = dset.GetData(outInfo.GetInformationObject(_))
+            info = outInfo.GetInformationObject(_)
+            opt = info.Get(vtkDataObject.DATA_OBJECT())
             opt.ShallowCopy(self.data[_])
+            # self.GetExecutive().SetOutputData(_, opt)
         return 1
 
     def GetOutput(self, port=0):
@@ -1022,7 +1067,7 @@ class VTKBackend(BaseClass):
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetScalars(scalars)
 
-        self.sgrid = vtkAlgorithmSource([sgrid])
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_2D_vector_data(self, item):
@@ -1074,7 +1119,7 @@ class VTKBackend(BaseClass):
         sgrid.SetPoints(points)
         sgrid.GetPointData().SetVectors(vectors)
 
-        self.sgrid = vtkAlgorithmSource([sgrid])
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_3D_scalar_data(self, item):
@@ -1126,7 +1171,7 @@ class VTKBackend(BaseClass):
             # public.kitware.com/pipermail/vtkusers/2004-August/026366.html
             # insert an additionnal array, but do not make it active
             sgrid.GetPointData().AddArray(pseudoc) if c is not None else None
-            self.sgrid = vtkAlgorithmSource([sgrid])
+            self.sgrid = vtkAlgorithmSource(sgrid)
         else:
             if c is not None:
                 sgridc = vtkStructuredGrid()
@@ -1194,7 +1239,7 @@ class VTKBackend(BaseClass):
         sgrid.GetPointData().SetScalars(scalars)
         sgrid.GetPointData().SetVectors(vectors)
 
-        self.sgrid = vtkAlgorithmSource([sgrid])
+        self.sgrid = vtkAlgorithmSource(sgrid)
         return self.sgrid
 
     def _create_3D_line_data(self, item):
@@ -1219,9 +1264,9 @@ class VTKBackend(BaseClass):
         sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
         sgrid.SetPoints(points)
-        self.sgrid = vtkAlgorithmSource([sgrid])
+        self.sgrid = vtkAlgorithmSource(sgrid)
 
-        return vtkAlgorithmSource([polydata], outputType='vtkPolyData')
+        return vtkAlgorithmSource(polydata, outputType='vtkPolyData')
 
     def _get_linespecs(self, item):
         '''Return the line marker, line color, line style, and line width of the item'''
@@ -1706,19 +1751,19 @@ class VTKBackend(BaseClass):
         representation.SetNumberOfStates(2)
         representation.SetButtonTexture(1, on)
         representation.SetButtonTexture(0, off)
-        # representation.PlaceWidget(bds) # optionnal, position the widget, we have to use displayCoordinates !
+        # representation.PlaceWidget(bds) # optional, position the widget, we have to use displayCoordinates !
         widget.SetRepresentation(representation)
         widget.SetInteractor(self._g.iren)
         widget.On()
 
     def _setSliderWidget(self, widget, representation, minval, maxval, val, p1, p2, ttl):
-        representation.SetMinimumValue(minval)
-        representation.SetMaximumValue(maxval)
+        representation.SetMinimumValue(.95 * minval)
+        representation.SetMaximumValue(1.05 * maxval)
         representation.SetValue(val)
         # cannot change the FontSize so easily, the trick is to set the Height
         # vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
-        representation.SetTitleHeight(.75 * representation.GetTitleHeight())
-        representation.SetLabelHeight(.75 * representation.GetLabelHeight())
+        representation.SetTitleHeight(.6 * representation.GetTitleHeight())
+        representation.SetLabelHeight(.6 * representation.GetLabelHeight())
         representation.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
         representation.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
         representation.GetPoint1Coordinate().SetValue(p1)
@@ -1734,6 +1779,7 @@ class VTKBackend(BaseClass):
         print('<threshold +>') if DEBUG else None
 
         v = item.getp('vdata')  # volume data
+        pseudocolor = item.getp('cdata') is not None
 
         sgrid = self._create_3D_scalar_data(item)
         sgrid.Update(); sgrido = sgrid.GetOutput()
@@ -1746,7 +1792,7 @@ class VTKBackend(BaseClass):
 
         threshold = vtkThreshold()
         # threshold.DebugOn()
-        # threshold.SetInputConnection(sgrid.GetOutputPort()) # not working, we explicitly provide the data with SetInputData
+        # threshold.SetInputConnection(sgrid.GetOutputPort())  # not working, we explicitly provide the data with SetInputData
         threshold.SetInputData(sgrido)
         threshold.SetAllScalars(int(item.getp('allscalars')))  # all points of the cell have to satisfy the criterion
         # vtkDataSetAttributes.SCALARS or 'scalars'
@@ -1759,9 +1805,9 @@ class VTKBackend(BaseClass):
         maxiSlider, maxiRep = vtkSliderWidget(), vtkSliderRepresentation2D()
         contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
-        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min(), (.05, .7, 0), (.2, .7, 0), 'lowerbound')
-        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.05, .9, 0), (.2, .9, 0), 'upperbound')
-        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.05, .5, 0), (.2, .5, 0), 'contour isovalue')
+        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min(), (.01, .85, 0), (.2, .85, 0), 'lowerbound')
+        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95, 0), (.2, .95, 0), 'upperbound')
+        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .75, 0), (.2, .75, 0), 'contour isovalue')
 
         button, rep, on, off = vtkButtonWidget(), vtkTexturedButtonRepresentation2D(), vtkImageData(), vtkImageData()
         self._setButtonWidget(button, rep, on, off)
@@ -1785,26 +1831,92 @@ class VTKBackend(BaseClass):
 
         data = self._cut_data(geom, item)
 
-        iso = vtkContourFilter()
-        iso.SetInputConnection(threshold.GetOutputPort())
+        if False:
+            if False:
+                probe = vtkProbeFilter()
+                probe.SetSourceConnection(threshold.GetOutputPort())
+                probe.SetInputData(sgrido)
+                probe.Update()  # because of GetImageDataOutput()
+                # check for any missed points, ref: vtk.org/Wiki/Demystifying_the_vtkProbeFilter
+                assert(probe.GetOutput().GetNumberOfPoints() == probe.GetValidPoints().GetNumberOfTuples())
+                print(probe.GetImageDataOutput())
 
-        mapper = vtkPolyDataMapper()
-        mapper.SetInputConnection(data.GetOutputPort())
+                img_source = vtkAlgorithmSource(probe.GetImageDataOutput(), 'vtkImageData')
+            else:
+                img = vtkImageData()
+                v = sgrido.GetPointData().GetScalars('scalars')
+                if pseudocolor:
+                    c = sgrido.GetPointData().GetScalars('pseudocolor')
+                if True:
+                    img.SetDimensions(sgrido.GetDimensions())
+                    img.GetPointData().SetScalars(v)
+                    if pseudocolor:
+                        img.GetPointData().AddArray(c)
+                else:
+                    img.AllocateScalars(VTK_DOUBLE, 2 if pseudocolor else 1)
+                    nx, ny, nz = img.GetDimensions()
+                    ind = 0
+                    for x in range(nx):
+                        for y in range(ny):
+                            for z in range(nz):
+                                img.SetScalarComponentFromDouble(x, y, z, 0, v.GetComponent(ind, 0))
+                                if pseudocolor:
+                                    img.SetScalarComponentFromDouble(x, y, z, 1, c.GetComponent(ind, 0))
+                                ind += 1
+                img_source = vtkAlgorithmSource(img, 'vtkImageData')
+
+            tiso = vtkMarchingCubes()
+            tiso.SetInputConnection(img_source.GetOutputPort())
+            tiso.SetInputData(img_source.GetOutput())
+        else:
+            tiso = vtkMarchingContourFilter()
+            tiso.SetInputConnection(threshold.GetOutputPort())
+        tiso.SetValue(0, contRep.GetValue())
+
+        ########################
+        # curvature
+        c_dict = dict(Gauss_Curvature=0, Mean_Curvature=1, Maximum_Curvature=2, Minimum_Curvature=3)
+        c_out = 'Mean_Curvature'
+
+        cleaner = vtkCleanPolyData()
+        cleaner.SetInputConnection(data.GetOutputPort())
+        cleaner.SetTolerance(.005)
+
+        curvature = vtk.vtkCurvatures()
+        curvature.SetInputConnection(cleaner.GetOutputPort())
+        curvature.SetCurvatureType(c_dict[c_out])
+
+        cmapper = vtkPolyDataMapper()
+        cmapper.SetInputConnection(curvature.GetOutputPort())
+        curvature.Update(); curvo = curvature.GetOutput()
+
+        ciso = vtkContourFilter()
+        ciso.SetInputConnection(curvature.GetOutputPort())
+        ciso.SetValue(0, contRep.GetValue())
+        ########################
+
+        tmapper = vtkPolyDataMapper()
+        tmapper.SetInputConnection(data.GetOutputPort())
 
         def cb_button(obj, event):
-            nonlocal iso, mapper, contSlider, contRep, data
+            nonlocal tiso, ciso, tmapper, cmapper, contSlider, contRep, data, curvature
             state = obj.GetRepresentation().GetState()
             # print('state', state, contRep.GetValue())
-            iso.SetValue(0, contRep.GetValue())
+            tiso.SetValue(0, contRep.GetValue())
+            ciso.SetValue(0, contRep.GetValue())
             contSlider.SetEnabled(state)
-            mapper.SetInputConnection(iso.GetOutputPort() if state > 0 else data.GetOutputPort())
+            tmapper.SetInputConnection(tiso.GetOutputPort() if state > 0 else data.GetOutputPort())
+            cmapper.SetInputConnection(ciso.GetOutputPort() if state > 0 else curvature.GetOutputPort())
+            # from vtk.util.numpy_support import vtk_to_numpy
+            # print(vtk_to_numpy(iso.GetOutput().GetPointData().GetScalars()))
 
         button.AddObserver('StateChangedEvent', cb_button)
         button.InvokeEvent('StateChangedEvent')  # init the slider state with the state from button
 
         def cb_contour(obj, event):
-            nonlocal iso
-            iso.SetValue(0, obj.GetRepresentation().GetValue())
+            nonlocal tiso, ciso
+            tiso.SetValue(0, obj.GetRepresentation().GetValue())
+            ciso.SetValue(0, obj.GetRepresentation().GetValue())
 
         contSlider.AddObserver('EndInteractionEvent', cb_contour)
 
@@ -1814,24 +1926,36 @@ class VTKBackend(BaseClass):
 
         self._g.iren.AddObserver('EnterEvent', cb_iren)
 
-        mapper.SetScalarModeToUsePointFieldData()
-        mapper.SelectColorArray('pseudocolor' if item.getp('cdata') is not None else 'scalars')
-        mapper.SetLookupTable(self._ax._colormap)
         cax = self._ax._caxis
         if cax is None:
-            cax = sgrido.GetPointData().GetArray('pseudocolor' if item.getp('cdata') is not None else 'scalars').GetRange()
-        mapper.SetScalarRange(cax)
-        actor = vtkActor()
-        actor.SetMapper(mapper)
-        self._set_actor_properties(item, actor)
-        self._ax._renderer.AddActor(actor)
+            cax = sgrido.GetPointData().GetArray('pseudocolor' if pseudocolor else 'scalars').GetRange()
+        tmapper.SetScalarModeToUsePointFieldData()
+        tmapper.SelectColorArray('pseudocolor' if pseudocolor else 'scalars')
+        tmapper.SetLookupTable(self._ax._colormap)
+        tmapper.SetScalarRange(cax)
+
+        cmapper.SetScalarModeToUsePointFieldData()
+        cmapper.SelectColorArray(c_out)
+        cmapper.SetLookupTable(self._ax._colormap)
+        cmapper.SetScalarRange(curvo.GetPointData().GetArray(c_out).GetRange())
+
+        xmin, xmax, ymin, ymax, zmin, zmax = sgrido.GetBounds()
+        tactor, cactor = vtkActor(), vtkActor()
+        tactor.SetMapper(tmapper)
+        tactor.SetPosition(-1.1 * xmax, 0, 0)
+        cactor.SetMapper(cmapper)
+        cactor.SetPosition(1.1 * xmax, 0, 0)
+
+        for _ in (tactor, cactor):
+            self._set_actor_properties(item, _)
+            self._ax._renderer.AddActor(_)
         self._ax._apd.AddInputConnection(data.GetOutputPort())
 
     def _set_figure_size(self, fig):
         print('<figure size>') if DEBUG else None
 
         width, height = fig.getp('size')
-        self._g.set_size(width, height) if width and height else self._g.set_size(900, 600)
+        self._g.set_size(width, height) if width and height else self._g.set_size(800, 600)
 
     def _find_poked(self, event):
         '''get the vtkTkRenderWindowIntesractor widget and renderer on which the event has been triggered'''
@@ -2285,7 +2409,6 @@ class VTKBackend(BaseClass):
             for _ in ('jpeg_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression'):
                 print('   ', _, '=', locals()[_])
 
-
         vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3, '.svg': 4}
         if vector_file and ext.lower() in vector_file_formats:
             exp = vtkGL2PSExporter()
@@ -2637,3 +2760,12 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 #             if axis.getp('camera').getp('camshare'):
 #                 camera = axis.getp('camera').getp('camshare')
 #                 break
+
+# s = vtk.vtkSphereSource()
+# e = vtk.vtkElevationFilter()
+# e.SetInputConnection(s.GetOutputPort())
+# e.Update()
+# from vtk.util.numpy_support import vtk_to_numpy
+# vtk_to_numpy(e.GetOutput())
+# from vtk.numpy_interface import dataset_adapter as dsa
+# sphere = dsa.WrapDataObject(e.GetOutput())
