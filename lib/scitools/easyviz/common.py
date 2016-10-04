@@ -972,7 +972,7 @@ class Volume(PlotProperties):
         'slices': None,
         'isovalue': None,
         'allscalars': True,     # allscalars for threshold
-        # 'contourf': True,       # contour filter for threshold
+        'curvtype': None,       # curvature type
         'clevels': 5,           # default number of contour lines per plane
         'cvector': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
@@ -1001,6 +1001,10 @@ class Volume(PlotProperties):
             _check_type(kwargs['allscalars'], 'allscalars', bool)
             self._prop['allscalars'] = kwargs.pop('allscalars')  # remove allscalars from kwargs
 
+        if 'curvtype' in kwargs:
+            _check_type(kwargs['curvtype'], 'curvtype', str)
+            self._prop['curvtype'] = kwargs.pop('curvtype')  # remove allscalars from kwargs
+
         if 'clevels' in kwargs:
             clevels = kwargs['clevels']
             _check_type(kwargs['clevels'], 'clevels', int)
@@ -1021,7 +1025,9 @@ class Volume(PlotProperties):
         elif func == 'isosurface':
             self._parseargs_isosurface(*args)
         elif func == 'threshold':
-            self._parseargs_threshold(*args)
+            self._parseargs_thres_curv(*args)
+        elif func == 'curvature':
+            self._parseargs_thres_curv(*args)
 
     def _parseargs_slice_(self, *args):
         # this method also works for contourslice
@@ -1075,7 +1081,7 @@ class Volume(PlotProperties):
 
         self._set_data(x, y, z, v, isovalue=isovalue)
 
-    def _parseargs_threshold(self, *args):
+    def _parseargs_thres_curv(self, *args):
         kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 4 and nargs <= 5:  # threshold(X,Y,Z,V)
@@ -1612,9 +1618,9 @@ class Axis:
         self._prop['pth'] = pth
         self._prop['plotitems'] = []
         if self._prop['camera'] is not None:
-            camshare = self._prop['camera'].getp('camshare')
+            # camshare = self._prop['camera'].getp('camshare')
             self._prop['camera'].reset()
-            self._prop['camera'].setp(camshare=camshare)
+            # self._prop['camera'].setp(camshare=camshare)
         else:
             self._prop['camera'] = Camera(self)
         # for l in self._prop['lights']:
@@ -1888,7 +1894,7 @@ class BaseClass:
         'camzoom', 'caxis', 'cla', 'clabel', 'clf', 'close',
         'closefig', 'closefigs', 'coneplot', 'colorbar',
         'colorcube', 'colormap', 'contour', 'contour3',
-        'contourf', 'contourslice', 'cool', 'copper',
+        'contourf', 'contourslice', 'cool', 'copper', 'curvature',
         'daspect', 'dumpfig', 'figure', 'fill', 'fill3', 'flag',
         'gca', 'gcf', 'get', 'gray', 'grid', 'hardcopy', 'hidden',
         'hold', 'hot', 'hsv', 'ishold', 'isocaps',
@@ -4428,15 +4434,27 @@ class BaseClass:
 
     def threshold(self, *args, **kwargs):
         '''Thresholding volumetric data
-
-        Calling::
-
             threshold(X,Y,Z,V)
-
-        @return: A Volume object.
-
         '''
         kwargs['description'] = 'threshold: thresholding volumetric data'
+        ax, args, nargs = self._check_args(*args)
+        h = Volume(*args, **kwargs)
+        ax.add(h)
+        if not ax.getp('hold') and 'view' not in kwargs:
+            kwargs['view'] = 3
+        ax.setp(**kwargs)
+        self.gcf().setp(**kwargs)
+        self.setp(**kwargs)
+
+        if self.getp('interactive') and self.getp('show'):
+            self._replot()
+        return h
+
+    def curvature(self, *args, **kwargs):
+        '''Curvature of a volumetric data
+            curvature(X,Y,Z,V)
+        '''
+        kwargs['description'] = 'curvature: curvature of a volumetric data'
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
         ax.add(h)
@@ -5444,3 +5462,4 @@ def debug(plt, level=10):
                                 print_(item.getp('material'), 16)
 
                             print('')
+    print('debug done')

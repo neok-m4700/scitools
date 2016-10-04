@@ -41,12 +41,14 @@ else:
     DEBUG = _config_data['globals']['DEBUG'][0]
     if not __debug__:
         DEBUG = 0  # always turn off debugging if we run python -O
+    VTK_BACKEND = _config_data['globals']['VTK_BACKEND'][0]
+    if not VTK_BACKEND:
+        VTK_BACKEND = 'tk'
 
     _load_scipy = _config_data['scipy']['load'][0]
     _load_numpytools = _config_data['numpy']['numpytools'][0]
     backend = _config_data['easyviz']['backend'][0]
 
     if VERBOSE >= 2:
-        print('Initialized SAFECODE=%s, VERBOSE=%s, DEBUG=%s from %s' % \
+        print('Initialized SAFECODE=%s, VERBOSE=%s, DEBUG=%s from %s' %
               (SAFECODE, VERBOSE, DEBUG, ', '.join(_files)))
-
