@@ -247,53 +247,24 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
     def __init__(self, data=None, outputType='vtkStructuredGrid'):
         try:
             iter(data)
-            self.data = list(data)
+            self._data = list(data)
         except:
-            self.data = list([data])
-        super().__init__(nInputPorts=0, nOutputPorts=len(self.data), outputType=outputType)
-        # self.DebugOn()
-        # self.SetExecutive(vtkStreamingDemandDrivenPipeline())
-        # self.Update()
-        # self.Modified()
+            self._data = list([data])
+        super().__init__(nInputPorts=0, nOutputPorts=len(self._data), outputType=outputType)
+        self._exec = self.GetExecutive()
 
-    '''
-    def RequestInformation(self, request, inInfo, outInfo):
-        print('_i', end=' ')
+    def RequestInformation(self, request, inputVector, outputVector):
         for _ in range(self.GetNumberOfOutputPorts()):
-            info = outInfo.GetInformationObject(_)
-            opt = info.Get(vtkDataObject.DATA_OBJECT())
-            # opt.SetDataDimensions(self.data.GetDataDimensions())
-            # info.Set(vtkCompositeDataPipeline.WHOLE_EXTENT(), info.Get(vtkCompositeDataPipeline.WHOLE_EXTENT()), 6)
-            # vtkDataObject.SetPointDataActiveScalarInfo(outInfo, VTK_DOUBLE, 1)
+            outInfo = outputVector.GetInformationObject(_)
+            __ = self._data[_].GetExtent()
+            outInfo.Set(self._exec.WHOLE_EXTENT(), __, len(__))
         return 1
-
-    def RequestUpdateExtent(self, request, inInfo, outInfo):
-        print('_e', end=' ')
-        for _ in range(self.GetNumberOfOutputPorts()):
-            opt = outInfo.GetInformationObject(_).Get(vtkDataObject.DATA_OBJECT())
-        return 1
-
-    def RequestDataObject(self, request, inInfo, outInfo):
-        print('_o')
-        dset = getattr(vtk, self.OutputType)
-        for _ in range(self.GetNumberOfOutputPorts()):
-            info = outInfo.GetInformationObject(_)
-            if not info:
-                opt = dset()
-            else:
-                opt = info.Get(vtkDataObject.DATA_OBJECT())
-            self.GetExecutive().SetOutputData(_, opt)
-            # self.GetOutputPortInformation(_).Set(vtkDataObject.DATA_EXTENT_TYPE(), opt.GetExtentType())
-        return 1
-    '''
 
     def RequestData(self, request, inInfo, outInfo):
-        # dset = getattr(vtk, self.OutputType)
         for _ in range(self.GetNumberOfOutputPorts()):
             info = outInfo.GetInformationObject(_)
             opt = info.Get(vtkDataObject.DATA_OBJECT())
-            opt.ShallowCopy(self.data[_])
-            # self.GetExecutive().SetOutputData(_, opt)
+            opt.ShallowCopy(self._data[_])
         return 1
 
     def GetOutput(self, port=0):
@@ -1874,8 +1845,7 @@ class VTKBackend(BaseClass):
 
         threshold = vtkThreshold()
         # threshold.DebugOn()
-        # threshold.SetInputConnection(sgrid.GetOutputPort())  # not working, we explicitly provide the data with SetInputData
-        threshold.SetInputData(sgrido)
+        threshold.SetInputConnection(sgrid.GetOutputPort())  # not working, we explicitly provide the data with SetInputData
         threshold.SetAllScalars(int(item.getp('allscalars')))  # all points of the cell have to satisfy the criterion
         # vtkDataSetAttributes.SCALARS or 'scalars'
         # <...>(int idx, int port, int connection, int fieldAssociation, const char *name)
@@ -1887,7 +1857,7 @@ class VTKBackend(BaseClass):
         maxiSlider, maxiRep = vtkSliderWidget(), vtkSliderRepresentation2D()
         contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
-        span = .5 * (abs(v.max()) - abs(v.min()))
+        span = abs(v.max()) - abs(v.min())
         self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95, 0), (.2, .95, 0), 'upperbound')
         self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .01 * span, (.01, .85, 0), (.2, .85, 0), 'lowerbound')
         self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .75, 0), (.2, .75, 0), 'contour isovalue')
