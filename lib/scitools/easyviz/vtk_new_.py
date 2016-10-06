@@ -50,7 +50,7 @@ from contextlib import contextmanager
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
 inc_dirs = [os.path.expandvars('$CONDA_PREFIX/include/vtk-7.0')]
-lib_dirs = [os.path.expandvars('$CONDA_PREFIX/lib/python{}/site-packages/vtk'.format(major_minor)), '/usr/lib']
+lib_dirs = [os.path.expandvars('$CONDA_PREFIX/lib/python{}/site-packages'.format(major_minor)), '/usr/lib']
 
 sys.path.extend(lib_dirs)
 # print(sys.path)
@@ -85,17 +85,41 @@ def _print(*args, **kwargs):
 
 
 @contextmanager
-def _print_(*args, **kwargs):
-    _print(*args, **kwargs, end=' ')
+def _debug(msg):
+    _print('[ ', msg, end=' ', sep='')
     yield
-    _print('done')
+    _print(']', end=' ')
 
 if 'qt' in VTK_BACKEND.lower():
     from PyQt4 import QtCore, QtGui
-    from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-    import vtk.qt4.QVTKRenderWindowInteractor
 
-elif 'tk' in VTK_BACKEND.lower():
+    from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+    from vtk.qt.QVTKRenderWindowInteractor import _qt_key_to_key_sym, _keysyms
+
+    class _QVTKRenderWindowInteractor(vtk.qt4.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor):
+
+        def keyPressEvent(self, e, filtered=False):
+            ctrl, shift = self._GetCtrlShift(e)
+            key = str(e.text()) if e.key() < 256 else chr(0)
+
+            keySym = _qt_key_to_key_sym(e.key())
+            if shift and len(keySym) == 1 and keySym.isalpha():
+                keySym = keySym.upper()
+
+            mod = e.modifiers() if hasattr(e, 'modifiers') else self.__saveModifiers
+            if mod & QtCore.Qt.KeypadModifier:
+                keySym = 'kp_' + keySym
+
+            # forward the event
+            if filtered:
+                self._Iren.SetEventInformationFlipY(self.__saveX, self.__saveY, ctrl, shift, key, 0, keySym)
+                self._Iren.KeyPressEvent()
+                self._Iren.CharEvent()
+            # intercept the event and parse the content
+            else:
+                self.callback(e, ctrl, shift, widget=self, x=self.__saveX, y=self.__saveY, keysym=keySym)
+
+else:
     try:
         import tkinter
     except:
@@ -110,9 +134,7 @@ elif 'tk' in VTK_BACKEND.lower():
 
 class _VTKFigure:
 
-    def __init__(self, plt, width=1024, height=768, title=''):
-        super().__init__()
-
+    def __init__(self, plt, width=800, height=600, title=''):
         self.backend = VTK_BACKEND.lower()
         self.plt = plt
         self.width = width
@@ -128,18 +150,20 @@ class _VTKFigure:
             self.frame.pack(side='top', fill='both', expand='true')
         else:
             self.root = QtGui.QMainWindow()
+            self.root.closeEvent = lambda e: [e.ignore(), self.exit()]
             self.root.resize(self.width, self.height)
             self.frame = QtGui.QFrame()
             self.vl = QtGui.QVBoxLayout()
         self._init()
 
     def _init(self):
-        with _print_('<_init>'):
+        with _debug('_init'):
             if 'tk' in self.backend:
                 self.vtkWidget = vtkTkRenderWindowInteractor.vtkTkRenderWindowInteractor(self.frame, width=self.width, height=self.height)
                 self.vtkWidget.pack(expand='true', fill='both')
             else:
-                self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+                self.vtkWidget = _QVTKRenderWindowInteractor(self.frame)  # this object inherits from QWidget
+                self.vtkWidget.AddObserver('ExitEvent', lambda o, e: self.exit())
                 self.vl.addWidget(self.vtkWidget)
 
             self.renwin = self.vtkWidget.GetRenderWindow()
@@ -153,7 +177,7 @@ class _VTKFigure:
                 self.vtkWidget.update()
 
     def hard_reset(self):
-        with _print_('<hard reset>'):
+        with _debug('hard reset'):
             # is calling del removing the window from memory, not only from namespace ?
             # for now this is the only way for the interactive widgets to work when issuing a replot ...
             # if we could avoid deleting the vtkWidget it'll be great ...
@@ -161,14 +185,14 @@ class _VTKFigure:
             self._init()
 
     def soft_reset(self, axs=()):
-        with _print_('<soft reset>'):
+        with _debug('soft reset'):
             for ax in axs:  # remove renderer associated to axis
                 ren = getattr(ax, '_renderer', None)
                 if ren and self.renwin.HasRenderer(ren):
                     self.renwin.RemoveRenderer(ren)
 
     def display(self, show):
-        with _print_('<display>'):
+        with _debug('display'):
             if show:
                 if 'tk' in self.backend:
                     self.root.deiconify()  # Displays the window
@@ -183,7 +207,7 @@ class _VTKFigure:
             self.render()
 
     def render(self):
-        with _print_('<render>'):
+        with _debug('render'):
             # full pipeline update (is it really necessary ??)
             if hasattr(self.plt, '_ax'):
                 self.plt._ax._apd.Update()
@@ -198,8 +222,8 @@ class _VTKFigure:
             self.renwin.Render()  # render the complete scene
 
     def clear(self):
-        with _print_('<clear>'):
-            self.renwin.Finalize()
+        with _debug('clear'):
+            self.renwin.Finalize()  # call the internal cleanup method on VTK objects
             if self.iren:
                 self.iren.TerminateApp()
                 del self.iren
@@ -208,23 +232,25 @@ class _VTKFigure:
                 self.root.withdraw()  # removes the window from the screen (without destroying it)
                 self.vtkWidget.forget()
             else:
-                [self.vl.itemAt(_).widget().close() for _ in self.vl.count()]
+                pass
+                # [self.vl.itemAt(_).widget().close() for _ in range(self.vl.count())]
                 # self.root.hide()
 
     def exit(self):
-        with _print_('<exit>'):
+        with _debug('exit'):
             self.clear()
             if 'tk' in self.backend:
                 self.frame.forget()
-                # self.root.destroy()
             else:
-                # self.root.quit()
-                pass
+                self.vtkWidget.close()
             self.plt.closefig(self)
 
     def set_size(self, width, height):
-        self.root.geometry('{}x{}'.format(width, height))
-        self.root.update()
+        if 'tk' in self.backend:
+            self.root.geometry('{}x{}'.format(width, height))
+            self.root.update()
+        else:
+            self.root.resize(width, height)
 
     def __str__(self):
         return '\n'.join(['{}:{}'.format(k, v) for (k, v) in self.__dict__.items()])
@@ -233,10 +259,6 @@ class _VTKFigure:
 class vtkAlgorithmSource(VTKPythonAlgorithmBase):
     '''
     berkgeveci.github.io/2014/09/18/pipeline
-
-    SetInputConnection vs SetInputData
-    ----------------------------------
-    the problems might be related to the type of vtkExecutive, i.e. vtkStreamingDemandDrivenPipeline or vtkCompositeDataPipeline
 
     Vocable
     -------
@@ -976,7 +998,7 @@ class VTKBackend(BaseClass):
                 self._ax._renderer.AddActor(mesh)
 
     def _set_actor_properties(self, item, actor):
-        # set line properties:
+        '''set line properties'''
         color = self._get_color(item.getp('linecolor'), (0, 0, 1))
         actor.GetProperty().SetColor(color)
         if item.getp('linetype') == '--':
@@ -990,7 +1012,7 @@ class VTKBackend(BaseClass):
             actor.GetProperty().SetLineWidth(float(linewidth))
 
     def _set_actor_material_properties(self, item, actor):
-        # set material properties:
+        '''set material properties'''
         ax = self._ax
         mat = item.getp('material')
         if mat.getp('opacity') is not None:
@@ -1065,9 +1087,10 @@ class VTKBackend(BaseClass):
         return self.sgrid
 
     def _create_2D_vector_data(self, item):
+        # grid coordinates
         x, y = squeeze(item.getp('xdata')), squeeze(item.getp('ydata'))
         z = item.getp('zdata')           # scalar field
-        # vector components:
+        # vector components
         u, v = asarray(item.getp('udata')), asarray(item.getp('vdata'))
         w = item.getp('wdata')
 
@@ -1344,9 +1367,6 @@ class VTKBackend(BaseClass):
         data = self._cut_data(geom, item)
 
         filled = item.getp('filled')  # draw filled contour plot if True
-        # filled = True  # DEBUG !!
-        # print('is filled', filled)
-        # print('function', item.getp('function'))
         if filled:
             iso = vtkBandedPolyDataContourFilter()
             iso.SetScalarModeToValue()
@@ -1536,7 +1556,7 @@ class VTKBackend(BaseClass):
 
         streamer = vtkStreamTracer()
 
-        streamer.SetInputData(sgrid.GetOutput())
+        streamer.SetInputConnection(sgrid.GetOutputPort())
         streamer.SetSourceConnection(seeds.GetOutputPort())
         streamer.SetIntegrationDirectionToBoth()
         streamer.SetIntegratorTypeToRungeKutta45()
@@ -1602,7 +1622,7 @@ class VTKBackend(BaseClass):
         sgrid = self._create_3D_scalar_data(item)
 
         iso = vtkContourFilter()
-        iso.SetInputData(sgrid.GetOutput())
+        iso.SetInputConnection(sgrid.GetOutputPort())
         iso.SetValue(0, isovalue)
         data = self._cut_data(iso, item)
 
@@ -1686,7 +1706,7 @@ class VTKBackend(BaseClass):
                 plane.SetOrigin(origins[i])
                 plane.SetNormal(normals[i])
                 cut = vtkCutter()
-                cut.SetInputData(sgrido)
+                cut.SetInputConnection(sgrid.GetOutputPort())
                 cut.SetCutFunction(plane)
                 data = self._cut_data(cut, item)
                 datao = data.GetOutput()
@@ -1750,6 +1770,17 @@ class VTKBackend(BaseClass):
         widget.On()
 
     def _setSliderWidget(self, widget, rep, minval, maxval, val, p1, p2, ttl):
+        c_system = {'0': 'VTK_DISPLAY', '1': 'VTK_NORMALIZED_DISPLAY', '2': 'VTK_VIEWPORT', '3': 'VTK_NORMALIZED_VIEWPORT', '4': 'VTK_VIEW', '5': 'VTK_WORLD', '6': 'VTK_USERDEFINED'}
+        c1, c2 = rep.GetPoint1Coordinate(), rep.GetPoint2Coordinate()
+        for c, p in [(c1, p1), (c2, p2)]:
+            # before this call, c is (-1., 0., 0.) in world coordinates
+            c.SetCoordinateSystemToNormalizedViewport()
+            c.SetValue(p)
+            print('coord', c.GetValue(), 'viewport', c.GetViewport(), c_system[str(c.GetCoordinateSystem())])
+            print('(w, h)', (self._g.width, self._g.height), '(x, y)', c.GetComputedDisplayValue(self._ax._renderer))
+            # print('..')
+            # [_print(_.GetCoordinateSystem(), getattr(_, 'GetComputedValue')(_.GetViewport())) for _ in (c1, c2)]
+            # print('--')
         rep.SetMinimumValue(.95 * minval)
         rep.SetMaximumValue(1.05 * maxval)
         rep.SetValue(val)
@@ -1757,10 +1788,7 @@ class VTKBackend(BaseClass):
         # vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
         rep.SetTitleHeight(.6 * rep.GetTitleHeight())
         rep.SetLabelHeight(.6 * rep.GetLabelHeight())
-        rep.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
-        rep.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
-        rep.GetPoint1Coordinate().SetValue(p1)
-        rep.GetPoint2Coordinate().SetValue(p2)
+
         rep.SetTitleText(ttl)
         widget.SetRepresentation(rep)
         widget.SetAnimationModeToJump()
@@ -1778,25 +1806,12 @@ class VTKBackend(BaseClass):
             _ = curvtype.lower()
             key = 'Gauss_Curvature' if 'gauss' in _ else 'Mean_Curvature' if 'mean' in _ else 'Maximum_Curvature' if 'max' in _ else 'Minimum_Curvature' if 'min' in _ else key
 
-        print(key)
         c_dict = dict(Gauss_Curvature=0, Mean_Curvature=1, Maximum_Curvature=2, Minimum_Curvature=3)
 
         sgrid = self._create_3D_scalar_data(item)
-        sgrid.Update(); sgrido = sgrid.GetOutput()
-
-        curvSlider, curvRep = vtkSliderWidget(), vtkSliderRepresentation2D()
-
-        # the positionning is not very robust when using subplots
-        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.01, .45, 0), (.2, .45, 0), 'curvature isovalue')
 
         clipper = vtkClipDataSet()
-        clipper.SetInputData(sgrido)
-        clipper.SetValue(curvRep.GetValue())
-
-        def cb_curv_cont(obj, event):
-            nonlocal clipper
-            clipper.SetValue(obj.GetRepresentation().GetValue())
-        curvSlider.AddObserver('EndInteractionEvent', cb_curv_cont)
+        clipper.SetInputConnection(sgrid.GetOutputPort())
 
         surface = vtkDataSetSurfaceFilter()
         surface.SetInputConnection(clipper.GetOutputPort())
@@ -1817,22 +1832,34 @@ class VTKBackend(BaseClass):
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray(c_dict[key])
         mapper.SetLookupTable(self._ax._colormap)
-        try:
-            mapper.SetScalarRange(curv.GetOutput().GetPointData().GetArray(c_dict[key]).GetRange())
-        except:
-            pass
+        array = curv.GetOutput().GetPointData().GetArray(c_dict[key])
+        if array is not None:
+            mapper.SetScalarRange(array.GetRange())
 
-        # FIXME: we have to make iren aware of the sliders, this is ugly, but it works
-        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
-
-        curvSlider.Off(); curvSlider.On()
         actor = vtkActor()
         actor.SetMapper(mapper)
 
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
-        # [self._ax._renderer.AddActor(_) for _ in (actor, curvRep)]
         self._ax._apd.AddInputConnection(data.GetOutputPort())
+
+        ###############
+        # INTERACTIVE #
+        ###############
+
+        curvSlider, curvRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+
+        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.51, .65, 0), (.7, .65, 0), 'curvature isovalue')
+
+        # FIXME: we have to make iren aware of the sliders, this is ugly, but it works
+        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
+
+        def cb_curv_cont(obj, event):
+            nonlocal clipper
+            clipper.SetValue(obj.GetRepresentation().GetValue())
+        curvSlider.AddObserver('EndInteractionEvent', cb_curv_cont)
+        curvSlider.InvokeEvent('EndInteractionEvent')
+        curvSlider.Off(); curvSlider.On()
 
     def _add_threshold(self, item):
         _print('<threshold +>')
@@ -1844,40 +1871,9 @@ class VTKBackend(BaseClass):
         sgrid.Update(); sgrido = sgrid.GetOutput()
 
         threshold = vtkThreshold()
-        # threshold.DebugOn()
-        threshold.SetInputConnection(sgrid.GetOutputPort())  # not working, we explicitly provide the data with SetInputData
+        threshold.SetInputConnection(sgrid.GetOutputPort())
         threshold.SetAllScalars(int(item.getp('allscalars')))  # all points of the cell have to satisfy the criterion
-        # vtkDataSetAttributes.SCALARS or 'scalars'
-        # <...>(int idx, int port, int connection, int fieldAssociation, const char *name)
-        # threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, 'scalars')
-        # threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes.SCALARS)
         threshold.ThresholdBetween(v.min(), v.max())
-
-        miniSlider, miniRep = vtkSliderWidget(), vtkSliderRepresentation2D()
-        maxiSlider, maxiRep = vtkSliderWidget(), vtkSliderRepresentation2D()
-        contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
-
-        span = abs(v.max()) - abs(v.min())
-        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95, 0), (.2, .95, 0), 'upperbound')
-        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .01 * span, (.01, .85, 0), (.2, .85, 0), 'lowerbound')
-        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .75, 0), (.2, .75, 0), 'contour isovalue')
-
-        button, buttonRep, on, off = vtkButtonWidget(), vtkTexturedButtonRepresentation2D(), vtkImageData(), vtkImageData()
-        self._setButtonWidget(button, buttonRep, on, off)
-
-        def cb_slider(obj, event):
-            nonlocal threshold, miniRep, maxiRep, miniSlider, maxiSlider
-            mini, maxi = miniRep.GetValue(), maxiRep.GetValue()
-            minbound, maxbound = min(mini, maxi), max(mini, maxi)
-            if obj is miniSlider:
-                miniRep.SetValue(minbound)
-                threshold.ThresholdBetween(minbound, maxi)
-            elif obj is maxiSlider:
-                maxiRep.SetValue(maxbound)
-                threshold.ThresholdBetween(mini, maxbound)
-
-        miniSlider.AddObserver('EndInteractionEvent', cb_slider)
-        maxiSlider.AddObserver('EndInteractionEvent', cb_slider)
 
         surface = vtkDataSetSurfaceFilter()
         surface.SetInputConnection(threshold.GetOutputPort())
@@ -1911,31 +1907,12 @@ class VTKBackend(BaseClass):
 
             iso = vtkMarchingCubes()
             iso.SetInputConnection(img_source.GetOutputPort())
-            iso.SetInputData(img_source.GetOutput())
         else:
             iso = vtkMarchingContourFilter()
             iso.SetInputConnection(threshold.GetOutputPort())
-        iso.SetValue(0, contRep.GetValue())
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(data.GetOutputPort())
-
-        def cb_button(obj, event):
-            nonlocal iso, mapper, contSlider, contRep, data
-            state = obj.GetRepresentation().GetState()
-            iso.SetValue(0, contRep.GetValue())
-            contSlider.SetEnabled(state)
-            mapper.SetInputConnection(iso.GetOutputPort() if state > 0 else data.GetOutputPort())
-            # from vtk.util.numpy_support import vtk_to_numpy
-            # print(vtk_to_numpy(iso.GetOutput().GetPointData().GetScalars()))
-
-        button.AddObserver('StateChangedEvent', cb_button)
-        button.InvokeEvent('StateChangedEvent')  # init the slider state with the state from button
-
-        def cb_thres_cont(obj, event):
-            nonlocal iso
-            iso.SetValue(0, obj.GetRepresentation().GetValue())
-        contSlider.AddObserver('EndInteractionEvent', cb_thres_cont)
 
         cax = self._ax._caxis
         if cax is None:
@@ -1945,16 +1922,60 @@ class VTKBackend(BaseClass):
         mapper.SetLookupTable(self._ax._colormap)
         mapper.SetScalarRange(cax)
 
-        # FIXME: we have to make iren aware of the sliders, this is ugly, but it works
-        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=(miniSlider, maxiSlider, contSlider, button): None)
-
         actor = vtkActor()
         actor.SetMapper(mapper)
 
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
-        # [self._ax._renderer.AddActor(_) for _ in (actor, miniRep, maxiRep, contRep, buttonRep)]
         self._ax._apd.AddInputConnection(data.GetOutputPort())
+
+        ###############
+        # INTERACTIVE #
+        ###############
+
+        miniSlider, miniRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+        maxiSlider, maxiRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+        contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+
+        span = abs(v.max()) - abs(v.min())
+        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95, 0), (.2, .95, 0), 'upperbound')
+        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .01 * span, (.01, .85, 0), (.2, .85, 0), 'lowerbound')
+        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .75, 0), (.2, .75, 0), 'contour isovalue')
+
+        button, buttonRep, on, off = vtkButtonWidget(), vtkTexturedButtonRepresentation2D(), vtkImageData(), vtkImageData()
+        self._setButtonWidget(button, buttonRep, on, off)
+
+        # FIXME: we have to make iren aware of the sliders (no reference, object is deleted by vtk ?)
+        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=(miniSlider, maxiSlider, contSlider, button): None)
+
+        def cb_slider(obj, event):
+            nonlocal threshold, miniRep, maxiRep, miniSlider, maxiSlider
+            mini, maxi = miniRep.GetValue(), maxiRep.GetValue()
+            minbound, maxbound = min(mini, maxi), max(mini, maxi)
+            if obj is miniSlider:
+                miniRep.SetValue(minbound)
+                threshold.ThresholdBetween(minbound, maxi)
+            elif obj is maxiSlider:
+                maxiRep.SetValue(maxbound)
+                threshold.ThresholdBetween(mini, maxbound)
+        miniSlider.AddObserver('EndInteractionEvent', cb_slider)
+        maxiSlider.AddObserver('EndInteractionEvent', cb_slider)
+
+        def cb_thres_cont(obj, event):
+            nonlocal iso
+            iso.SetValue(0, obj.GetRepresentation().GetValue())
+        contSlider.AddObserver('EndInteractionEvent', cb_thres_cont)
+
+        def cb_button(obj, event):
+            nonlocal iso, mapper, contSlider, contRep, data
+            state = obj.GetRepresentation().GetState()
+            iso.SetValue(0, contRep.GetValue())
+            contSlider.SetEnabled(state)
+            mapper.SetInputConnection(iso.GetOutputPort() if state > 0 else data.GetOutputPort())
+        button.AddObserver('StateChangedEvent', cb_button)
+
+        [_.InvokeEvent('EndInteractionEvent') for _ in (miniSlider, maxiSlider)]
+        button.InvokeEvent('StateChangedEvent')
 
     def _set_figure_size(self, fig):
         _print('<figure size>')
@@ -1963,10 +1984,16 @@ class VTKBackend(BaseClass):
         self._g.set_size(width, height) if width and height else self._g.set_size(800, 600)
 
     def _find_poked(self, event):
-        '''get the vtkTkRenderWindowIntesractor widget and renderer on which the event has been triggered'''
+        '''get the vtk[Tk,Qt]RenderWindowInteractor widget and renderer on which the event has been triggered'''
         # print(dir(event))
+        # for _ in dir(event):
+        #     try:
+        #         print(_, getattr(event, _)())
+        #     except:
+        #         pass
         # print(vars(event))
         fig, ax = None, None
+
         for fignum, _ in list(self._figs.items()):
             # compare event and find the figure
             if event and id(event.widget) == id(_._g.vtkWidget):
@@ -1982,10 +2009,9 @@ class VTKBackend(BaseClass):
                     fig.setp(curax=_)
                     ax = _
                     break
-        if DEBUG:
-            pass
-            # print('--> poked fig {}'.format(fig.getp('number')), hex(id(fig)), '--> poked ax', hex(id(ax)), 'curax', fig.getp('curax'))
-            # print('axes', fig.getp('axes'))
+
+        _print('! poked fig {} @(x, y) {}'.format(fig.getp('number'), (event.x, event.y)), hex(id(fig)), '--> poked ax', hex(id(ax)), 'curax', fig.getp('curax'))
+        # _print('axes', fig.getp('axes'))
 
         return fig, ax
 
@@ -2004,24 +2030,18 @@ class VTKBackend(BaseClass):
             # don't set view in the following command because cammode will fail because of the _set_default_view call
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0))
 
-        def _keyPressEvent(self, ev):
-            '''override the keyPressEvent func'''
-            ctrl, shift = self._GetCtrlShift(ev)
-            key = str(ev.text()) if ev.key() < 256 else chr(0)
-
-            keySym = vtk.qt4.QVTKRenderWindowInteractor._qt_key_to_key_sym(ev.key())
-            if shift and len(keySym) == 1 and keySym.isalpha():
-                keySym = keySym.upper()
-
-            self._Iren.SetEventInformationFlipY(self.__saveX, self.__saveY, ctrl, shift, key, 0, keySym)
-            self._Iren.KeyPressEvent()
-            self._Iren.CharEvent()
-
-        def callback(e, ctrl, shift):
+        def callback(e, ctrl, shift, **kwargs):
             '''
             stackoverflow.com/a/16082411/5584077
             infohost.nmt.edu/tcc/help/pubs/tkinter/web/key-names.html
+
+            Input
+            -----
+            kwargs: some compatibility information set on the event to comply with the tk reference
             '''
+
+            # compatibility qt/tk
+            [setattr(e, _, __) for _, __ in kwargs.items()]
 
             fig, ax = self._find_poked(e)
             if ctrl:
@@ -2030,13 +2050,11 @@ class VTKBackend(BaseClass):
                 axs = list(fig.getp('axes').values())
 
             if 'tk' in VTK_BACKEND.lower():
-                key = e.keysym.lower()
-                kpevent, eargs = 'KeyPressEvent', (ctrl, shift)
+                kpevent, eargs, ekwargs = 'KeyPressEvent', (e, ctrl, shift), dict()
             else:
-                key = _qt_key_to_key_sym(e.key())
-                widget._keyPressEvent = _keyPressEvent
-                kpevent, eargs = '_keyPressEvent', ()
+                kpevent, eargs, ekwargs = 'keyPressEvent', (e,), dict(filtered=True)
 
+            key = e.keysym.lower()
             print(key, end=' ')
 
             if ctrl or shift:
@@ -2077,7 +2095,11 @@ class VTKBackend(BaseClass):
                         cbar = ax.getp('colorbar')
                         _toggle_state(cbar, 'visible')
                     elif key == 's':
-                        self.hardcopy('fig.pdf', replot=False, vector_file=True, magnification=1, raster3d=False, compression=True)
+                        if False:
+                            self.hardcopy('fig.eps', replot=False, magnification=1)
+                        else:
+                            self.hardcopy('fig.png', replot=False, magnification=4, quality=9)  # pretty good quality withe these setting !
+                            # self.hardcopy('fig.jpg', replot=False, magnification=4, quality=100)
                         return
                     # got camtarget value from paraview default
                     #  --------- /     ^
@@ -2107,7 +2129,7 @@ class VTKBackend(BaseClass):
                         return
                     else:
                         # when a binding is not known, return without replotting, and forward the event
-                        getattr(vtkWidget, kpevent)(e, *eargs)
+                        getattr(vtkWidget, kpevent)(*eargs, **ekwargs)
                         return
                 # only replot at the end
                 self._replot(fig, axs)
@@ -2126,7 +2148,7 @@ class VTKBackend(BaseClass):
                     # self._g.iren.KeyPressEvent()
                 else:
                     # forward the event if not interactive event
-                    getattr(vtkWidget, kpevent)(e, *eargs)
+                    getattr(vtkWidget, kpevent)(*eargs, **ekwargs)
                 return
 
         ######################################################
@@ -2135,9 +2157,7 @@ class VTKBackend(BaseClass):
             vtkWidget.bind('<Shift-Key>', lambda e: callback(e, 0, 1))
             vtkWidget.bind('<KeyPress>', lambda e: callback(e, 0, 0))
         else:
-            pass
-            # FIXME: no callback for now
-            # vtkWidget.keyPressEvent = callback
+            vtkWidget.callback = callback
 
     def figure(self, *args, **kwargs):
         # Extension of BaseClass.figure: adding a plotting package figure instance as fig._g and create a link to it as self._g
@@ -2158,52 +2178,50 @@ class VTKBackend(BaseClass):
         return fig
 
     def closefig(self, backend):
-        fig = None
-        for _ in list(self._figs.values()):
-            _g = getattr(_, '_g', None)
-            if id(_g) == id(backend):
-                fig = _
-                break
+        with _debug('closefig'):
+            fig = None
+            for _ in list(self._figs.values()):
+                _g = getattr(_, '_g', None)
+                if id(_g) == id(backend):
+                    fig = _
+                    break
 
-        if fig:
-            # delete the associated backend !
-            for k in list(self._figs):
-                if self._figs[k] == fig:
-                    del self._figs[k]
-            del fig
-            if len(self._figs) < 1:
-                self._master.quit()
+            if fig:
+                # delete the associated backend !
+                for k in list(self._figs):
+                    if self._figs[k] == fig:
+                        del self._figs[k]
+                del fig
+                if len(self._figs) < 1:
+                    self._master.quit()
 
-            self.figure(max(self._figs) if len(self._figs) > 0 else None)  # raise another figure
-
-        _print('<closefig>')
+                self.figure(max(self._figs) if len(self._figs) > 0 else None)  # raise another figure
 
     def _setup_axis(self, ax):
-        _print('<axis>')
-        self._set_limits(ax)
-        self._set_daspect(ax)
-        self._set_colormap(ax)
-        self._set_caxis(ax)
+        with _debug('axis'):
+            self._set_limits(ax)
+            self._set_daspect(ax)
+            self._set_colormap(ax)
+            self._set_caxis(ax)
 
-        # create a renderer for this axis and add it to the current figures renderer window
-        ax._renderer = vtkRenderer()
-        self._g.renwin.AddRenderer(ax._renderer)
+            # create a renderer for this axis and add it to the current figures renderer window
+            ax._renderer = vtkRenderer()
+            self._g.renwin.AddRenderer(ax._renderer)
 
-        # Set the renderers background color:
-        ax._renderer.SetBackground(*ax.getp('bgcolor'))
+            # Set the renderers background color:
+            ax._renderer.SetBackground(*ax.getp('bgcolor'))
 
-        rect = ax.getp('viewport')
-        if not rect:
-            rect = (0, 0, 1, 1)
-        ax._renderer.SetViewport(rect)
-        ax._renderer.RemoveAllViewProps()  # clear current scene
-        # axshape = self.gcf().getp('axshape')
-        # ax._renderer.SetPixelAspect(axshape[1], axshape[0])
+            viewport = ax.getp('viewport')
+            print('viewport is', viewport)
+            ax._renderer.SetViewport((0, 0, 1, 1) if not viewport else viewport)
+            ax._renderer.RemoveAllViewProps()  # clear current scene
+            # axshape = self.gcf().getp('axshape')
+            # ax._renderer.SetPixelAspect(axshape[1], axshape[0])
 
-        ax._apd = vtkAppendPolyData()
-        if getattr(ax, '_iw', None) is not None:
-            if ax._iw._on:  # else iwidget crashes without any information
-                ax._iw.Off()
+            ax._apd = vtkAppendPolyData()
+            if getattr(ax, '_iw', None) is not None:
+                if ax._iw._on:  # else iwidget crashes without any information
+                    ax._iw.Off()
 
     def _fix_latex(self, legend):
         '''Remove latex syntax a la $, \, {, } etc.'''
@@ -2213,8 +2231,7 @@ class VTKBackend(BaseClass):
         return legend
 
     def _replot(self, fig=None, axs=(), hard=False):
-        '''Replot all axes and all plotitems in the backend.'''
-        # NOTE: only the current figure (gcf) is redrawn.
+        '''Replot all axes and all plotitems in the backend. NOTE: only the current figure (gcf) is redrawn.'''
         _print('<replot in backend>')
         # reset the plotting package instance in fig._g now if needed
 
@@ -2251,6 +2268,7 @@ class VTKBackend(BaseClass):
                 xmin, xmax = col / ncols, (col + 1) / ncols
                 ymin, ymax = row / nrows, (row + 1) / nrows
                 ax.setp(viewport=[xmin, ymin, xmax, ymax])
+                _print('viewport (xmin, ymin, xmax, ymax)', (xmin, ymin, xmax, ymax))
 
             self._setup_axis(ax)
             # from now on, ax._renderer and ax._apd are created
@@ -2311,7 +2329,6 @@ class VTKBackend(BaseClass):
             if DEBUG:
                 _print('<plot data to screen>')
                 debug(self, level=0)
-            print('probe')
 
         self._g.display(show=self.getp('show'))
 
@@ -2336,13 +2353,6 @@ class VTKBackend(BaseClass):
                         pass
                 self.show()
 
-    # def all_exit(self):
-    #     for _, fig in list(self._figs.items()):
-    #         self.figure(fig.getp('number'))
-    #         self._g.exit()
-    #     self._master.quit()
-    #     # self.master.destroy()  # do not destroy, in order to create other figures ...
-
     def hardcopy(self, filename, **kwargs):
         '''
         Supported extensions in VTK backend:
@@ -2362,10 +2372,10 @@ class VTKBackend(BaseClass):
           quality     -- Set the quality of the resulting JPEG image. The
                          argument must be given as an integer between 0 and
                          100, where 100 gives the best quality (but also
-                         the largest file). Default quality is 10.
+                         the largest file). Default quality is 10. Used also
+                         for the png writer for the compression level (0-9)
 
-          progressive -- Set whether to use progressive JPEG generation or
-                         not. Default is False.
+          progressive -- Set whether to use progressive JPEG generation or not
 
         Optional arguments for PostScript and PDF output:
 
@@ -2411,21 +2421,20 @@ class VTKBackend(BaseClass):
             ext = '.ps'
             filename += ext
 
-        jpeg_quality = int(kwargs.get('quality', 100))
-        progressive = int(kwargs.get('progressive', False))
+        compression_or_quality = int(kwargs.get('quality', 100))
+        progressive = int(kwargs.get('progressive', True))
         vector_file = int(kwargs.get('vector_file', False))
         landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
         raster3d = int(kwargs.get('raster3d', False))
         compression = int(kwargs.get('compression', True))
         magnification = int(kwargs.get('magnification', 2))
 
-        if DEBUG:
-            for _ in ('jpeg_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression'):
-                print('   ', _, '=', locals()[_])
+        for _ in ('compression_or_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression'):
+            _print('   ', _, '=', locals()[_])
 
         vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3, '.svg': 4}
         if vector_file and ext.lower() in vector_file_formats:
-            exp = vtkGL2PSExporter()
+            exp = vtkOpenGLGL2PSExporter()
             if DEBUG:
                 exp.DebugOn()
             exp.SetBufferSize(50 * 1024**2)  #  50MB
@@ -2462,8 +2471,10 @@ class VTKBackend(BaseClass):
             w2if.ReadFrontBufferOff()  # needed to avoid some desktop overlay on linux
             w2if.Update()  # or w2if.Modified(), advised in documentation
             writer = vtk_image_writers[ext.lower()]
+            if ext.lower() in ('.png',):
+                writer.SetCompressionLevel(compression_or_quality)  # 0-9, default 5
             if ext.lower() in ('.jpg', '.jpeg'):
-                writer.SetQuality(jpeg_quality)
+                writer.SetQuality(compression_or_quality)
                 writer.SetProgressive(progressive)
             if ext.lower() in ('.tif', '.tiff'):
                 writer.SetCompressionToDeflate()
@@ -2800,3 +2811,15 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 # print(probe.GetImageDataOutput())
 
 # img_source = vtkAlgorithmSource(probe.GetImageDataOutput(), 'vtkImageData')
+
+# def all_exit(self):
+#     for _, fig in list(self._figs.items()):
+#         self.figure(fig.getp('number'))
+#         self._g.exit()
+#     self._master.quit()
+#     # self.master.destroy()  # do not destroy, in order to create other figures ...
+
+# vtkDataSetAttributes.SCALARS or 'scalars'
+# <...>(int idx, int port, int connection, int fieldAssociation, const char *name)
+# threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, 'scalars')
+# threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes.SCALARS)
