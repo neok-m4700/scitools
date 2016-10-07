@@ -733,6 +733,16 @@ class VTKBackend(BaseClass):
         assert _ == vtkcoord.GetCoordinateSystem()
         vtkcoord.SetValue(coord if len(coord) == 3 else (*coord, 0))
 
+    @staticmethod
+    def _get_caxis(ax, item, obj):
+        'get color axis from ax, center the range if centercaxis is set in item'
+        cax = ax._caxis
+        if cax is None:
+            obj.Update(); cax = obj.GetOutput().GetScalarRange()
+        if item.getp('zerocentercaxis'):
+            cax = (-max(cax), max(cax))
+        return cax
+
     def _set_colorbar(self, ax):
         'add a colorbar to the axis'
         cbar = ax.getp('colorbar')
@@ -753,8 +763,9 @@ class VTKBackend(BaseClass):
                 scalarBar.UnconstrainedFontSizeOn()
                 scalarBar.GetLabelTextProperty().SetFontSize(int(1.1 * scalarBar.GetLabelTextProperty().GetFontSize()))
             ax._renderer.AddActor(scalarBar)
-
-    def _set_caxis(self, ax):
+    
+    @staticmethod
+    def _set_caxis(ax):
         'set the color axis scale'
         _print('<caxis>')
 
@@ -1327,10 +1338,7 @@ class VTKBackend(BaseClass):
         mapper = vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
-        cax = self._ax._caxis
-        if cax is None:
-            data.Update(); cax = data.GetOutput().GetScalarRange()
-        mapper.SetScalarRange(cax)
+        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
         actor = vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
@@ -1363,10 +1371,7 @@ class VTKBackend(BaseClass):
         mapper = vtkDataSetMapper()
         mapper.SetInputConnection(normals.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
-        cax = self._ax._caxis
-        if cax is None:
-            data.Update(); cax = data.GetOutput().GetScalarRange()
-        mapper.SetScalarRange(cax)
+        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
         actor = vtkActor()
         actor.SetMapper(mapper)
         if item.getp('wireframe'):
@@ -1415,10 +1420,7 @@ class VTKBackend(BaseClass):
             cmap.SetNumberOfColors(clevels)
             cmap.Build()
         mapper.SetLookupTable(cmap)
-        cax = self._ax._caxis
-        if cax is None:
-            cax = datao.GetScalarRange()
-        mapper.SetScalarRange(cax)
+        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
         if item.getp('linecolor'):  # linecolor is defined
             mapper.ScalarVisibilityOff()
 
@@ -1614,13 +1616,13 @@ class VTKBackend(BaseClass):
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(output.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
-        cax = self._ax._caxis
-
-        if cax is None:
-            # because of GetInput()
-            mapper.Update(); cax = mapper.GetInput().GetBounds()[4:]
-            # cax = sgrid.GetScalarRange()
-        mapper.SetScalarRange(cax)
+        if False:
+            'why this ?'
+            cax = self._ax._caxis
+            if cax is None:
+                # because of GetInput()
+                mapper.Update(); cax = mapper.GetInput().GetBounds()[4:]
+        mapper.SetScalarRange(self._get_caxis(self._ax, item, output))
         actor = vtkActor()
         actor.SetMapper(mapper)
 
@@ -1655,11 +1657,7 @@ class VTKBackend(BaseClass):
         mapper.SetInputConnection(normals.GetOutputPort())
         # mapper.SetScalarModeToUsePointFieldData()
         mapper.SetLookupTable(self._ax._colormap)
-
-        cax = self._ax._caxis
-        if cax is None:
-            sgrid.Update(); cax = sgrid.GetOutput().GetScalarRange()
-        mapper.SetScalarRange(cax)
+        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
         actor = vtkActor()
         actor.SetMapper(mapper)
         # self._set_shading(item, normals, actor)
@@ -1671,6 +1669,7 @@ class VTKBackend(BaseClass):
         _print('<slice vol +>')
 
         sgrid = self._create_3D_scalar_data(item)
+        sgrid.Update(); sgrido = sgrid.GetOutput()
 
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
@@ -1680,8 +1679,7 @@ class VTKBackend(BaseClass):
             geom = vtkStructuredGridGeometryFilter()
             geom.SetInputConnection(sgrid2.GetOutputPort())
             data = self._cut_data(geom, item)
-            data.Update()
-            datao = data.GetOutput()
+            data.Update(); datao = data.GetOutput()
             implds = vtkImplicitDataSet()
             implds.SetDataSet(datao)
             implds.Modified()
@@ -1693,10 +1691,7 @@ class VTKBackend(BaseClass):
             mapper = vtkPolyDataMapper()
             mapper.SetInputConnection(cut.GetOutputPort())
             mapper.SetLookupTable(self._ax._colormap)
-            cax = self._ax._caxis
-            if cax is None:
-                cax = datao.GetScalarRange()
-            mapper.SetScalarRange(cax)
+            mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
             actor = vtkActor()
             actor.SetMapper(mapper)
             if not contours:
@@ -1708,7 +1703,6 @@ class VTKBackend(BaseClass):
         else:
             # sx, sy, and sz is either numbers or vectors with numbers
             origins, normals = [], []
-            sgrido = sgrid.GetOutput()
             # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
             dx, dy, dz = self._ax.getp('daspect')
@@ -1746,10 +1740,7 @@ class VTKBackend(BaseClass):
                 else:
                     mapper.SetInputConnection(data.GetOutputPort())
                 mapper.SetLookupTable(self._ax._colormap)
-                cax = self._ax._caxis
-                if cax is None:
-                    cax = sgrido.GetScalarRange()
-                mapper.SetScalarRange(cax)
+                mapper.SetScalarRange(self._get_caxis(self._ax, item, sgrid))
                 actor = vtkActor()
                 actor.SetMapper(mapper)
                 if not contours:
@@ -1954,12 +1945,12 @@ class VTKBackend(BaseClass):
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(data.GetOutputPort())
 
-        cax = self._ax._caxis
-        if cax is None:
-            cax = sgrido.GetPointData().GetArray('pseudocolor' if pseudocolor else 'scalars').GetRange()
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray('pseudocolor' if pseudocolor else 'scalars')
         mapper.SetLookupTable(self._ax._colormap)
+        cax = self._ax._caxis
+        if cax is None:
+            cax = sgrido.GetPointData().GetArray('pseudocolor' if pseudocolor else 'scalars').GetRange()
         mapper.SetScalarRange(cax)
 
         actor = vtkActor()
