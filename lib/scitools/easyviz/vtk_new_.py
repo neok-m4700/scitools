@@ -46,6 +46,7 @@ import os
 import sys
 import readline  # see bugs.python.org/issue19884
 from contextlib import contextmanager
+from enum import Enum
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
@@ -78,6 +79,8 @@ if OPTIMIZATION == 'numba':
     except ImportError:
         print('Numba not available. Optimization turned off')
 
+VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
+
 
 def _print(*args, **kwargs):
     if DEBUG:
@@ -85,8 +88,8 @@ def _print(*args, **kwargs):
 
 
 @contextmanager
-def _debug(msg):
-    _print('[ ', msg, end=' ', sep='')
+def _debug(*args):
+    _print('[ ', ' '.join(map(str, args)), end=' ', sep='')
     yield
     _print(']', end=' ')
 
@@ -134,7 +137,7 @@ else:
 
 class _VTKFigure:
 
-    def __init__(self, plt, width=800, height=600, title=''):
+    def __init__(self, plt, width, height, title=''):
         self.backend = VTK_BACKEND.lower()
         self.plt = plt
         self.width = width
@@ -150,7 +153,8 @@ class _VTKFigure:
             self.frame.pack(side='top', fill='both', expand='true')
         else:
             self.root = QtGui.QMainWindow()
-            self.root.closeEvent = lambda e: [e.ignore(), self.exit()]
+            self.root.setWindowTitle(title)
+            self.root.closeEvent = lambda e: self.exit()
             self.root.resize(self.width, self.height)
             self.frame = QtGui.QFrame()
             self.vl = QtGui.QVBoxLayout()
@@ -163,7 +167,6 @@ class _VTKFigure:
                 self.vtkWidget.pack(expand='true', fill='both')
             else:
                 self.vtkWidget = _QVTKRenderWindowInteractor(self.frame)  # this object inherits from QWidget
-                self.vtkWidget.AddObserver('ExitEvent', lambda o, e: self.exit())
                 self.vl.addWidget(self.vtkWidget)
 
             self.renwin = self.vtkWidget.GetRenderWindow()
@@ -242,7 +245,8 @@ class _VTKFigure:
             if 'tk' in self.backend:
                 self.frame.forget()
             else:
-                self.vtkWidget.close()
+                pass
+                # self.vtkWidget.close() # will get destroyed throught the qt event mechanism
             self.plt.closefig(self)
 
     def set_size(self, width, height):
@@ -407,7 +411,7 @@ class VTKBackend(BaseClass):
             self._master = tkinter.Tk()
             self._master.withdraw()
         else:
-            self._master = QtGui.QApplication(['QVTKRenderWindowInteractor'])
+            self._master = QtGui.QApplication([])
 
         self.figure(self.getp('curfig'))
 
@@ -516,7 +520,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_labels(self, ax):
-        '''Add text labels for x-, y-, and z-axis.'''
+        'add text labels for x-, y-, and z-axis'
         xlabel, ylabel, zlabel = ax.getp('xlabel'), ax.getp('ylabel'), ax.getp('zlabel')
         if (xlabel or ylabel or zlabel):
             _print('<labels>')
@@ -531,14 +535,14 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_title(self, ax):
-        '''Add a title at the top of the axis'''
+        'Add a title at the top of the axis'
         # title = self._fix_latex(ax.getp('title'))
         title = ax.getp('title')
         if title:
             _print('<title>')
             tprop = vtkTextProperty()
             tprop.BoldOff()
-            tprop.SetFontSize(ax.getp('fontsize'))
+            tprop.SetFontSize(int(1.5 * ax.getp('fontsize')))
             tprop.SetColor(ax.getp('fgcolor'))
             tprop.SetFontFamilyToArial()
             tprop.SetVerticalJustificationToTop()
@@ -548,12 +552,11 @@ class VTKBackend(BaseClass):
             tmapper.SetTextProperty(tprop)
             tactor = vtkActor2D()
             tactor.SetMapper(tmapper)
-            tactor.GetPositionCoordinate().SetCoordinateSystemToView()
-            tactor.GetPositionCoordinate().SetValue(.0, .95)
+            self._set_coord_in_system(tactor.GetPositionCoordinate(), (.5, .95), 'VTK_NORMALIZED_VIEWPORT')
             ax._renderer.AddActor(tactor)
 
     def _set_limits(self, ax):
-        '''Set axis limits in x, y, and z direction.'''
+        'set axis limits in x, y, and z direction'
         _print('<axis limits>')
 
         mode = ax.getp('mode')
@@ -600,7 +603,7 @@ class VTKBackend(BaseClass):
         ax._limits = (xmin, xmax, ymin, ymax, zmin, zmax)
 
     def _set_position(self, ax):
-        '''set axes position'''
+        'set axes position'
         rect = ax.getp('viewport')
         if rect:
             # axes position is defined. In Matlab rect is defined as [left,bottom,width,height], where the four parameters are location values between 0 and 1 ((0,0) is the lower-left corner and (1,1) is the upper-right corner).
@@ -608,7 +611,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_daspect(self, ax):
-        '''set data aspect ratio'''
+        'set data aspect ratio'
         dar = ax.getp('daspect')  # dar is a list (len(dar) is 3).
         # the axis limits are stored as ax._limits
         l = list(ax._limits)
@@ -636,9 +639,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_coordinate_system(self, ax):
-        '''
-        Use either the default Cartesian coordinate system or a matrix coordinate system.
-        '''
+        'use either the default Cartesian coordinate system or a matrix coordinate system'
 
         direction = ax.getp('direction')
         if direction == 'ij':
@@ -659,7 +660,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_box(self, ax):
-        '''turn box around axes boundary on or off, for vtk we use it to plot the axes'''
+        'turn box around axes boundary on or off, for vtk we use it to plot the axes'
         # see cubeAxes.py
         if ax.getp('box'):
             _print('<box>')
@@ -691,7 +692,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_grid(self, ax):
-        '''turn grid lines on or off, for vtk we use this to plot the grid points'''
+        'turn grid lines on or off, for vtk we use this to plot the grid points'
         if ax.getp('grid'):
             _print('<grid>')
             # turn grid lines on
@@ -710,7 +711,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_hidden_line_removal(self, ax):
-        '''turn on/off hidden line removal for meshes'''
+        'turn on/off hidden line removal for meshes'
         if ax.getp('hidden'):
             _print('<hidden line removal>')
             # turn hidden line removal on
@@ -718,8 +719,22 @@ class VTKBackend(BaseClass):
         else:
             pass
 
+    @staticmethod
+    def _set_coord_in_system(vtkcoord, coord, system='VTK_WORLD'):
+        def key_from_val(val, d=VTK_COORD_SYS):
+            'reverse lookup in a dictionary (given a value, returns a key)'
+            try:
+                return list(d.keys())[list(d.values()).index(val)]
+            except:
+                return
+        _ = key_from_val(system)
+        if _ is not None:
+            vtkcoord.SetCoordinateSystem(_)
+        assert _ == vtkcoord.GetCoordinateSystem()
+        vtkcoord.SetValue(coord if len(coord) == 3 else (*coord, 0))
+
     def _set_colorbar(self, ax):
-        '''add a colorbar to the axis'''
+        'add a colorbar to the axis'
         cbar = ax.getp('colorbar')
         if cbar.getp('visible'):
             _print('<colorbar>')
@@ -731,13 +746,16 @@ class VTKBackend(BaseClass):
             scalarBar.SetLookupTable(ax._colormap)
             scalarBar.SetTitle(cbar.getp('cbtitle'))
             scalarBar.SetOrientationToHorizontal()
-            scalarBar.SetBarRatio(.1 * scalarBar.GetBarRatio())
-            scalarBar.UnconstrainedFontSizeOn()
-            scalarBar.GetLabelTextProperty().SetFontSize(int(.7 * scalarBar.GetLabelTextProperty().GetFontSize()))
+            self._set_coord_in_system(scalarBar.GetPositionCoordinate(), (.25, .05), 'VTK_NORMALIZED_VIEWPORT')
+            self._set_coord_in_system(scalarBar.GetPosition2Coordinate(), (.5, .1), 'VTK_NORMALIZED_VIEWPORT')
+            # scalarBar.SetTitleRatio(.8 * scalarBar.GetTitleRatio())
+            if True:
+                scalarBar.UnconstrainedFontSizeOn()
+                scalarBar.GetLabelTextProperty().SetFontSize(int(1.1 * scalarBar.GetLabelTextProperty().GetFontSize()))
             ax._renderer.AddActor(scalarBar)
 
     def _set_caxis(self, ax):
-        '''set the color axis scale'''
+        'set the color axis scale'
         _print('<caxis>')
 
         if ax.getp('caxismode') == 'manual':
@@ -752,7 +770,7 @@ class VTKBackend(BaseClass):
             ax._caxis = None
 
     def _set_colormap(self, ax):
-        '''set the colormap'''
+        'set the colormap'
         _print('<colormap>')
 
         cmap = ax.getp('colormap')
@@ -764,7 +782,7 @@ class VTKBackend(BaseClass):
         ax._colormap = cmap
 
     def _set_view(self, ax):
-        '''set viewpoint specification'''
+        'set viewpoint specification'
         _print('<view>')
 
         def print_cam(camera, msg):
@@ -969,7 +987,7 @@ class VTKBackend(BaseClass):
         return clipper
 
     def _set_shading(self, item, source, actor):
-        '''shading + mesh contour'''
+        'shading + mesh contour'
         shading = self._ax.getp('shading')
         _print('<shading>')
 
@@ -998,21 +1016,24 @@ class VTKBackend(BaseClass):
                 self._ax._renderer.AddActor(mesh)
 
     def _set_actor_properties(self, item, actor):
-        '''set line properties'''
+        'set line properties'
         color = self._get_color(item.getp('linecolor'), (0, 0, 1))
-        actor.GetProperty().SetColor(color)
+        prop = actor.GetProperty()
+        prop.SetColor(color)
         if item.getp('linetype') == '--':
-            actor.GetProperty().SetLineStipplePattern(65280)
+            propSetLineStipplePattern(65280)
         elif item.getp('linetype') == ':':
-            actor.GetProperty().SetLineStipplePattern(0x1111)
-            actor.GetProperty().SetLineStippleRepeatFactor(1)
+            prop.SetLineStipplePattern(0x1111)
+            prop.SetLineStippleRepeatFactor(1)
         # actor.GetProperty().SetPointSize(item.getp('pointsize'))
         linewidth = item.getp('linewidth')
         if linewidth:
-            actor.GetProperty().SetLineWidth(float(linewidth))
+            prop.SetLineWidth(float(linewidth))
+        if item.getp('edgevisibility'):
+            prop.EdgeVisibilityOn()
 
     def _set_actor_material_properties(self, item, actor):
-        '''set material properties'''
+        'set material properties'
         ax = self._ax
         mat = item.getp('material')
         if mat.getp('opacity') is not None:
@@ -1286,7 +1307,7 @@ class VTKBackend(BaseClass):
         return vtkAlgorithmSource(polydata, outputType='vtkPolyData')
 
     def _get_linespecs(self, item):
-        '''Return the line marker, line color, line style, and line width of the item'''
+        'Return the line marker, line color, line style, and line width of the item'
         marker = self._markers[item.getp('linemarker')]
         color = self._colors[item.getp('linecolor')]
         style = self._line_styles[item.getp('linetype')]
@@ -1294,7 +1315,7 @@ class VTKBackend(BaseClass):
         return marker, color, style, width
 
     def _add_line(self, item):
-        '''Add a 2D or 3D curve to the scene.'''
+        'Add a 2D or 3D curve to the scene'
         _print('<line +>')
 
         # get line specifications, TODO: set them in VTK
@@ -1442,7 +1463,7 @@ class VTKBackend(BaseClass):
             ldm.SetLabelModeToLabelScalars()
             tprop = ldm.GetLabelTextProperty()
             tprop.SetFontFamilyToArial()
-            tprop.SetFontSize(self._ax.getp('fontsize') // 2)
+            tprop.SetFontSize(int(.8 * self._ax.getp('fontsize')))
             tprop.SetColor(edgecolor)
             tprop.ShadowOff()
             tprop.BoldOff()
@@ -1770,17 +1791,19 @@ class VTKBackend(BaseClass):
         widget.On()
 
     def _setSliderWidget(self, widget, rep, minval, maxval, val, p1, p2, ttl):
-        c_system = {'0': 'VTK_DISPLAY', '1': 'VTK_NORMALIZED_DISPLAY', '2': 'VTK_VIEWPORT', '3': 'VTK_NORMALIZED_VIEWPORT', '4': 'VTK_VIEW', '5': 'VTK_WORLD', '6': 'VTK_USERDEFINED'}
-        c1, c2 = rep.GetPoint1Coordinate(), rep.GetPoint2Coordinate()
-        for c, p in [(c1, p1), (c2, p2)]:
-            # before this call, c is (-1., 0., 0.) in world coordinates
-            c.SetCoordinateSystemToNormalizedViewport()
-            c.SetValue(p)
-            print('coord', c.GetValue(), 'viewport', c.GetViewport(), c_system[str(c.GetCoordinateSystem())])
-            print('(w, h)', (self._g.width, self._g.height), '(x, y)', c.GetComputedDisplayValue(self._ax._renderer))
-            # print('..')
-            # [_print(_.GetCoordinateSystem(), getattr(_, 'GetComputedValue')(_.GetViewport())) for _ in (c1, c2)]
-            # print('--')
+        if False:
+            c1, c2 = rep.GetPoint1Coordinate(), rep.GetPoint2Coordinate()
+            for c, p in [(c1, p1), (c2, p2)]:
+                # before this call, c is (-1., 0., 0.) in world coordinates
+                c.SetCoordinateSystemToNormalizedViewport()
+                c.SetValue(p)
+                _print('coord', c.GetValue(), 'viewport', c.GetViewport(), VTK_COORD_SYS[c.GetCoordinateSystem()])
+                _print('(w, h)', (self._g.width, self._g.height), '(x, y)', c.GetComputedDisplayValue(self._ax._renderer))
+                # print('..')
+                # [_print(_.GetCoordinateSystem(), getattr(_, 'GetComputedValue')(_.GetViewport())) for _ in (c1, c2)]
+                # print('--')
+        self._set_coord_in_system(rep.GetPoint1Coordinate(), p1, system='VTK_NORMALIZED_VIEWPORT')
+        self._set_coord_in_system(rep.GetPoint2Coordinate(), p2, system='VTK_NORMALIZED_VIEWPORT')
         rep.SetMinimumValue(.95 * minval)
         rep.SetMaximumValue(1.05 * maxval)
         rep.SetValue(val)
@@ -1810,21 +1833,27 @@ class VTKBackend(BaseClass):
 
         sgrid = self._create_3D_scalar_data(item)
 
-        clipper = vtkClipDataSet()
+        surface = vtkDataSetSurfaceFilter()
+        surface.SetInputConnection(sgrid.GetOutputPort())
+
+        clipper = vtkClipPolydata()
         clipper.SetInputConnection(sgrid.GetOutputPort())
 
-        surface = vtkDataSetSurfaceFilter()
-        surface.SetInputConnection(clipper.GetOutputPort())
+        # data = self._cut_data(surface, item)
 
-        data = self._cut_data(surface, item)
+        clean = True
+        if clean:
+            cleaner = vtkCleanPolyData()
+            cleaner.SetInputConnection(surface.GetOutputPort())
+            cleaner.SetTolerance(.005)
 
-        cleaner = vtkCleanPolyData()
-        cleaner.SetInputConnection(surface.GetOutputPort())
-        cleaner.SetTolerance(.005)
+        tri = vtk.vtkTriangleFilter()
+        tri.SetInputConnection(cleaner.GetOutputPort() if clean else surface.GetOutputPort())
 
         curv = vtk.vtkCurvatures()
-        curv.SetInputConnection(cleaner.GetOutputPort())
-        curv.SetCurvatureType(c_dict[key])
+        curv.SetInputConnection(tri.GetOutputPort())
+        # [curv.SetCurvatureType(_) for _ in c_dict.values()] # all array in output
+        curv.SetCurvatureType(c_dict[key])  # active array
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(curv.GetOutputPort())
@@ -1832,16 +1861,16 @@ class VTKBackend(BaseClass):
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray(c_dict[key])
         mapper.SetLookupTable(self._ax._colormap)
-        array = curv.GetOutput().GetPointData().GetArray(c_dict[key])
-        if array is not None:
-            mapper.SetScalarRange(array.GetRange())
+        out = curv.GetOutput().GetPointData().GetArray(c_dict[key])
+        if out is not None:
+            mapper.SetScalarRange(out.GetRange())
 
         actor = vtkActor()
         actor.SetMapper(mapper)
 
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
-        self._ax._apd.AddInputConnection(data.GetOutputPort())
+        self._ax._apd.AddInputConnection(curv.GetOutputPort())
 
         ###############
         # INTERACTIVE #
@@ -1849,14 +1878,25 @@ class VTKBackend(BaseClass):
 
         curvSlider, curvRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
-        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.51, .65, 0), (.7, .65, 0), 'curvature isovalue')
+        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.01, .75), (.3, .75), 'curvature isovalue')
 
         # FIXME: we have to make iren aware of the sliders, this is ugly, but it works
         self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
 
         def cb_curv_cont(obj, event):
-            nonlocal clipper
+            nonlocal clipper, curv, surface
             clipper.SetValue(obj.GetRepresentation().GetValue())
+            print(curv.GetOutput())
+
+            if True:
+                writer = vtkXMLPolyDataWriter()
+                writer.SetFileName('_add_curvature_surface.vtp')
+                writer.SetInputConnection(surface.GetOutputPort())
+                writer.Write()
+                writer.SetFileName('_add_curvature_curv.vtp')
+                writer.SetInputConnection(curv.GetOutputPort())
+                writer.Write()
+
         curvSlider.AddObserver('EndInteractionEvent', cb_curv_cont)
         curvSlider.InvokeEvent('EndInteractionEvent')
         curvSlider.Off(); curvSlider.On()
@@ -1880,7 +1920,7 @@ class VTKBackend(BaseClass):
 
         data = self._cut_data(surface, item)
 
-        '''failing because of the inherent regularity of vtkImageData (rectilinearGrid ?)'''
+        'failing because of the inherent regularity of vtkImageData (rectilinearGrid ?)'
         if False:
             img = vtkImageData()
             v = sgrido.GetPointData().GetScalars('scalars')
@@ -1938,9 +1978,9 @@ class VTKBackend(BaseClass):
         contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
         span = abs(v.max()) - abs(v.min())
-        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95, 0), (.2, .95, 0), 'upperbound')
-        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .01 * span, (.01, .85, 0), (.2, .85, 0), 'lowerbound')
-        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .75, 0), (.2, .75, 0), 'contour isovalue')
+        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95), (.3, .95), 'upperbound')
+        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .01 * span, (.01, .85), (.3, .85), 'lowerbound')
+        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .65), (.3, .65), 'contour isovalue')
 
         button, buttonRep, on, off = vtkButtonWidget(), vtkTexturedButtonRepresentation2D(), vtkImageData(), vtkImageData()
         self._setButtonWidget(button, buttonRep, on, off)
@@ -1977,14 +2017,8 @@ class VTKBackend(BaseClass):
         [_.InvokeEvent('EndInteractionEvent') for _ in (miniSlider, maxiSlider)]
         button.InvokeEvent('StateChangedEvent')
 
-    def _set_figure_size(self, fig):
-        _print('<figure size>')
-
-        width, height = fig.getp('size')
-        self._g.set_size(width, height) if width and height else self._g.set_size(800, 600)
-
     def _find_poked(self, event):
-        '''get the vtk[Tk,Qt]RenderWindowInteractor widget and renderer on which the event has been triggered'''
+        'get the vtk[Tk,Qt]RenderWindowInteractor widget and renderer on which the event has been triggered'
         # print(dir(event))
         # for _ in dir(event):
         #     try:
@@ -1996,7 +2030,7 @@ class VTKBackend(BaseClass):
 
         for fignum, _ in list(self._figs.items()):
             # compare event and find the figure
-            if event and id(event.widget) == id(_._g.vtkWidget):
+            if event and event.widget is _._g.vtkWidget:
                 fig = self.figure(fignum)  # set curfig to this figure
                 break
 
@@ -2004,19 +2038,19 @@ class VTKBackend(BaseClass):
         if all(isinstance(_, int) for _ in (event.x, event.y)):
             target = fig._g.iren.FindPokedRenderer(event.x, fig._g.renwin.GetSize()[1] - event.y)
             for _ in fig.getp('axes').values():
-                if id(_._renderer) == id(target):
+                if _._renderer is target:
                     # self.axes(_)  # set curax to this axis, this seems to cause the crash
                     fig.setp(curax=_)
                     ax = _
                     break
 
-        _print('! poked fig {} @(x, y) {}'.format(fig.getp('number'), (event.x, event.y)), hex(id(fig)), '--> poked ax', hex(id(ax)), 'curax', fig.getp('curax'))
+        _print('--> fig {} {} @(x, y) {}'.format(fig.getp('number'), hex(id(fig)), (event.x, event.y)), 'ax', hex(id(ax)), 'curax', fig.getp('curax'))
         # _print('axes', fig.getp('axes'))
 
         return fig, ax
 
     def _register_bindings(self, vtkWidget):
-        '''we must register the figure bindings in the backend because we have to have access to the backend properties'''
+        'we must register the figure bindings in the backend because we have to have access to the backend properties'
         def _toggle_state(obj, key):
             boolean = obj.getp(key)
             if isinstance(boolean, bool):
@@ -2091,6 +2125,8 @@ class VTKBackend(BaseClass):
                     elif key == 'c':
                         cbar = ax.getp('colorbar')
                         _toggle_state(cbar, 'visible')
+                    elif key == 'e':
+                        [_toggle_state(_, 'edgevisibility') for _ in ax.getp('plotitems')]
                     elif key == 't':
                         cbar = ax.getp('colorbar')
                         _toggle_state(cbar, 'visible')
@@ -2139,7 +2175,7 @@ class VTKBackend(BaseClass):
                     if getattr(ax, '_iw', None) is not None:
                         fig._g.iren.SetKeyCode('i')
                         # fig._g.iren.CharEvent()
-                        # ax._iw.SetInteractor(fig._g.iren)
+                        # ax._iw.SetInteractor(fig._g.((iren)
                         # ax._iw.SetCurrentRenderer(ax._renderer)
                         ax._iw.OnChar()
                         # ax._iw.InvokeEvent('EnableEvent') if not ax._iw._on else ax._iw.InvokeEvent('DisableEvent')
@@ -2160,16 +2196,19 @@ class VTKBackend(BaseClass):
             vtkWidget.callback = callback
 
     def figure(self, *args, **kwargs):
-        # Extension of BaseClass.figure: adding a plotting package figure instance as fig._g and create a link to it as self._g
+        'Extension of BaseClass.figure: adding a plotting package figure instance as fig._g and create a link to it as self._g'
         fig = BaseClass.figure(self, *args, **kwargs)
+        self.name = '[{}] {}'.format(fig.getp('number'), fig.getp('suptitle'))
         try:
-            fig._g
+            fig._g.root.title(self.name) if 'tk' in VTK_BACKEND.lower() else fig._g.root.setWindowTitle(self.name)
         except:
             # create plotting package figure and save figure instance as fig._g
-            self.name = 'Figure ' + str(fig.getp('number'))
             _print('creating figure {} in backend'.format(self.name))
-
-            fig._g = _VTKFigure(self, title=self.name)
+            width, height = fig.getp('size')
+            if not (width and height):
+                width, height = 800, 600
+                fig.setp(size=[width, height])
+            fig._g = _VTKFigure(self, width, height, title=self.name)
             self._register_bindings(fig._g.vtkWidget)
 
         self.fig = fig
@@ -2177,20 +2216,23 @@ class VTKBackend(BaseClass):
 
         return fig
 
-    def closefig(self, backend):
+    def closefig(self, vtkfig_or_num):
         with _debug('closefig'):
             fig = None
-            for _ in list(self._figs.values()):
-                _g = getattr(_, '_g', None)
-                if id(_g) == id(backend):
-                    fig = _
-                    break
+            if type(fig) is int:
+                fig = self._figs[vtkfig_or_num]
+            else:
+                for _ in list(self._figs.values()):
+                    _g = getattr(_, '_g', None)
+                    if _g is vtkfig_or_num:
+                        fig = _
+                        break
 
             if fig:
-                # delete the associated backend !
-                for k in list(self._figs):
-                    if self._figs[k] == fig:
-                        del self._figs[k]
+                # delete the associated vtkfig !
+                for _ in list(self._figs):
+                    if self._figs[_] is fig:
+                        del self._figs[_]
                 del fig
                 if len(self._figs) < 1:
                     self._master.quit()
@@ -2212,7 +2254,6 @@ class VTKBackend(BaseClass):
             ax._renderer.SetBackground(*ax.getp('bgcolor'))
 
             viewport = ax.getp('viewport')
-            print('viewport is', viewport)
             ax._renderer.SetViewport((0, 0, 1, 1) if not viewport else viewport)
             ax._renderer.RemoveAllViewProps()  # clear current scene
             # axshape = self.gcf().getp('axshape')
@@ -2224,14 +2265,14 @@ class VTKBackend(BaseClass):
                     ax._iw.Off()
 
     def _fix_latex(self, legend):
-        '''Remove latex syntax a la $, \, {, } etc.'''
+        'Remove latex syntax a la $, \, {, } etc'
         # General fix of latex syntax (more readable)
         legend = legend.strip().replace('**', '^').replace('$', '').replace('{', '').replace('}', '').replace('\\', '')
         # legend = legend.replace('*', '')
         return legend
 
     def _replot(self, fig=None, axs=(), hard=False):
-        '''Replot all axes and all plotitems in the backend. NOTE: only the current figure (gcf) is redrawn.'''
+        'replot all axes and all plotitems in the backend. NOTE: only the current figure (gcf) is redrawn'
         _print('<replot in backend>')
         # reset the plotting package instance in fig._g now if needed
 
@@ -2239,18 +2280,16 @@ class VTKBackend(BaseClass):
             fig = self.fig
         fig_axes = list(fig.getp('axes').values())
 
-        if axs and all(_ in fig_axes for _ in axs) and len(axs) == len(fig_axes):
-            print('--> forced hard reset')
+        if (axs and all(_ in fig_axes for _ in axs) and len(axs) == len(fig_axes)) or hard:
+            if not hard:
+                _print('--> hard reset for all the renderers')
             fig._g.hard_reset()
             self._register_bindings(fig._g.vtkWidget)
-            self._set_figure_size(fig)
         else:
-            if hard:
-                fig._g.hard_reset()
-                self._register_bindings(fig._g.vtkWidget)
-                self._set_figure_size(fig)
-            else:
-                fig._g.soft_reset(axs)
+            fig._g.soft_reset(axs)
+
+        # suptitle
+        suptitle = fig.getp('suptitle')
 
         nrows, ncols = fig.getp('axshape')
         grid = np.indices((nrows, ncols))
@@ -2297,8 +2336,7 @@ class VTKBackend(BaseClass):
                     legendActor.SetNumberOfEntries(1)
                     # symbol = vtkSphereSource(); symbol.Update()  # for an empty symbol, pass an empty vtkPolyData instance
                     legendActor.SetEntry(0, vtkPolyData(), legend, ax.getp('axiscolor'))
-                    legendActor.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
-                    legendActor.GetPositionCoordinate().SetValue(0, .8)
+                    self._set_coord_in_system(legendActor.GetPositionCoordinate(), (0, .8), 'VTK_NORMALIZED_VIEWPORT')
                     textProp = legendActor.GetEntryTextProperty()
                     textProp.SetFontSize(textProp.GetFontSize() // 2)
                     if ax.getp('legend_fancybox'):
@@ -2333,7 +2371,7 @@ class VTKBackend(BaseClass):
         self._g.display(show=self.getp('show'))
 
     def mainloop(self, **kwargs):
-        '''blocking call for showing tk widget'''
+        'blocking call for showing tk widget'
         _print('<mainloop>')
         self.setp(**kwargs)
         self.all_show()
@@ -2494,7 +2532,7 @@ class VTKBackend(BaseClass):
     # closefig, and closefigs here.
 
     def vtk_lut_from_mpl(self, ls_cmap_or_name='viridis'):
-        '''cosntruct a vtkLookupTable from a string or a LinearSegmentedColormap'''
+        'construct a vtkLookupTable from a string or a LinearSegmentedColormap'
         lut = vtkLookupTable()
         if isinstance(ls_cmap_or_name, str):
             _data = _cmaps[ls_cmap_or_name].colors

@@ -153,6 +153,7 @@ class PlotProperties:
         'linemarker': '',
         'facecolor': '',
         'edgecolor': '',
+        'edgevisibility': False,
         'pointsize': 1.0,
         'material': None,
         'memoryorder': 'yxz',  # FIXME: this is deprecated and will be removed
@@ -189,7 +190,7 @@ class PlotProperties:
     #    return self.__str__()
 
     def dump(self):
-        '''Dump the parameters of this object.'''
+        'Dump the parameters of this object'
         return str(self)
 
     def setp(self, **kwargs):
@@ -260,6 +261,10 @@ class PlotProperties:
         if 'islice' in kwargs:
             _check_type(kwargs['islice'], 'islice', (bool, str))
             self._prop['islice'] = kwargs['islice']
+
+        if 'edgevisibility' in kwargs:
+            _check_type(kwargs['edgevisibility'], 'edgevisibility', bool)
+            self._prop['edgevisibility'] = kwargs['edgevisibility']
 
         # set material properties:
         self._prop['material'].setp(**kwargs)
@@ -342,10 +347,7 @@ class PlotProperties:
                           marker)
 
     def get_limits(self):
-        '''
-        Return limits on the x, y, and z axis:
-        xmin, xmax, ymin, ymax, zmin, zmax.
-        '''
+        'return limits on the x, y, and z axis: xmin, xmax, ymin, ymax, zmin, zmax'
         return self._prop['xlim'] + self._prop['ylim'] + self._prop['zlim']
 
     def _set_lim(self, a, name, adj_step=0.03):
@@ -1594,14 +1596,14 @@ class Axis:
         self.update()
 
     def getp(self, name):
-        '''Return parameter with name 'name'.'''
+        'Return parameter with name "name"'
         try:
             return self._prop[name]
         except:
             raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
     def get_next_color(self):
-        '''Return the next color defined in the 'colororder' property.'''
+        'Return the next color defined in the "colororder" property.'
         colors = self._prop['colororder']
         if self._prop['curcolor'] == len(colors):
             self._prop['curcolor'] = 0
@@ -1610,7 +1612,7 @@ class Axis:
         return curcolor
 
     def reset(self):
-        '''Reset axis attributes to default values.'''
+        'Reset axis attributes to default values'
         viewport = self._prop['viewport']  # don't reset viewport coords
         pth = self._prop['pth']  # don't reset p-th axis information
         self._prop = self._defaults.copy()
@@ -1630,7 +1632,7 @@ class Axis:
         self._prop['colorbar'] = Colorbar()
 
     def add(self, items):
-        '''Add all items in 'items' to this axis.'''
+        'Add all items in "items" to this axis.'
         if not self._prop['hold']:
             self.reset()
         if not isinstance(items, (tuple, list)):
@@ -1642,18 +1644,18 @@ class Axis:
         self.update()
 
     def get_limits(self):
-        '''Return axis limits.'''
+        'Return axis limits'
         return self._prop['xlim'] + self._prop['ylim'] + self._prop['zlim']
 
     def toggle(self, name):
-        '''Toggle axis parameter with name 'name'.'''
+        'Toggle axis parameter with name "name"'
         if self._prop[name]:
             self._prop[name] = False
         else:
             self._prop[name] = True
 
     def update(self):
-        '''Update axis.'''
+        'Update axis'
         if len(self._prop['plotitems']) > self._prop['numberofitems']:
             self._prop['numberofitems'] = len(self._prop['plotitems'])
             for item in self._prop['plotitems']:
@@ -1694,7 +1696,7 @@ class Axis:
         self._prop['center'] = tuple(center)
 
     def _check_lim(self, l1, l2):
-        '''Return a tuple with the 'larger' values of 'l1' and 'l2'.'''
+        'return a tuple with the "larger" values of "l1" and "l2"'
         lim = [None] * 2
         if l1[0] > l2[0]:
             lim[0] = l2[0]
@@ -1707,9 +1709,8 @@ class Axis:
         return tuple(lim)
 
     def _update_limits(self, item):
-        '''
-        Update axis limits according to the PlotProperties given in 'item'.
-        '''
+        'update axis limits according to the PlotProperties given in "item"'
+
         xlim = item.getp('xlim')
         ylim = item.getp('ylim')
         zlim = item.getp('zlim')
@@ -1754,7 +1755,7 @@ class Axis:
 
 class Figure:
 
-    '''Hold figure attributtes like axes, size, ....'''
+    'Hold figure attributtes like axes, size, ....'
 
     _local_prop = {
         'axes': None,     # dictionary of axis instances
@@ -1762,6 +1763,7 @@ class Figure:
         'axshape': (1, 1),  # shape of axes
         'size': [None] * 2,  # size of figure ([width, height])
         'number': 1,      # this figures number
+        'suptitle': '',
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1843,6 +1845,11 @@ class Figure:
             _check_type(number, 'number', int)
             self._prop['number'] = number
 
+        if 'suptitle' in kwargs:
+            suptitle = kwargs['suptitle']
+            _check_type(suptitle, 'suptitle', str)
+            self._prop['suptitle'] = suptitle
+
     def getp(self, prm_name):
         try:
             return self._prop[prm_name]
@@ -1904,7 +1911,7 @@ class BaseClass:
         'quiver', 'quiver3', 'reducevolum', 'semilogx',
         'semilogy', 'set', 'shading', 'show', 'slice_',
         'spring', 'streamline', 'streamribbon', 'streamslice',
-        'streamtube', 'savefig', 'subplot', 'subvolume',
+        'streamtube', 'savefig', 'subplot', 'subvolume', 'suptitle',
         'summer', 'surf', 'surfc', 'surfl', 'threshold', 'title', 'vga', 'view',
         'white', 'winter', 'xlabel', 'ylabel', 'zlabel']
     __doc__ += docadd('List of Matlab - like interface functions (for the user)', _matlab_like_cmds)
@@ -2068,11 +2075,11 @@ class BaseClass:
         return plotorder.index(item.__class__)
 
     def gcf(self):
-        '''Return current figure.'''
+        'return current figure'
         return self._figs[self._attrs['curfig']]
 
     def gca(self):
-        '''Return the current axis in the current figure.'''
+        'return the current axis in the current figure'
         return self.gcf().gca()
 
     def axes(self, *args, **kwargs):
@@ -2338,9 +2345,7 @@ class BaseClass:
             raise TypeError('hold: wrong number of arguments')
 
     def ishold(self):
-        '''
-        Return the hold state (True if hold is on, and False if it is off).
-        '''
+        'return the hold state (True if hold is on, and False if it is off)'
         return self.gca().getp('hold')
 
     def figure(self, num=None, **kwargs):
@@ -2351,12 +2356,12 @@ class BaseClass:
         try:
             num = int(num)
         except:
-            # print str(num),' is not an integer'
+            # print( str(num),' is not an integer')
             if len(self._figs) == 0:  # No figures left
                 num = 1
             else:
                 num = max(list(self._figs.keys())) + 1
-                # print 'Active figure is %d.' % num
+                # print('Active figure is %d.' % num)
 
         if num not in self._figs:
             # Points to class Figure or other convenient function
@@ -2368,7 +2373,7 @@ class BaseClass:
         return self._figs[num]
 
     def clf(self):
-        '''Clear the current figure.'''
+        'clear the current figure'
         self.gcf().reset()
         del self._figs[self._attrs['curfig']]
         self.figure(self._attrs['curfig'])
@@ -2703,11 +2708,11 @@ class BaseClass:
             raise TypeError('close: wrong number of arguments')
 
     def closefig(self, arg):
-        '''Close figure window.'''
+        'close figure window'
         raise NotImplementedError('closefig not implemented in class {}'.format(self.__class__.__name__))
 
     def closefigs(self):
-        '''Close all figure windows.'''
+        'close all figure windows'
         self._figs = {}
         self._figs[1] = Figure()
         self._attrs['curfig'] = 1
@@ -2858,6 +2863,23 @@ class BaseClass:
             ax.setp(title=str(args[0]))
         else:
             raise TypeError('title: wrong number of arguments')
+
+        if self.getp('interactive') and self.getp('show'):
+            self._replot()
+
+    def suptitle(self, *args):
+        '''Add suptitle to the current figure.
+
+        Calling::
+
+            suptitle(s)
+
+        adds the text given in s at the top of the current figure.
+        '''
+        if len(args) == 1:
+            self.gcf().setp(suptitle=args[0])
+        else:
+            raise TypeError('suptitle: wrong number of arguments')
 
         if self.getp('interactive') and self.getp('show'):
             self._replot()
@@ -3438,14 +3460,14 @@ class BaseClass:
         return lines
 
     def fill(self, *args, **kwargs):
-        '''Draw filled 2D polygons.'''
+        'draw filled 2D polygons'
         kwargs['description'] = 'fill: filled 2D polygons'
         if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
         return self.plot(*args, **kwargs)
 
     def stem(self, *args, **kwargs):
-        '''Draw a stem plot.'''
+        'draw a stem plot'
         kwargs['description'] = 'stem: stem plot'
         return self.plot(*args, **kwargs)
 
@@ -3761,7 +3783,7 @@ class BaseClass:
         return h
 
     def fill3(self):
-        '''Draw filled 3D polygons.'''
+        'draw filled 3D polygons'
         raise NotImplementedError('fill3 is not implemented.')
 
     def streamline(self, *args, **kwargs):
@@ -4381,7 +4403,7 @@ class BaseClass:
         raise NotImplementedError('streamslice is not implemented.')
 
     def isocaps(self, *args, **kwargs):
-        '''Draw isosurface end caps.'''
+        'draw isosurface end caps'
         raise NotImplementedError('isocaps is not implemented.')
 
     def isosurface(self, *args, **kwargs):
@@ -4433,9 +4455,7 @@ class BaseClass:
         return h
 
     def threshold(self, *args, **kwargs):
-        '''Thresholding volumetric data
-            threshold(X,Y,Z,V)
-        '''
+        'thresholding volumetric data: threshold(X,Y,Z,V)'
         kwargs['description'] = 'threshold: thresholding volumetric data'
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
@@ -4451,9 +4471,8 @@ class BaseClass:
         return h
 
     def curvature(self, *args, **kwargs):
-        '''Curvature of a volumetric data
-            curvature(X,Y,Z,V)
-        '''
+        'curvature of a volumetric data: curvature(X,Y,Z,V)'
+
         kwargs['description'] = 'curvature: curvature of a volumetric data'
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
@@ -4469,7 +4488,7 @@ class BaseClass:
         return h
 
     def show(self):
-        '''Redraw the current figure.'''
+        'redraw the current figure'
         self._replot()
 
     def hidden(self, *args):
@@ -5283,98 +5302,98 @@ class BaseClass:
 
     # Colormap methods:
     def hsv(self, m=None):
-        '''Hue-saturation-value color map.'''
+        'Hue-saturation-value color map'
         raise NotImplementedError('hsv not implemented in class %s' %
                                   self.__class__.__name__)
 
     def hot(self, m=None):
-        '''Black-red-yellow-white color map.'''
+        'Black-red-yellow-white color map'
         raise NotImplementedError('hot not implemented in class %s' %
                                   self.__class__.__name__)
 
     def gray(self, m=None):
-        '''Linear gray-scale color map.'''
+        'Linear gray-scale color map'
         raise NotImplementedError('gray not implemented in class %s' %
                                   self.__class__.__name__)
 
     def bone(self, m=None):
-        '''Gray-scale with a tinge of blue color map.'''
+        'Gray-scale with a tinge of blue color map.'''
         raise NotImplementedError('bone not implemented in class %s' %
                                   self.__class__.__name__)
 
     def copper(self, m=None):
-        '''Linear copper-tone color map.'''
+        'Linear copper-tone color map'
         raise NotImplementedError('copper not implemented in class %s' %
                                   self.__class__.__name__)
 
     def pink(self, m=None):
-        '''Pastel shades of pink color map.'''
+        'Pastel shades of pink color map'
         raise NotImplementedError('pink not implemented in class %s' %
                                   self.__class__.__name__)
 
     def white(self, m=None):
-        '''All white color map.'''
+        'All white color map'
         raise NotImplementedError('white not implemented in class %s' %
                                   self.__class__.__name__)
 
     def flag(self, m=None):
-        '''Alternating red, white, blue, and black color map.'''
+        'Alternating red, white, blue, and black color map'
         raise NotImplementedError('flag not implemented in class %s' %
                                   self.__class__.__name__)
 
     def lines(self, m=None):
-        '''Color map with the line colors.'''
+        'Color map with the line colors'
         raise NotImplementedError('lines not implemented in class %s' %
                                   self.__class__.__name__)
 
     def colorcube(self, m=None):
-        '''Enhanced color-cube color map.'''
+        'Enhanced color-cube color map'
         raise NotImplementedError('colorcube not implemented in class %s' %
                                   self.__class__.__name__)
 
     def vga(self, m=None):
-        '''Windows colormap for 16 colors.'''
+        'Windows colormap for 16 colors'
         raise NotImplementedError('vga not implemented in class %s' %
                                   self.__class__.__name__)
 
     def jet(self, m=None):
-        '''Variant of hsv.'''
+        'Variant of hsv'
         raise NotImplementedError('jet not implemented in class %s' %
                                   self.__class__.__name__)
 
     def prism(self, m=None):
-        '''Prism color map.'''
+        'Prism color map'
         raise NotImplementedError('prism not implemented in class %s' %
                                   self.__class__.__name__)
 
     def cool(self, m=None):
-        '''Shades of cyan and magenta color map.'''
+        'Shades of cyan and magenta color map'
         raise NotImplementedError('cool not implemented in class %s' %
                                   self.__class__.__name__)
 
     def autumn(self, m=None):
-        '''Shades of red and yellow color map.'''
+        'Shades of red and yellow color map'
         raise NotImplementedError('autumn not implemented in class %s' %
                                   self.__class__.__name__)
 
     def spring(self, m=None):
-        '''Shades of magenta and yellow color map.'''
+        'Shades of magenta and yellow color map'
         raise NotImplementedError('spring not implemented in class %s' %
                                   self.__class__.__name__)
 
     def winter(self, m=None):
-        '''Shades of blue and green color map.'''
+        'Shades of blue and green color map'
         raise NotImplementedError('winter not implemented in class %s' %
                                   self.__class__.__name__)
 
     def summer(self, m=None):
-        '''Shades of green and yellow color map.'''
+        'Shades of green and yellow color map'
         raise NotImplementedError('summer not implemented in class %s' %
                                   self.__class__.__name__)
 
 
 def turn_off_plotting(namespace=globals()):
-    '''Call turn_off_plotting(globals()) to turn off all plotting.'''
+    'Call turn_off_plotting(globals()) to turn off all plotting'
     use(namespace['plt'], namespace, True)
 
 
@@ -5422,7 +5441,7 @@ def use(plt, namespace=globals(), neutralize=False):
 def debug(plt, level=10):
 
     def print_(item, spaces=10):
-        '''Indent print'''
+        'indented print'
         pref = ' ' * spaces
         print(pref + ('\n' + pref).join((str(item)).split('\n')))
 
