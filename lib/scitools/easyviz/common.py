@@ -1385,7 +1385,7 @@ class Axis:
 
     _directions = 'ij xy'.split()
     _methods = 'equal image square normal vis3d'.split()
-    _modes = 'auto manual tight fill'.split()
+    _modes = 'auto manual tight fill zerocenter'.split()
     _ranges = 'xmin xmax ymin ymax zmin zmax'.split()
     _shadings = 'flat interp faceted'.split()
     _legend_locs = {'upper right': 1, 'upper left': 2,
@@ -5059,7 +5059,7 @@ class BaseClass:
         elif nargs == 1:
             if isinstance(args[0], (tuple, list)):
                 args = args[0]; nargs = len(args)
-            elif isinstance(args[0], str) and args[0] in ['auto', 'manual']:
+            elif isinstance(args[0], str) and args[0] in ['auto', 'manual', 'zerocenter']:
                 ax.setp(caxismode=args[0])
             else:
                 raise TypeError('caxis: argument must be {}, not {}'.format((type(list), type(tuple), type(str)),

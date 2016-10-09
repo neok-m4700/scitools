@@ -599,6 +599,11 @@ class VTKBackend(BaseClass):
             # not sure about this
             xmin, xmax, ymin, ymax, zmin, zmax = ax.get_limits()
 
+        elif mode == 'zerocenter':
+            # not sure about this
+            xmin, xmax, ymin, ymax, zmin, zmax = ax.get_limits()
+            xmin, ymin, zmin = -xmax, -ymax, -zmax
+
         limits = [xmin, xmax, ymin, ymax, zmin, zmax]
         ax._limits = (xmin, xmax, ymin, ymax, zmin, zmax)
 
@@ -734,12 +739,22 @@ class VTKBackend(BaseClass):
         vtkcoord.SetValue(coord if len(coord) == 3 else (*coord, 0))
 
     @staticmethod
-    def _get_caxis(ax, item, obj):
-        'get color axis from ax, center the range if centercaxis is set in item'
+    def _get_caxis(ax, obj, auto=True, noi=None, poc='GetPointData'):
+        '''
+        get color axis from ax, center the range if caxismode==zerocenter
+        poc: point or cell data
+        noi: name or idx
+        '''
         cax = ax._caxis
         if cax is None:
-            obj.Update(); cax = obj.GetOutput().GetScalarRange()
-        if item.getp('zerocentercaxis'):
+            obj.Update(); opt = obj.GetOutput()
+            '''
+            vtkDataSet.GetScalarRange()   
+            If the data has both point data and cell data, it returns the (min/max) range of combined point and cell data
+            If there are no point or cell scalars the method will return (0,1)
+            '''
+            cax = opt.GetScalarRange() if noi is None else getattr(opt, poc)().GetArray(noi).GetRange()
+        if ax.getp('caxismode') == 'zerocenter':
             cax = (-max(cax), max(cax))
         return cax
 
@@ -763,7 +778,7 @@ class VTKBackend(BaseClass):
                 scalarBar.UnconstrainedFontSizeOn()
                 scalarBar.GetLabelTextProperty().SetFontSize(int(1.1 * scalarBar.GetLabelTextProperty().GetFontSize()))
             ax._renderer.AddActor(scalarBar)
-    
+
     @staticmethod
     def _set_caxis(ax):
         'set the color axis scale'
@@ -1338,7 +1353,7 @@ class VTKBackend(BaseClass):
         mapper = vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
-        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
+        mapper.SetScalarRange(self._get_caxis(self._ax, data))
         actor = vtkActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
@@ -1371,7 +1386,7 @@ class VTKBackend(BaseClass):
         mapper = vtkDataSetMapper()
         mapper.SetInputConnection(normals.GetOutputPort())
         mapper.SetLookupTable(self._ax._colormap)
-        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
+        mapper.SetScalarRange(self._get_caxis(self._ax, data))
         actor = vtkActor()
         actor.SetMapper(mapper)
         if item.getp('wireframe'):
@@ -1420,7 +1435,7 @@ class VTKBackend(BaseClass):
             cmap.SetNumberOfColors(clevels)
             cmap.Build()
         mapper.SetLookupTable(cmap)
-        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
+        mapper.SetScalarRange(self._get_caxis(self._ax, data))
         if item.getp('linecolor'):  # linecolor is defined
             mapper.ScalarVisibilityOff()
 
@@ -1622,7 +1637,7 @@ class VTKBackend(BaseClass):
             if cax is None:
                 # because of GetInput()
                 mapper.Update(); cax = mapper.GetInput().GetBounds()[4:]
-        mapper.SetScalarRange(self._get_caxis(self._ax, item, output))
+        mapper.SetScalarRange(self._get_caxis(self._ax, output))
         actor = vtkActor()
         actor.SetMapper(mapper)
 
@@ -1657,7 +1672,7 @@ class VTKBackend(BaseClass):
         mapper.SetInputConnection(normals.GetOutputPort())
         # mapper.SetScalarModeToUsePointFieldData()
         mapper.SetLookupTable(self._ax._colormap)
-        mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
+        mapper.SetScalarRange(self._get_caxis(self._ax, data))
         actor = vtkActor()
         actor.SetMapper(mapper)
         # self._set_shading(item, normals, actor)
@@ -1669,7 +1684,6 @@ class VTKBackend(BaseClass):
         _print('<slice vol +>')
 
         sgrid = self._create_3D_scalar_data(item)
-        sgrid.Update(); sgrido = sgrid.GetOutput()
 
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
@@ -1691,7 +1705,7 @@ class VTKBackend(BaseClass):
             mapper = vtkPolyDataMapper()
             mapper.SetInputConnection(cut.GetOutputPort())
             mapper.SetLookupTable(self._ax._colormap)
-            mapper.SetScalarRange(self._get_caxis(self._ax, item, data))
+            mapper.SetScalarRange(self._get_caxis(self._ax, data))
             actor = vtkActor()
             actor.SetMapper(mapper)
             if not contours:
@@ -1703,6 +1717,7 @@ class VTKBackend(BaseClass):
         else:
             # sx, sy, and sz is either numbers or vectors with numbers
             origins, normals = [], []
+            sgrid.Update(); sgrido = sgrid.GetOutput()
             # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
             dx, dy, dz = self._ax.getp('daspect')
@@ -1740,7 +1755,7 @@ class VTKBackend(BaseClass):
                 else:
                     mapper.SetInputConnection(data.GetOutputPort())
                 mapper.SetLookupTable(self._ax._colormap)
-                mapper.SetScalarRange(self._get_caxis(self._ax, item, sgrid))
+                mapper.SetScalarRange(self._get_caxis(self._ax, sgrid))
                 actor = vtkActor()
                 actor.SetMapper(mapper)
                 if not contours:
@@ -1811,9 +1826,7 @@ class VTKBackend(BaseClass):
 
     def _add_curvature(self, item):
         _print('<curvature +>')
-        v = item.getp('vdata')  # volume data
-        pseudocolor = item.getp('cdata') is not None
-        curvtype = item.getp('curvtype')
+        v, curvtype = item.getp('vdata'), item.getp('curvtype')
 
         key = 'Gauss_Curvature'
         if curvtype is not None:
@@ -1824,25 +1837,34 @@ class VTKBackend(BaseClass):
 
         sgrid = self._create_3D_scalar_data(item)
 
-        surface = vtkDataSetSurfaceFilter()
-        surface.SetInputConnection(sgrid.GetOutputPort())
-
-        clipper = vtkClipPolydata()
+        clipper = vtkExtractGeometry()
         clipper.SetInputConnection(sgrid.GetOutputPort())
+        clipper.SetValue(.5)  # initial value
 
+        threshold = vtkThreshold()
+
+        '''
+        vtkStructuredGridGeometryFilter
+        all 0D, 1D, and 2D cells are extracted. All 2D faces that are used by only one 3D cell (i.e., boundary faces) are extracted
+        '''
+        # surface = vtkStructuredGridGeometryFilter()
+        # surface.SetInputConnection(sgrid.GetOutputPort())
+        # surface.UseStripsOn()  # No points/cells to operate on
         # data = self._cut_data(surface, item)
 
-        clean = True
+        clean = False
         if clean:
             cleaner = vtkCleanPolyData()
-            cleaner.SetInputConnection(surface.GetOutputPort())
+            cleaner.SetInputConnection(clipper.GetOutputPort())
             cleaner.SetTolerance(.005)
 
-        tri = vtk.vtkTriangleFilter()
-        tri.SetInputConnection(cleaner.GetOutputPort() if clean else surface.GetOutputPort())
+        triangulate = False
+        if triangulate:
+            tri = vtk.vtkTriangleFilter()
+            tri.SetInputConnection(cleaner.GetOutputPort() if clean else clipper.GetOutputPort())
 
         curv = vtk.vtkCurvatures()
-        curv.SetInputConnection(tri.GetOutputPort())
+        curv.SetInputConnection(tri.GetOutputPort() if triangulate else cleaner.GetOutputPort() if clean else clipper.GetOutputPort())
         # [curv.SetCurvatureType(_) for _ in c_dict.values()] # all array in output
         curv.SetCurvatureType(c_dict[key])  # active array
 
@@ -1852,9 +1874,7 @@ class VTKBackend(BaseClass):
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray(c_dict[key])
         mapper.SetLookupTable(self._ax._colormap)
-        out = curv.GetOutput().GetPointData().GetArray(c_dict[key])
-        if out is not None:
-            mapper.SetScalarRange(out.GetRange())
+        mapper.SetScalarRange(self._get_caxis(self._ax, curv, noi=c_dict[key]))
 
         actor = vtkActor()
         actor.SetMapper(mapper)
@@ -1875,18 +1895,18 @@ class VTKBackend(BaseClass):
         self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
 
         def cb_curv_cont(obj, event):
-            nonlocal clipper, curv, surface
+            nonlocal clipper
             clipper.SetValue(obj.GetRepresentation().GetValue())
-            print(curv.GetOutput())
+            # print(curv.GetOutput())
 
-            if True:
-                writer = vtkXMLPolyDataWriter()
-                writer.SetFileName('_add_curvature_surface.vtp')
-                writer.SetInputConnection(surface.GetOutputPort())
-                writer.Write()
-                writer.SetFileName('_add_curvature_curv.vtp')
-                writer.SetInputConnection(curv.GetOutputPort())
-                writer.Write()
+            # if True:
+            #     writer = vtkXMLPolyDataWriter()
+            #     writer.SetFileName('_add_curvature_surface.vtp')
+            #     writer.SetInputConnection(surface.GetOutputPort())
+            #     writer.Write()
+            #     writer.SetFileName('_add_curvature_curv.vtp')
+            #     writer.SetInputConnection(curv.GetOutputPort())
+            #     writer.Write()
 
         curvSlider.AddObserver('EndInteractionEvent', cb_curv_cont)
         curvSlider.InvokeEvent('EndInteractionEvent')
@@ -1895,11 +1915,9 @@ class VTKBackend(BaseClass):
     def _add_threshold(self, item):
         _print('<threshold +>')
 
-        v = item.getp('vdata')  # volume data
-        pseudocolor = item.getp('cdata') is not None
+        v, pseudocolor = item.getp('vdata'), item.getp('cdata') is not None
 
         sgrid = self._create_3D_scalar_data(item)
-        sgrid.Update(); sgrido = sgrid.GetOutput()
 
         threshold = vtkThreshold()
         threshold.SetInputConnection(sgrid.GetOutputPort())
@@ -1914,6 +1932,7 @@ class VTKBackend(BaseClass):
         'failing because of the inherent regularity of vtkImageData (rectilinearGrid ?)'
         if False:
             img = vtkImageData()
+            sgrid.Update(); sgrido = sgrid.GetOutput()
             v = sgrido.GetPointData().GetScalars('scalars')
             if pseudocolor:
                 c = sgrido.GetPointData().GetScalars('pseudocolor')
@@ -1944,14 +1963,10 @@ class VTKBackend(BaseClass):
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(data.GetOutputPort())
-
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray('pseudocolor' if pseudocolor else 'scalars')
         mapper.SetLookupTable(self._ax._colormap)
-        cax = self._ax._caxis
-        if cax is None:
-            cax = sgrido.GetPointData().GetArray('pseudocolor' if pseudocolor else 'scalars').GetRange()
-        mapper.SetScalarRange(cax)
+        mapper.SetScalarRange(self._get_caxis(self._ax, sgrid, noi='pseudocolor' if pseudocolor else 'scalars'))
 
         actor = vtkActor()
         actor.SetMapper(mapper)
@@ -2522,13 +2537,13 @@ class VTKBackend(BaseClass):
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.
 
-    def vtk_lut_from_mpl(self, ls_cmap_or_name='viridis'):
+    def vtk_lut_from_mpl(self, cmap_or_name='viridis'):
         'construct a vtkLookupTable from a string or a LinearSegmentedColormap'
         lut = vtkLookupTable()
-        if isinstance(ls_cmap_or_name, str):
-            _data = _cmaps[ls_cmap_or_name].colors
-        elif isinstance(ls_cmap_or_name, (list, tuple, ndarray)):
-            _data = ls_cmap_or_name
+        if isinstance(cmap_or_name, str):
+            _data = _cmaps[cmap_or_name].colors
+        elif isinstance(cmap_or_name, (list, tuple, ndarray)):
+            _data = cmap_or_name
         lut.SetNumberOfTableValues(len(_data))
         [lut.SetTableValue(_, *_data[_]) for _ in range(len(_data))]
         return lut
