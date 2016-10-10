@@ -1837,11 +1837,21 @@ class VTKBackend(BaseClass):
 
         sgrid = self._create_3D_scalar_data(item)
 
-        clipper = vtkExtractGeometry()
-        clipper.SetInputConnection(sgrid.GetOutputPort())
-        clipper.SetValue(.5)  # initial value
+        # clipper = vtkExtractGeometry()
+        # clipper.SetInputConnection(sgrid.GetOutputPort())
+        # clipper.SetValue(.5)  # initial value
+        # print(clipper.GetOutputPort())
 
         threshold = vtkThreshold()
+        threshold.SetInputConnection(sgrid.GetOutputPort())
+        threshold.ThresholdBetween(v.min(), v.max())
+        threshold.SetAllScalars(int(item.getp('allscalars')))
+
+        # geom = vtkDataSetSurfaceFilter()
+        # geom.SetInputConnection(threshold.GetOutputPort())
+        iso = vtkMarchingContourFilter()
+        iso.SetInputConnection(threshold.GetOutputPort())
+        iso.SetValue(0, .5)
 
         '''
         vtkStructuredGridGeometryFilter
@@ -1864,7 +1874,7 @@ class VTKBackend(BaseClass):
             tri.SetInputConnection(cleaner.GetOutputPort() if clean else clipper.GetOutputPort())
 
         curv = vtk.vtkCurvatures()
-        curv.SetInputConnection(tri.GetOutputPort() if triangulate else cleaner.GetOutputPort() if clean else clipper.GetOutputPort())
+        curv.SetInputConnection(tri.GetOutputPort() if triangulate else cleaner.GetOutputPort() if clean else iso.GetOutputPort())
         # [curv.SetCurvatureType(_) for _ in c_dict.values()] # all array in output
         curv.SetCurvatureType(c_dict[key])  # active array
 
@@ -1874,7 +1884,8 @@ class VTKBackend(BaseClass):
         mapper.SetScalarModeToUsePointFieldData()
         mapper.SelectColorArray(c_dict[key])
         mapper.SetLookupTable(self._ax._colormap)
-        mapper.SetScalarRange(self._get_caxis(self._ax, curv, noi=c_dict[key]))
+        # mapper.SetScalarRange(self._get_caxis(self._ax, curv, noi=c_dict[key]))
+        mapper.SetScalarRange(0, 1)
 
         actor = vtkActor()
         actor.SetMapper(mapper)
@@ -1895,8 +1906,13 @@ class VTKBackend(BaseClass):
         self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
 
         def cb_curv_cont(obj, event):
-            nonlocal clipper
-            clipper.SetValue(obj.GetRepresentation().GetValue())
+            # nonlocal clipper
+            # clipper.SetValue(obj.GetRepresentation().GetValue())
+            # nonlocal threshold
+            # threshold.ThresholdByUpper(obj.GetRepresentation().GetValue())
+
+            nonlocal iso
+            iso.SetValue(0, obj.GetRepresentation().GetValue())
             # print(curv.GetOutput())
 
             # if True:
