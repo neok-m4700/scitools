@@ -542,7 +542,7 @@ class VTKBackend(BaseClass):
             _print('<title>')
             tprop = vtkTextProperty()
             tprop.BoldOff()
-            tprop.SetFontSize(int(1.5 * ax.getp('fontsize')))
+            tprop.SetFontSize(int(1.25 * ax.getp('fontsize')))
             tprop.SetColor(ax.getp('fgcolor'))
             tprop.SetFontFamilyToArial()
             tprop.SetVerticalJustificationToTop()
@@ -1829,26 +1829,19 @@ class VTKBackend(BaseClass):
         v, curvtype = item.getp('vdata'), item.getp('curvtype')
 
         key = 'Gauss_Curvature'
+        low = str(curvtype).lower()
         if curvtype is not None:
-            _ = curvtype.lower()
-            key = 'Gauss_Curvature' if 'gauss' in _ else 'Mean_Curvature' if 'mean' in _ else 'Maximum_Curvature' if 'max' in _ else 'Minimum_Curvature' if 'min' in _ else key
+            key = 'Gauss_Curvature' if 'gauss' in low else 'Mean_Curvature' if 'mean' in low else 'Maximum_Curvature' if 'max' in low else 'Minimum_Curvature' if 'min' in low else key
 
         c_dict = dict(Gauss_Curvature=0, Mean_Curvature=1, Maximum_Curvature=2, Minimum_Curvature=3)
 
         sgrid = self._create_3D_scalar_data(item)
-
-        # clipper = vtkExtractGeometry()
-        # clipper.SetInputConnection(sgrid.GetOutputPort())
-        # clipper.SetValue(.5)  # initial value
-        # print(clipper.GetOutputPort())
 
         threshold = vtkThreshold()
         threshold.SetInputConnection(sgrid.GetOutputPort())
         threshold.ThresholdBetween(v.min(), v.max())
         threshold.SetAllScalars(int(item.getp('allscalars')))
 
-        # geom = vtkDataSetSurfaceFilter()
-        # geom.SetInputConnection(threshold.GetOutputPort())
         iso = vtkMarchingContourFilter()
         iso.SetInputConnection(threshold.GetOutputPort())
         iso.SetValue(0, .5)
@@ -1860,21 +1853,28 @@ class VTKBackend(BaseClass):
         # surface = vtkStructuredGridGeometryFilter()
         # surface.SetInputConnection(sgrid.GetOutputPort())
         # surface.UseStripsOn()  # No points/cells to operate on
-        # data = self._cut_data(surface, item)
 
-        clean = False
+        tris = False
+        if tris:
+            trifilter = vtkTriangleFilter()
+            trifilter.SetInputConnection(iso.GetOutputPort())
+
+        clean = True
         if clean:
             cleaner = vtkCleanPolyData()
-            cleaner.SetInputConnection(clipper.GetOutputPort())
-            cleaner.SetTolerance(.005)
+            cleaner.SetInputConnection(trifilter.GetOutputPort() if tris else iso.GetOutputPort())
+            # cleaner.SetTolerance(0)
 
-        triangulate = False
-        if triangulate:
-            tri = vtk.vtkTriangleFilter()
-            tri.SetInputConnection(cleaner.GetOutputPort() if clean else clipper.GetOutputPort())
+        smooth = True
+        if smooth:
+            smoother = vtkSmoothPolyDataFilter()
+            smoother.SetInputConnection(cleaner.GetOutputPort() if clean else iso.GetOutputPort())
+            smoother.SetNumberOfIterations(500)
+
+        data = self._cut_data(smoother if smooth else cleaner if clean else trifilter if tris else iso, item)
 
         curv = vtk.vtkCurvatures()
-        curv.SetInputConnection(tri.GetOutputPort() if triangulate else cleaner.GetOutputPort() if clean else iso.GetOutputPort())
+        curv.SetInputConnection(data.GetOutputPort())
         # [curv.SetCurvatureType(_) for _ in c_dict.values()] # all array in output
         curv.SetCurvatureType(c_dict[key])  # active array
 
@@ -1882,10 +1882,9 @@ class VTKBackend(BaseClass):
         mapper.SetInputConnection(curv.GetOutputPort())
 
         mapper.SetScalarModeToUsePointFieldData()
-        mapper.SelectColorArray(c_dict[key])
+        mapper.SelectColorArray(key)
         mapper.SetLookupTable(self._ax._colormap)
-        # mapper.SetScalarRange(self._get_caxis(self._ax, curv, noi=c_dict[key]))
-        mapper.SetScalarRange(0, 1)
+        mapper.SetScalarRange(self._get_caxis(self._ax, curv, noi=key))
 
         actor = vtkActor()
         actor.SetMapper(mapper)
@@ -1906,23 +1905,19 @@ class VTKBackend(BaseClass):
         self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
 
         def cb_curv_cont(obj, event):
-            # nonlocal clipper
-            # clipper.SetValue(obj.GetRepresentation().GetValue())
-            # nonlocal threshold
-            # threshold.ThresholdByUpper(obj.GetRepresentation().GetValue())
-
-            nonlocal iso
+            nonlocal iso, curv, data
             iso.SetValue(0, obj.GetRepresentation().GetValue())
-            # print(curv.GetOutput())
-
-            # if True:
-            #     writer = vtkXMLPolyDataWriter()
-            #     writer.SetFileName('_add_curvature_surface.vtp')
-            #     writer.SetInputConnection(surface.GetOutputPort())
-            #     writer.Write()
-            #     writer.SetFileName('_add_curvature_curv.vtp')
-            #     writer.SetInputConnection(curv.GetOutputPort())
-            #     writer.Write()
+            if True:
+                writer = vtkXMLPolyDataWriter()
+                writer.SetFileName('_add_curvature_data.vtp')
+                writer.SetInputConnection(data.GetOutputPort())
+                writer.Write()
+                writer.SetFileName('_add_curvature_curv.vtp')
+                writer.SetInputConnection(curv.GetOutputPort())
+                writer.Write()
+                writer.SetFileName('_add_curvature_iso.vtp')
+                writer.SetInputConnection(iso.GetOutputPort())
+                writer.Write()
 
         curvSlider.AddObserver('EndInteractionEvent', cb_curv_cont)
         curvSlider.InvokeEvent('EndInteractionEvent')
@@ -2560,6 +2555,8 @@ class VTKBackend(BaseClass):
             _data = _cmaps[cmap_or_name].colors
         elif isinstance(cmap_or_name, (list, tuple, ndarray)):
             _data = cmap_or_name
+        else:  # case LinearSegmentedColormap
+            _data = cmap_or_name(range(cmap_or_name.N))[:, :3]  # remove alpha channel from RGBA
         lut.SetNumberOfTableValues(len(_data))
         [lut.SetTableValue(_, *_data[_]) for _ in range(len(_data))]
         return lut
