@@ -35,18 +35,23 @@ Notes:
 '''
 
 from __future__ import print_function
-from .common import *
-from scitools.globaldata import DEBUG, VERBOSE, OPTIMIZATION, VTK_BACKEND
+
+import os
+import readline  # see bugs.python.org/issue19884
+import sys
+from contextlib import contextmanager
+
+import numpy as np
+from enum import Enum
+from scitools.globaldata import DEBUG, OPTIMIZATION, VERBOSE, VTK_BACKEND
 from scitools.misc import check_if_module_exists
 from scitools.numpyutils import allclose
-from .misc import _update_from_config_file
+from util.vtkAlgorithm import VTKPythonAlgorithmBase
+from vtk import *
+
 from .colormaps import _cmaps
-import numpy as np
-import os
-import sys
-import readline  # see bugs.python.org/issue19884
-from contextlib import contextmanager
-from enum import Enum
+from .common import *
+from .misc import _update_from_config_file
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
@@ -57,7 +62,6 @@ sys.path.extend(lib_dirs)
 # print(sys.path)
 
 check_if_module_exists('vtk', msg='You need to install the vtk package.', abort=False)
-from vtk import *
 
 _vtk_options = dict(mesa=0, vtk_inc_dir=inc_dirs, vtk_lib_dir=lib_dirs)
 _update_from_config_file(_vtk_options, section='vtk')
@@ -71,7 +75,6 @@ if _vtk_options['mesa']:
     del _graphics_fact
     del _imaging_fact
 
-from util.vtkAlgorithm import VTKPythonAlgorithmBase
 
 if OPTIMIZATION == 'numba':
     try:
@@ -784,7 +787,7 @@ class VTKBackend(BaseClass):
         'set the color axis scale'
         _print('<caxis>')
 
-        if ax.getp('caxismode') == 'manual':
+        if ax.getp('caxismode') == 'manual' or ax.getp('caxismode') == 'zerocenter':
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
@@ -1808,8 +1811,8 @@ class VTKBackend(BaseClass):
                 # print('..')
                 # [_print(_.GetCoordinateSystem(), getattr(_, 'GetComputedValue')(_.GetViewport())) for _ in (c1, c2)]
                 # print('--')
-        self._set_coord_in_system(rep.GetPoint1Coordinate(), p1, system='VTK_NORMALIZED_VIEWPORT')
-        self._set_coord_in_system(rep.GetPoint2Coordinate(), p2, system='VTK_NORMALIZED_VIEWPORT')
+        self._set_coord_in_system(rep.GetPoint1Coordinate(), p1, system='VTK_NORMALIZED_DISPLAY')  # VTK_NORMALIZED_DISPLAY
+        self._set_coord_in_system(rep.GetPoint2Coordinate(), p2, system='VTK_NORMALIZED_DISPLAY')  # VTK_NORMALIZED_VIEWPORT
         rep.SetMinimumValue(.95 * minval)
         rep.SetMaximumValue(1.05 * maxval)
         rep.SetValue(val)
@@ -1817,7 +1820,6 @@ class VTKBackend(BaseClass):
         # vtkusers.public.kitware.narkive.com/zysDddSG/vtkscalarbaractor-broken
         rep.SetTitleHeight(.6 * rep.GetTitleHeight())
         rep.SetLabelHeight(.6 * rep.GetLabelHeight())
-
         rep.SetTitleText(ttl)
         widget.SetRepresentation(rep)
         widget.SetAnimationModeToJump()
@@ -1829,9 +1831,9 @@ class VTKBackend(BaseClass):
         v, curvtype = item.getp('vdata'), item.getp('curvtype')
 
         key = 'Gauss_Curvature'
-        low = str(curvtype).lower()
+        ctype = str(curvtype).lower()
         if curvtype is not None:
-            key = 'Gauss_Curvature' if 'gauss' in low else 'Mean_Curvature' if 'mean' in low else 'Maximum_Curvature' if 'max' in low else 'Minimum_Curvature' if 'min' in low else key
+            key = 'Gauss_Curvature' if 'gauss' in ctype else 'Mean_Curvature' if 'mean' in ctype else 'Maximum_Curvature' if 'max' in ctype else 'Minimum_Curvature' if 'min' in ctype else key
 
         c_dict = dict(Gauss_Curvature=0, Mean_Curvature=1, Maximum_Curvature=2, Minimum_Curvature=3)
 
@@ -1877,6 +1879,7 @@ class VTKBackend(BaseClass):
         curv.SetInputConnection(data.GetOutputPort())
         # [curv.SetCurvatureType(_) for _ in c_dict.values()] # all array in output
         curv.SetCurvatureType(c_dict[key])  # active array
+        curv.InvertMeanCurvatureOn()
 
         mapper = vtkPolyDataMapper()
         mapper.SetInputConnection(curv.GetOutputPort())
@@ -1898,16 +1901,20 @@ class VTKBackend(BaseClass):
         ###############
 
         curvSlider, curvRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+        colrSlider, colrRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
-        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.01, .75), (.3, .75), 'curvature isovalue')
+        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.01, .75), (.3, .75), ' [R] curvature isovalue')
+        self._setSliderWidget(colrSlider, colrRep, 0, 2, 1, (.01, .65), (.3, .65), '[R] caxis')
 
         # FIXME: we have to make iren aware of the sliders, this is ugly, but it works
-        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=curvSlider: None)
+        # def fix(o, e):
+        #     nonlocal curvSlider, colrSlider, curvRep, colrRep
+        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=(curvSlider, colrSlider, curvRep, colrRep): None)
 
-        def cb_curv_cont(obj, event):
+        def cb_curv_cont(o, e):
             nonlocal iso, curv, data
-            iso.SetValue(0, obj.GetRepresentation().GetValue())
-            if True:
+            iso.SetValue(0, o.GetRepresentation().GetValue())
+            if False:
                 writer = vtkXMLPolyDataWriter()
                 writer.SetFileName('_add_curvature_data.vtp')
                 writer.SetInputConnection(data.GetOutputPort())
@@ -1918,10 +1925,20 @@ class VTKBackend(BaseClass):
                 writer.SetFileName('_add_curvature_iso.vtp')
                 writer.SetInputConnection(iso.GetOutputPort())
                 writer.Write()
-
         curvSlider.AddObserver('EndInteractionEvent', cb_curv_cont)
-        curvSlider.InvokeEvent('EndInteractionEvent')
+
+        def cb_color(o, e):
+            nonlocal self, mapper, key, curv
+            val = abs(o.GetRepresentation().GetValue())
+            self._ax.setp(caxis=(-val, val))
+            self._set_caxis(self._ax)
+            mapper.SetScalarRange(self._get_caxis(self._ax, curv, noi=key))
+        colrSlider.AddObserver('EndInteractionEvent', cb_color)
+
+        [_.InvokeEvent('EndInteractionEvent') for _ in (curvSlider, colrSlider)]
+
         curvSlider.Off(); curvSlider.On()
+        colrSlider.Off(); colrSlider.On()
 
     def _add_threshold(self, item):
         _print('<threshold +>')
@@ -1993,39 +2010,49 @@ class VTKBackend(BaseClass):
         miniSlider, miniRep = vtkSliderWidget(), vtkSliderRepresentation2D()
         maxiSlider, maxiRep = vtkSliderWidget(), vtkSliderRepresentation2D()
         contSlider, contRep = vtkSliderWidget(), vtkSliderRepresentation2D()
+        colrSlider, colrRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
         span = abs(v.max()) - abs(v.min())
-        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95), (.3, .95), 'upperbound')
-        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .01 * span, (.01, .85), (.3, .85), 'lowerbound')
-        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), .1 * (v.min() + v.max()), (.01, .65), (.3, .65), 'contour isovalue')
+        self._setSliderWidget(maxiSlider, maxiRep, v.min(), v.max(), v.max(), (.01, .95), (.3, .95), '[L] upperbound')
+        self._setSliderWidget(miniSlider, miniRep, v.min(), v.max(), v.min() + .5 * span, (.01, .85), (.3, .85), '[L] lowerbound')
+        self._setSliderWidget(colrSlider, colrRep, 0, 2, 1, (.01, .55), (.3, .55), '[L] caxis')
+        self._setSliderWidget(contSlider, contRep, v.min(), v.max(), v.min() + .5 * span, (.01, .45), (.3, .45), '[L] contour isovalue')
 
         button, buttonRep, on, off = vtkButtonWidget(), vtkTexturedButtonRepresentation2D(), vtkImageData(), vtkImageData()
         self._setButtonWidget(button, buttonRep, on, off)
 
         # FIXME: we have to make iren aware of the sliders (no reference, object is deleted by vtk ?)
-        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=(miniSlider, maxiSlider, contSlider, button): None)
+        self._g.iren.AddObserver('EnterEvent', lambda o, e, w=(miniSlider, maxiSlider, contSlider, colrSlider, button): None)
 
-        def cb_slider(obj, event):
+        def cb_slider(o, e):
             nonlocal threshold, miniRep, maxiRep, miniSlider, maxiSlider
             mini, maxi = miniRep.GetValue(), maxiRep.GetValue()
             minbound, maxbound = min(mini, maxi), max(mini, maxi)
-            if obj is miniSlider:
+            if o is miniSlider:
                 miniRep.SetValue(minbound)
                 threshold.ThresholdBetween(minbound, maxi)
-            elif obj is maxiSlider:
+            elif o is maxiSlider:
                 maxiRep.SetValue(maxbound)
                 threshold.ThresholdBetween(mini, maxbound)
         miniSlider.AddObserver('EndInteractionEvent', cb_slider)
         maxiSlider.AddObserver('EndInteractionEvent', cb_slider)
 
-        def cb_thres_cont(obj, event):
+        def cb_color(o, e):
+            nonlocal self, sgrid, pseudocolor, mapper
+            val = abs(o.GetRepresentation().GetValue())
+            self._ax.setp(caxis=(-val, val))
+            self._set_caxis(self._ax)
+            mapper.SetScalarRange(self._get_caxis(self._ax, sgrid, noi='pseudocolor' if pseudocolor else 'scalars'))
+        colrSlider.AddObserver('EndInteractionEvent', cb_color)
+
+        def cb_thres_cont(o, e):
             nonlocal iso
-            iso.SetValue(0, obj.GetRepresentation().GetValue())
+            iso.SetValue(0, o.GetRepresentation().GetValue())
         contSlider.AddObserver('EndInteractionEvent', cb_thres_cont)
 
-        def cb_button(obj, event):
+        def cb_button(o, e):
             nonlocal iso, mapper, contSlider, contRep, data
-            state = obj.GetRepresentation().GetState()
+            state = o.GetRepresentation().GetState()
             iso.SetValue(0, contRep.GetValue())
             contSlider.SetEnabled(state)
             mapper.SetInputConnection(iso.GetOutputPort() if state > 0 else data.GetOutputPort())

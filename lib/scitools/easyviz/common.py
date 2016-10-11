@@ -1,16 +1,19 @@
 
-import pickle
-import os
-import operator
-import pprint
-
-from scitools.numpyutils import seq, iseq, asarray, ones, zeros, sqrt, shape, ravel, meshgrid, squeeze, reshape, ndgrid, size, ndarray
-from scitools.globaldata import backend
-
-from .misc import _check_xyz, _check_xyuv, _check_xyzuvw, _check_xyzv, _check_size, _check_type, _toggle_state, _update_from_config_file
-
-from warnings import warn
 import collections
+import operator
+import os
+import pickle
+import pprint
+from warnings import warn
+
+from scitools.globaldata import backend
+from scitools.numpyutils import (asarray, iseq, meshgrid, ndarray, ndgrid,
+                                 ones, ravel, reshape, seq, shape, size, sqrt,
+                                 squeeze, zeros)
+
+from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
+                   _check_xyzuvw, _check_xyzv, _toggle_state,
+                   _update_from_config_file)
 
 
 def docadd(comment, *lists, **kwargs):
