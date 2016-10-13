@@ -1552,10 +1552,8 @@ class VTKBackend(BaseClass):
         mapper.ScalarVisibilityOff()
         mapper.SetInputConnection(glyph.GetOutputPort())
 
-        # glyph are costly in terms of rendering, use a LODActor, but offscreenrendering problems ??
-        # LODActor = vtkLODActor()
-        # LODActor.SetMapper(mapper)
-        actor = vtkActor()
+        # glyph are costly in terms of rendering, use a LODActor
+        actor = vtkLODActor()
         actor.SetMapper(mapper)
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
@@ -2544,6 +2542,8 @@ class VTKBackend(BaseClass):
             }
             w2if = vtkWindowToImageFilter()
             w2if.SetMagnification(magnification)
+            if magnification > 1:
+                w2if.FixBoundaryOn()
             w2if.SetInput(self._g.renwin)
             if ext.lower() in ('.ps', '.eps'):
                 w2if.SetInputBufferTypeToRGB()  # vtkPostScriptWriter only support 1 or 3 (RGB) components not 4 (RGB + alpha)

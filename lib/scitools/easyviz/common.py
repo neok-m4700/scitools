@@ -1912,7 +1912,7 @@ class BaseClass:
         'loglog', 'material', 'mesh', 'meshc', 'loadfig',
         'pcolor', 'pink', 'plot', 'plot3', 'prism',
         'quiver', 'quiver3', 'reducevolum', 'semilogx',
-        'semilogy', 'set', 'shading', 'show', 'slice_',
+        'semilogy', 'set', 'shading', 'show', 'showfigs', 'slice_',
         'spring', 'streamline', 'streamribbon', 'streamslice',
         'streamtube', 'savefig', 'subplot', 'subvolume', 'suptitle',
         'summer', 'surf', 'surfc', 'surfl', 'threshold', 'title', 'vga', 'view',
@@ -2720,6 +2720,12 @@ class BaseClass:
         self._figs[1] = Figure()
         self._attrs['curfig'] = 1
         # the rest should be written in subclass
+
+    def showfigs(self):
+        'replot all figures'
+        for fignum, _ in list(self._figs.items()):
+            self.figure(fignum)
+            self.show()
 
     def grid(self, *args):
         '''Toggle the display of grid lines.
@@ -3698,17 +3704,17 @@ class BaseClass:
         Draw contour lines at -2, 0, 2, and 5:
         >>> contour(xv, yv, values, [-2,0,2,5])
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'contour: 2D contours at base'
         ax, args, nargs = self._check_args(*args)
         h = Contours(*args, **kwargs)
         ax.add(h)
         if not ax.getp('hold'):
             if 'contour3' in kwargs['description']:
-                if not 'view' in kwargs:
+                if 'view' not in kwargs:
                     kwargs['view'] = 3
             else:  # contour or contourf
-                if not 'box' in kwargs:
+                if 'box' not in kwargs:
                     kwargs['box'] = True
         ax.setp(**kwargs)
         if h.getp('function') == 'contour3':
@@ -4028,7 +4034,7 @@ class BaseClass:
 
     def surfl(self, *args, **kwargs):
         '''3D shaded surface with lighting.'''
-        raise NotImplemetedError('surfl is not implemented')
+        raise NotImplementedError('surfl is not implemented')
 
     def quiver3(self, *args, **kwargs):
         '''Draw velocity vectors in 3D space.
@@ -4184,7 +4190,7 @@ class BaseClass:
         >>> vv = x*exp(-xx**2-yy**2-zz**2)
         >>> slice_(xx, yy, zz, vv, [-1.2,.8,2], 2, [-2,-.2])
         '''
-        if not 'description' in kwargs:
+        if 'description' not in kwargs:
             kwargs['description'] = 'slice_: volumetric slices'
         ax, args, nargs = self._check_args(*args)
         h = Volume(*args, **kwargs)
@@ -4192,9 +4198,9 @@ class BaseClass:
         if not ax.getp('hold'):
             if 'slice_' in kwargs['description']:
                 # removed the mandatory grid, leave it False by default
-                # if not 'grid' in kwargs:
+                # if 'grid' not in kwargs:
                 #     kwargs['grid'] = True
-                if not 'view' in kwargs:
+                if 'view' not in kwargs:
                     kwargs['view'] = 3
         ax.setp(**kwargs)
         self.gcf().setp(**kwargs)
