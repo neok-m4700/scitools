@@ -1,30 +1,33 @@
 #!/usr/bin/env python
 
 from scitools.std import *
-import scitools.globaldata; scitools.globaldata.DEBUG = 1
+import scitools.globaldata
+scitools.globaldata.DEBUG = 1
+scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from scitools.easyviz.vtk_new_ import *
 
 
-setp(interactive=True)
-setp(show=False)
+setp(interactive=True, show=False)
 x = linspace(-5, 5, 201)
 subplot(2, 2, 1)
 plot(x, x - sin(pi * x), xlabel='x', ylabel='y', title='subplot(2,2,1)')
 subplot(2, 2, 2)
 plot(x, x - cos(x**2), xlabel='x', ylabel='y', title='subplot(2,2,2)')
 subplot(2, 2, 3)
-plot(cos(3 * pi * x), cos(0.5 * pi * x), x=x, grid='on', axis=[-3, 3, -3, 3], xlabel='x', ylabel='y', title='subplot(2,2,3)')
+plot(
+    cos(3 * pi * x), cos(0.5 * pi * x), x=x, grid='on',
+    axis=[-3, 3, -3, 3], xlabel='x', ylabel='y', title='subplot(2,2,3)'
+)
 subplot(2, 2, 4)
 plot(x, cos(pi * x), xlabel='x', ylabel='y', title='subplot(2,2,4)')
-setp(show=True)
-show()
+
 
 # savefig('subplot1a.eps', color=True)
-# savefig('subplot1a.png', color=True)
+savefig('subplot1a.png', magnification=1)
+savefig('subplot1a_m2.png', magnification=2)
 
-# figure()
-setp(show=False)
+figure()
 t = linspace(0, 1, 51)
 y1 = sin(2 * pi * t)
 y2 = cos(2 * pi * 3 * t)
@@ -42,8 +45,10 @@ axis([0, 1, -3, 3])
 grid('on')
 xlabel('time (sec)')
 ylabel('voltage (mV)')
-setp(show=True)
-show()
+
 
 # savefig('subplot1b.eps', color=True)
-# savefig('subplot1b.png', color=True)
+savefig('subplot1b.png', magnification=1)
+savefig('subplot1b_m2.png', magnification=2)
+
+showfigs(show=True)

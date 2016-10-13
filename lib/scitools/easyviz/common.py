@@ -1,7 +1,7 @@
 
 import collections
-import operator
-import os
+# import operator
+# import os
 import pickle
 import pprint
 from warnings import warn
@@ -1416,7 +1416,7 @@ class Axis:
         return pprint.pformat(self._prop)
 
     def dump(self):
-        '''Dump the parameters of this object.'''
+        'dump the parameters of this object'
         return str(self)
 
     def setp(self, **kwargs):
@@ -1587,6 +1587,9 @@ class Axis:
 
         if 'unit' in kwargs:
             self._prop['unit'] = kwargs['unit']
+
+        if 'fontsize' in kwargs:
+            self._prop['fontsize'] = int(kwargs['fontsize'])
 
         # set properties for camera and colorbar:
         self._prop['camera'].setp(**kwargs)
@@ -2721,8 +2724,9 @@ class BaseClass:
         self._attrs['curfig'] = 1
         # the rest should be written in subclass
 
-    def showfigs(self):
+    def showfigs(self, **kwargs):
         'replot all figures'
+        self.setp(**kwargs)
         for fignum, _ in list(self._figs.items()):
             self.figure(fignum)
             self.show()
@@ -4971,11 +4975,11 @@ class BaseClass:
 
         @return: A Light object.
         '''
-        l = Light(**kwargs)
-        self.gca().setp(light=l)
+        lt = Light(**kwargs)
+        self.gca().setp(light=lt)
         if self.getp('interactive') and self.getp('show'):
             self._replot()
-        return l
+        return lt
 
     def colormap(self, *args):
         '''Specify colormap.
@@ -5454,6 +5458,7 @@ def debug(plt, level=10):
         pref = ' ' * spaces
         print(pref + ('\n' + pref).join((str(item)).split('\n')))
 
+    print('((')
     print('plt:')
     print(plt)
     if level > 0:
@@ -5490,4 +5495,4 @@ def debug(plt, level=10):
                                 print_(item.getp('material'), 16)
 
                             print('')
-    print('debug done')
+    print('))')

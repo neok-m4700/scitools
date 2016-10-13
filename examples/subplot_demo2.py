@@ -18,7 +18,6 @@ l1 = plot(x, sin(x), 'x')
 
 a2 = subplot(212)
 l2 = plot(x, cos(x) * sin(x))
-show()
 
 input('Press Return key to continue')
 

@@ -284,9 +284,11 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
 
     def RequestInformation(self, request, inputVector, outputVector):
         for _ in range(self.GetNumberOfOutputPorts()):
-            outInfo = outputVector.GetInformationObject(_)
-            __ = self._data[_].GetExtent()
-            outInfo.Set(self._exec.WHOLE_EXTENT(), __, len(__))
+            if hasattr(self._data[_], 'GetExtent'):
+                'vtkPolyData does not have a method GetExtent !'
+                outInfo = outputVector.GetInformationObject(_)
+                __ = self._data[_].GetExtent()
+                outInfo.Set(self._exec.WHOLE_EXTENT(), __, len(__))
         return 1
 
     def RequestData(self, request, inInfo, outInfo):
@@ -752,7 +754,7 @@ class VTKBackend(BaseClass):
         if cax is None:
             obj.Update(); opt = obj.GetOutput()
             '''
-            vtkDataSet.GetScalarRange()   
+            vtkDataSet.GetScalarRange()
             If the data has both point data and cell data, it returns the (min/max) range of combined point and cell data
             If there are no point or cell scalars the method will return (0,1)
             '''
@@ -1050,7 +1052,7 @@ class VTKBackend(BaseClass):
         prop = actor.GetProperty()
         prop.SetColor(color)
         if item.getp('linetype') == '--':
-            propSetLineStipplePattern(65280)
+            prop.SetLineStipplePattern(65280)
         elif item.getp('linetype') == ':':
             prop.SetLineStipplePattern(0x1111)
             prop.SetLineStippleRepeatFactor(1)
@@ -1351,7 +1353,6 @@ class VTKBackend(BaseClass):
         marker, color, style, width = self._get_linespecs(item)
 
         line3D = self._create_3D_line_data(item)
-
         data = self._cut_data(line3D, item)
         mapper = vtkDataSetMapper()
         mapper.SetInputConnection(data.GetOutputPort())
@@ -1555,6 +1556,7 @@ class VTKBackend(BaseClass):
         # glyph are costly in terms of rendering, use a LODActor
         actor = vtkLODActor()
         actor.SetMapper(mapper)
+        self._set_shading(item, glyph, actor)
         self._set_actor_properties(item, actor)
         self._ax._renderer.AddActor(actor)
         self._ax._apd.AddInputConnection(glyph.GetOutputPort())
@@ -2179,7 +2181,6 @@ class VTKBackend(BaseClass):
                             self.hardcopy('fig.eps', replot=False, magnification=1)
                         else:
                             self.hardcopy('fig.png', replot=False, magnification=4, quality=9)  # pretty good quality withe these setting !
-                            # self.hardcopy('fig.jpg', replot=False, magnification=4, quality=100)
                         return
                     # got camtarget value from paraview default
                     #  --------- /     ^
@@ -2486,6 +2487,24 @@ class VTKBackend(BaseClass):
 
         self.setp(**kwargs)
 
+        compression_or_quality = int(kwargs.get('quality', 9))
+        progressive = int(kwargs.get('progressive', True))
+        vector_file = int(kwargs.get('vector_file', False))
+        landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
+        raster3d = int(kwargs.get('raster3d', False))
+        compression = int(kwargs.get('compression', True))
+        magnification = int(kwargs.get('magnification', 2))
+
+        # scale the fontsize  for text rendering according to magnification
+        old_ft = []
+        for fig in self._figs.values():
+            for ax in fig.getp('axes').values():
+                old_ft.append(ax.getp('fontsize'))
+                ax.setp(fontsize=old_ft[-1] * magnification**.8)
+
+        for _ in ('compression_or_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression'):
+            _print('   ', _, '=', locals()[_])
+
         if not self.getp('show'):  # don't render to screen
             # print('offscreen')
             off_ren = self._g.renwin.GetOffScreenRendering()
@@ -2499,17 +2518,6 @@ class VTKBackend(BaseClass):
             # no extension given, assume .ps:
             ext = '.ps'
             filename += ext
-
-        compression_or_quality = int(kwargs.get('quality', 9))
-        progressive = int(kwargs.get('progressive', True))
-        vector_file = int(kwargs.get('vector_file', False))
-        landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
-        raster3d = int(kwargs.get('raster3d', False))
-        compression = int(kwargs.get('compression', True))
-        magnification = int(kwargs.get('magnification', 2))
-
-        for _ in ('compression_or_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression'):
-            _print('   ', _, '=', locals()[_])
 
         vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3, '.svg': 4}
         if vector_file and ext.lower() in vector_file_formats:
@@ -2570,6 +2578,11 @@ class VTKBackend(BaseClass):
         # restore OffScreenRendering state
         if not self.getp('show'):
             self._g.renwin.SetOffScreenRendering(off_ren)
+
+        # reset fontsize
+        for fig in self._figs.values():
+            for ax in fig.getp('axes').values():
+                ax.setp(fontsize=old_ft.pop())
 
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.

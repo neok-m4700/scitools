@@ -39,5 +39,4 @@ quiver(xv, yv, dx, dy, axis='equal', xmin=-2, xmax=2, ymin=-1, ymax=1,
 # savefig('quiver1c.eps', color=True)
 savefig('quiver1c.png', color=True)
 
-setp(interactive=True, show=True)
-showfigs()
+showfigs(interactive=True, show=True)
