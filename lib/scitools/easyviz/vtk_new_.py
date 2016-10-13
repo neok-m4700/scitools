@@ -1552,11 +1552,13 @@ class VTKBackend(BaseClass):
         mapper.ScalarVisibilityOff()
         mapper.SetInputConnection(glyph.GetOutputPort())
 
-        # glyph are costly in terms of rendering, use a LODActor
-        LODActor = vtkLODActor()
-        LODActor.SetMapper(mapper)
-        self._set_actor_properties(item, LODActor)
-        self._ax._renderer.AddActor(LODActor)
+        # glyph are costly in terms of rendering, use a LODActor, but offscreenrendering problems ??
+        # LODActor = vtkLODActor()
+        # LODActor.SetMapper(mapper)
+        actor = vtkActor()
+        actor.SetMapper(mapper)
+        self._set_actor_properties(item, actor)
+        self._ax._renderer.AddActor(actor)
         self._ax._apd.AddInputConnection(glyph.GetOutputPort())
 
     def _add_streams(self, item):
@@ -1903,7 +1905,7 @@ class VTKBackend(BaseClass):
         curvSlider, curvRep = vtkSliderWidget(), vtkSliderRepresentation2D()
         colrSlider, colrRep = vtkSliderWidget(), vtkSliderRepresentation2D()
 
-        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.01, .75), (.3, .75), ' [R] curvature isovalue')
+        self._setSliderWidget(curvSlider, curvRep, v.min(), v.max(), .5 * (v.min() + v.max()), (.01, .75), (.3, .75), '[R] curvature isovalue')
         self._setSliderWidget(colrSlider, colrRep, 0, 2, 1, (.01, .65), (.3, .65), '[R] caxis')
 
         # FIXME: we have to make iren aware of the sliders, this is ugly, but it works
@@ -2351,7 +2353,7 @@ class VTKBackend(BaseClass):
                 xmin, xmax = col / ncols, (col + 1) / ncols
                 ymin, ymax = row / nrows, (row + 1) / nrows
                 ax.setp(viewport=[xmin, ymin, xmax, ymax])
-                _print('viewport (xmin, ymin, xmax, ymax)', (xmin, ymin, xmax, ymax))
+                # _print('viewport (xmin, ymin, xmax, ymax)', (xmin, ymin, xmax, ymax))
 
             self._setup_axis(ax)
             # from now on, ax._renderer and ax._apd are created
@@ -2484,13 +2486,10 @@ class VTKBackend(BaseClass):
         '''
         _print('--> hardcopy to', filename)
 
-        if filename.startswith('.'):
-            filename = 'tmp' + filename
-
         self.setp(**kwargs)
 
         if not self.getp('show'):  # don't render to screen
-            print('offscreen')
+            # print('offscreen')
             off_ren = self._g.renwin.GetOffScreenRendering()
             self._g.renwin.OffScreenRenderingOn()
 
@@ -2503,7 +2502,7 @@ class VTKBackend(BaseClass):
             ext = '.ps'
             filename += ext
 
-        compression_or_quality = int(kwargs.get('quality', 100))
+        compression_or_quality = int(kwargs.get('quality', 9))
         progressive = int(kwargs.get('progressive', True))
         vector_file = int(kwargs.get('vector_file', False))
         landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
@@ -2556,7 +2555,7 @@ class VTKBackend(BaseClass):
             if ext.lower() in ('.png',):
                 writer.SetCompressionLevel(compression_or_quality)  # 0-9, default 5
             if ext.lower() in ('.jpg', '.jpeg'):
-                writer.SetQuality(compression_or_quality)
+                writer.SetQuality((compression_or_quality + 1) * 10)  # default 10*10 = 100
                 writer.SetProgressive(progressive)
             if ext.lower() in ('.tif', '.tiff'):
                 writer.SetCompressionToDeflate()
@@ -2565,8 +2564,8 @@ class VTKBackend(BaseClass):
             writer.Write()
         else:
             msg = 'hardcopy: Extension {} is currently not supported.'.format(ext)
-            # raise TypeError(msg)
             print(msg)
+            raise TypeError(msg)
 
         # restore OffScreenRendering state
         if not self.getp('show'):
