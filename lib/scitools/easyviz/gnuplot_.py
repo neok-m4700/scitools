@@ -30,13 +30,11 @@ Tip:
 """
 
 
-
-
 from .common import *
 from scitools.numpyutils import ones, ravel, shape, newaxis, transpose, \
-     linspace, floor, array
+    linspace, floor, array
 from scitools.globaldata import DEBUG, VERBOSE
-from scitools.misc import check_if_module_exists , system
+from scitools.misc import check_if_module_exists, system
 from .misc import _update_from_config_file, _check_type
 import collections
 
@@ -52,6 +50,7 @@ import time
 # Update Gnuplot.GnuplotOpts according to scitools.cfg
 _update_from_config_file(Gnuplot.GnuplotOpts.__dict__, section='gnuplot')
 
+
 def _check_terminal(term):
     """Return True if the given terminal work with Gnuplot, otherwise False."""
     f = open(tempfile.mktemp(suffix='.gnuplot'), 'w')
@@ -61,6 +60,7 @@ def _check_terminal(term):
     failure, output = system(cmd, verbose=False, failure_handling='silent')
     os.remove(f.name)
     return not failure
+
 
 def _check_terminals(terms):
     """Check if the default terminal (Gnuplot.GnuplotOpts.default_term)
@@ -86,11 +86,11 @@ def _check_terminals(terms):
         else:
             Gnuplot.GnuplotOpts.default_term = working_term
             if VERBOSE:
-                print("Note: Default terminal for Gnuplot changed from " \
+                print("Note: Default terminal for Gnuplot changed from "
                       "%s to %s." % (default_term, working_term))
     else:
         # no working terminals found, will probably fail later
-        print("Warning: Unable to find a working terminal for use with %s" % \
+        print("Warning: Unable to find a working terminal for use with %s" %
               Gnuplot.GnuplotOpts.gnuplot_command)
 
 if sys.platform == "darwin":
@@ -104,9 +104,10 @@ if _gnuplotpy_major == 1 and _gnuplotpy_minor <= 7:
     if os.uname()[-1] == 'x86_64':
         # Gnuplot.py <= 1.7 only supports Numeric (not NumPy) and Numeric
         # does not work on 64 bits platform.
-        print(("Warning: Gnuplot.py version %s is not support on 64 bits " \
-               "platform. Please upgrade to Gnuplot.py 1.8 or newer.") % \
-               Gnuplot.__version__)
+        print(("Warning: Gnuplot.py version %s is not support on 64 bits "
+               "platform. Please upgrade to Gnuplot.py 1.8 or newer.") %
+              Gnuplot.__version__)
+
 
 def get_gnuplot_version():
     """Return Gnuplot version used in Gnuplot.py."""
@@ -118,6 +119,8 @@ def get_gnuplot_version():
 #
 #   Notice: Cannot contour non grid data. Please use "set dgrid3d"
 #
+
+
 def write_array(f, set,
                 item_sep=' ',
                 nest_prefix='', nest_suffix='\n', nest_sep=''):
@@ -179,7 +182,7 @@ def write_array(f, set,
                         item_sep, nest_prefix, nest_suffix, nest_sep)
         # Here is the fix: We comment out the next line so that we have
         # only one newline character at the end of the temporary files:
-        #f.write(nest_suffix)
+        # f.write(nest_suffix)
 
 Gnuplot.utils.write_array = write_array
 
@@ -189,7 +192,9 @@ Gnuplot.utils.write_array = write_array
 Axis._local_prop['colororder'] = 'r b g c m y'.split()
 # sequence in other backends: b r g m c y k
 
+
 class GnuplotBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -204,33 +209,33 @@ class GnuplotBackend(BaseClass):
 
         # conversion tables for format strings:
         self._markers = {
-            '': None,# no marker
+            '': None,  # no marker
             '.': 0,  # dot
             'o': 6,  # circle
             'x': 2,  # cross
             '+': 1,  # plus sign
             '*': 3,  # asterisk
             's': 4,  # square
-            'd': 12, # diamond
+            'd': 12,  # diamond
             '^': 8,  # triangle (up)
-            'v': 10, # triangle (down)
-            '<': 10, # triangle (left) --> (down)
-            '>': 10, # triangle (right) --> (down)
+            'v': 10,  # triangle (down)
+            '<': 10,  # triangle (left) --> (down)
+            '>': 10,  # triangle (right) --> (down)
             'p': 5,  # pentagram --> square
             'h': 5,  # hexagram --> square
-            }
+        }
 
         self._colors = {
-            '' : 1,  # no color --> red (gives solid line)
+            '': 1,  # no color --> red (gives solid line)
             'r': 1,  # red
             'g': 2,  # green
             'b': 3,  # blue
             'c': 5,  # cyan --> aqua
             'm': 4,  # magenta --> purple
             'y': 7,  # yellow --> orange
-            'k': -1, # black
+            'k': -1,  # black
             'w': 7,  # white --> orange
-            }
+        }
 
         self._line_styles = {
             '': None,       # no line --> point
@@ -238,19 +243,19 @@ class GnuplotBackend(BaseClass):
             ':': 'lines',   # dotted line --> solid line
             '-.': 'lines',  # dash-dot line --> solid line
             '--': 'lines',  # dashed line --> solid line
-            }
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
-            'North': ('horizontal',.2,.74,.6,.04),
-            'South': ('horizontal',.2,.26,.6,.04),
-            'East': ('vertical',.76,.21,.03,.6),
-            'West': ('vertical',.21,.21,.03,.6),
-            'NorthOutside': ('horizontal',.2,.92,.6,.04),
-            'SouthOutside': ('horizontal',.2,.06,.6,.04),
-            'EastOutside': ('vertical',.9,.21,.03,.6),
-            'WestOutside': ('vertical',.01,.21,.03,.6)
-            }
+            'North': ('horizontal', .2, .74, .6, .04),
+            'South': ('horizontal', .2, .26, .6, .04),
+            'East': ('vertical', .76, .21, .03, .6),
+            'West': ('vertical', .21, .21, .03, .6),
+            'NorthOutside': ('horizontal', .2, .92, .6, .04),
+            'SouthOutside': ('horizontal', .2, .06, .6, .04),
+            'EastOutside': ('vertical', .9, .21, .03, .6),
+            'WestOutside': ('vertical', .01, .21, .03, .6)
+        }
 
         self._doing_PS = False  # indicator for PostScript hardcopy
 
@@ -376,8 +381,8 @@ class GnuplotBackend(BaseClass):
     def _set_position(self, ax):
         """Set axes position."""
         rect = ax.getp('viewport')
-        if isinstance(rect, (list,tuple)) and len(rect) == 4 and \
-               ax.getp('pth') is None:
+        if isinstance(rect, (list, tuple)) and len(rect) == 4 and \
+                ax.getp('pth') is None:
             # axes position is defined. In Matlab rect is defined as
             # [left,bottom,width,height], where the four parameters are
             # location values between 0 and 1 ((0,0) is the lower-left
@@ -399,7 +404,7 @@ class GnuplotBackend(BaseClass):
             ymin = ax.getp('ymin')
             ymax = ax.getp('ymax')
             try:
-                r = (ymax-ymin)/float(xmax-xmin)
+                r = (ymax - ymin) / float(xmax - xmin)
             except TypeError:
                 raise ValueError('daspectmode="equal" requires the axes to be explicitly set')
             self._g('set size ratio %g' % r)
@@ -492,7 +497,7 @@ class GnuplotBackend(BaseClass):
             self._g('set cblabel "%s"' % cbar_title)
             cbar_location = self._colorbar_locations[cbar.getp('cblocation')]
             self._g('set style line 2604 linetype -1 linewidth .4')
-            self._g('set colorbox %s user border 2604 origin %g,%g size %g,%g'\
+            self._g('set colorbox %s user border 2604 origin %g,%g size %g,%g'
                     % cbar_location)
         else:
             # turn off colorbar
@@ -506,9 +511,9 @@ class GnuplotBackend(BaseClass):
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
-            self._g('set cbrange [%s:%s]' % (cmin,cmax))
+            self._g('set cbrange [%s:%s]' % (cmin, cmax))
         else:
             # use autoranging for color axis scale
             self._g('set cbrange [*:*]')
@@ -521,22 +526,22 @@ class GnuplotBackend(BaseClass):
         # cmap is plotting package dependent
         if isinstance(cmap, str) and cmap != 'default':
             self._g(cmap)
-        elif isinstance(cmap, (tuple,list)) and len(cmap) == 3 and \
-                 isinstance(cmap[0], int) and \
-                 isinstance(cmap[1], int) and \
-                 isinstance(cmap[2], int):
-            self._g('set palette rgbformulae %d,%d,%d' % cmap) # model RGB?
+        elif isinstance(cmap, (tuple, list)) and len(cmap) == 3 and \
+                isinstance(cmap[0], int) and \
+                isinstance(cmap[1], int) and \
+                isinstance(cmap[2], int):
+            self._g('set palette rgbformulae %d,%d,%d' % cmap)  # model RGB?
         elif isinstance(cmap, collections.Sequence) and cmap.ndim == 2:
             m, n = shape(cmap)
-            assert n==3, "colormap must be %dx3, not %dx%d." % (m,m,n)
+            assert n == 3, "colormap must be %dx3, not %dx%d." % (m, m, n)
             tmpf = tempfile.mktemp(suffix='.map')
-            f = open (tmpf, "w")
+            f = open(tmpf, "w")
             for i in range(m):
-                f.write('%g %g %g\n' % (cmap[i,0],cmap[i,1],cmap[i,2]))
+                f.write('%g %g %g\n' % (cmap[i, 0], cmap[i, 1], cmap[i, 2]))
             f.close()
             self._g('set palette file "%s"' % tmpf)
-        else: # use default colormap
-            self._g('set palette model RGB defined (0 "blue", 3 "cyan", ' \
+        else:  # use default colormap
+            self._g('set palette model RGB defined (0 "blue", 3 "cyan", '
                     '4 "green", 5 "yellow", 8 "red", 10 "black")')
 
     def _set_view(self, ax):
@@ -556,11 +561,11 @@ class GnuplotBackend(BaseClass):
                 # azimuth or elevation is not given. Set up a default
                 # 3D view (az=-37.5 and el=30 is the default 3D view in
                 # Matlab).
-                az, el = (60,325) # default 3D view in Gnuplot
+                az, el = (60, 325)  # default 3D view in Gnuplot
             if (az >= 0 and az <= 180) and (el >= 0 and el <= 360):
-                self._g('set view %d,%d' % (az,el))
+                self._g('set view %d,%d' % (az, el))
             else:
-                print('view (%s,%s) out of range [0:180,0:360]' % (az,el))
+                print('view (%s,%s) out of range [0:180,0:360]' % (az, el))
 
             if cam.getp('cammode') == 'manual':
                 # for advanced camera handling:
@@ -621,8 +626,8 @@ class GnuplotBackend(BaseClass):
         # Translate greek letters if PostScript output
         if self._doing_PS:
             ps2greek = dict(
-                A='Alpha', N='Nu', a='alpha',	n='nu', B='Beta', O='Omicron',
-                b='beta', o='omicron', C='Chi', P='Pi', c='chi',	p='pi',
+                A='Alpha', N='Nu', a='alpha', n='nu', B='Beta', O='Omicron',
+                b='beta', o='omicron', C='Chi', P='Pi', c='chi', p='pi',
                 D='Delta', Q='Theta', d='delta', q='theta', E='Epsilon',
                 R='Rho', e='epsilon', r='rho', F='Phi', S='Sigma', f='phi',
                 s='sigma', G='Gamma', T='Tau', g='gamma', t='tau',
@@ -660,7 +665,7 @@ class GnuplotBackend(BaseClass):
            and item.getp('zdata') is None:
             # Add marker (if not too many points) so that curves in
             # png/eps can be distinguised in black-and-white
-            #if len(item.getp('xdata')) <= 61:  # fixed in _add_line
+            # if len(item.getp('xdata')) <= 61:  # fixed in _add_line
 
             if item.getp('linecolor'):
                 marker = self._markers[PlotProperties._colors2markers[
@@ -683,7 +688,7 @@ class GnuplotBackend(BaseClass):
             if style is None:
                 if marker:
                     # use thicker lines for larger markers
-                    marker_lw = 1 if width <= 2 else width/2
+                    marker_lw = 1 if width <= 2 else width / 2
 
                     withstring = "points lt %d pt %d ps %d lw %s" \
                                  % (color, marker, width, marker_lw)
@@ -731,11 +736,11 @@ class GnuplotBackend(BaseClass):
             # no zdata, add a 2D curve:
             if withstring.startswith('linespoints') and \
                marker == self._markers[PlotProperties._colors2markers[
-                item.getp('linecolor')]]:
+                   item.getp('linecolor')]]:
                 # assume that user has empty format spec and that
                 # _get_linespecs has set marker and solid line, then
                 # limit to 15 markers for visibility
-                every = int(len(x)/15.)
+                every = int(len(x) / 15.)
                 withstring += ' pi ' + str(every)
 
             kwargs = {'title': self._fix_latex(item.getp('legend')),
@@ -744,7 +749,6 @@ class GnuplotBackend(BaseClass):
 
             data = Gnuplot.Data(x, y, **kwargs)
         return data
-
 
     def _add_filled_line(self, item):
         """Add a 2D or 3D filled curve."""
@@ -786,7 +790,7 @@ class GnuplotBackend(BaseClass):
             kwargs2 = {'with': withstring, 'using': '1:($2)'}
             data = [Gnuplot.Data(x, y, **kwargs1),
                     Gnuplot.Data(x, y, **kwargs2),
-                    Gnuplot.Data([x[0],x[-1]], [y[0],y[-1]], **kwargs2)]
+                    Gnuplot.Data([x[0], x[-1]], [y[0], y[-1]], **kwargs2)]
         return data
 
     def _add_bar_graph(self, item, shading='faceted'):
@@ -799,20 +803,20 @@ class GnuplotBackend(BaseClass):
         marker, color, style, width = self._get_linespecs(item)
 
         if y.ndim == 1:
-            y = reshape(y,(len(y),1))
+            y = reshape(y, (len(y), 1))
         nx, ny = shape(y)
 
         barticks = item.getp('barticks')
         if barticks is None:
             barticks = list(range(nx))
-        xtics = ', '.join(['"%s" %d' % (m,i) \
-                           for i,m in enumerate(barticks)])
+        xtics = ', '.join(['"%s" %d' % (m, i)
+                           for i, m in enumerate(barticks)])
         if item.getp('rotated_barticks'):
             self._g("set xtics rotate (%s)" % xtics)
         else:
             self._g("set xtics (%s)" % xtics)
 
-        barwidth = item.getp('barwidth')/10
+        barwidth = item.getp('barwidth') / 10
         self._g('set boxwidth %s' % barwidth)
         edgecolor = item.getp('edgecolor')
         if not edgecolor:
@@ -831,22 +835,22 @@ class GnuplotBackend(BaseClass):
         else:
             facecolor = self._colors.get(facecolor, 3)  # use blue as default
 
-        step = item.getp('barstepsize')/10
+        step = item.getp('barstepsize') / 10
 
-        center = floor(ny/2)
-        start = -step*center
-        stop = step*center
-        if not ny%2:
-            start += step/2
-            stop -= step/2
-        a = linspace(start,stop,ny)
+        center = floor(ny / 2)
+        start = -step * center
+        stop = step * center
+        if not ny % 2:
+            start += step / 2
+            stop -= step / 2
+        a = linspace(start, stop, ny)
 
         data = []
         for j in range(ny):
-            y_ = y[:,j]
+            y_ = y[:, j]
             x_ = array(list(range(nx))) + a[j]
             if not item.getp('linecolor') and not item.getp('facecolor'):
-                c = j+1
+                c = j + 1
             else:
                 c = facecolor
             kwargs = {'with': 'boxes linecolor %s' % c}
@@ -854,9 +858,9 @@ class GnuplotBackend(BaseClass):
             if legend:
                 legend = eval(self._fix_latex(item.getp('legend')))[j]
             kwargs['title'] = legend
-            #print "|%s|" % self._fix_latex(item.getp('legend'))
+            # print "|%s|" % self._fix_latex(item.getp('legend'))
             # does not work:
-            #kwargs = {'with': 'boxes %s' % c,
+            # kwargs = {'with': 'boxes %s' % c,
             #          'title': self._fix_latex(item.getp('legend')),}
             data.append(Gnuplot.Data(x_, y_, **kwargs))
         return data
@@ -872,7 +876,7 @@ class GnuplotBackend(BaseClass):
         marker, color, style, width = self._get_linespecs(item)
         if not width:
             width = 1.0
-        width = width - width/2
+        width = width - width / 2
         edgecolor = item.getp('edgecolor')
         # facecolor = item.getp('facecolor')
         # if facecolor and facecolor in self._colors:
@@ -887,7 +891,7 @@ class GnuplotBackend(BaseClass):
                 withstring = 'l palette'
             else:
                 edgecolor = self._colors.get(edgecolor, -1)
-                withstring += 'lines lt %s lw %s' % (edgecolor,width)
+                withstring += 'lines lt %s lw %s' % (edgecolor, width)
         else:
             # colored surface (as produced by surf, surfc, or pcolor)
             # use keyword argument shading to set the color shading mode
@@ -899,7 +903,7 @@ class GnuplotBackend(BaseClass):
                     edgecolor = -1  # use black for now
                 else:
                     edgecolor = self._colors.get(edgecolor, -1)
-                self._g('set style line 100 lt %s lw %s' % (edgecolor,width))
+                self._g('set style line 100 lt %s lw %s' % (edgecolor, width))
             elif shading == 'interp':
                 # Interpolated shading requires Gnuplot >= 4.2
                 self._g('set pm3d implicit at s')
@@ -910,11 +914,11 @@ class GnuplotBackend(BaseClass):
 
         if item.getp('indexing') == 'xy':
             if x.ndim == 2 and y.ndim == 2:
-                x = x[0,:];  y = y[:,0]
-            z = transpose(z, [1,0])
+                x = x[0, :]; y = y[:, 0]
+            z = transpose(z, [1, 0])
         else:
             if x.ndim == 2 and y.ndim == 2:
-                x = x[:,0];  y = y[0,:]
+                x = x[:, 0]; y = y[0, :]
         kwargs = {'title': self._fix_latex(item.getp('legend')),
                   'with': withstring,
                   'binary': 0}
@@ -937,7 +941,7 @@ class GnuplotBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             self._g('set cntrparam levels auto %d' % clevels)
         else:
             cvector = ','.join(['%s' % i for i in cvector])
@@ -971,12 +975,12 @@ class GnuplotBackend(BaseClass):
             self._g('unset clabel')
 
         if item.getp('indexing') == 'xy':
-            z = transpose(z, [1,0])
+            z = transpose(z, [1, 0])
             if x.ndim == 2 and y.ndim == 2:
-                x = x[0,:];  y = y[:,0]
+                x = x[0, :]; y = y[:, 0]
         else:
             if x.ndim == 2 and y.ndim == 2:
-                x = x[:,0];  y = y[0,:]
+                x = x[:, 0]; y = y[0, :]
         kwargs = {'title': self._fix_latex(item.getp('legend')),
                   'binary': 0,
                   'with': 'l palette'}
@@ -1007,7 +1011,7 @@ class GnuplotBackend(BaseClass):
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -1020,20 +1024,20 @@ class GnuplotBackend(BaseClass):
             # points (x,y):
             if shape(x) != shape(u):
                 if x.ndim == 2:
-                    x = x*ones(shape(u))
+                    x = x * ones(shape(u))
                 else:
                     if item.getp('indexing') == 'xy':
-                        x = x[newaxis,:]*ones(shape(u))
+                        x = x[newaxis, :] * ones(shape(u))
                     else:
-                        x = x[:,newaxis]*ones(shape(u))
+                        x = x[:, newaxis] * ones(shape(u))
             if shape(y) != shape(u):
                 if y.ndim == 2:
-                    y = y*ones(shape(u))
+                    y = y * ones(shape(u))
                 else:
                     if item.getp('indexing') == 'xy':
-                        y = y[:,newaxis]*ones(shape(u))
+                        y = y[:, newaxis] * ones(shape(u))
                     else:
-                        y = y[newaxis,:]*ones(shape(u))
+                        y = y[newaxis, :] * ones(shape(u))
             kwargs = {'title': self._fix_latex(item.getp('legend')),
                       'with': withstring}
             data = Gnuplot.Data(ravel(x), ravel(y),
@@ -1053,7 +1057,7 @@ class GnuplotBackend(BaseClass):
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -1124,7 +1128,7 @@ class GnuplotBackend(BaseClass):
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
 
         msg = "Currently no support for '%s' in the Gnuplot backend." % \
@@ -1137,7 +1141,7 @@ class GnuplotBackend(BaseClass):
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
-            self._g('set size %s,%s' % (width,height))
+            self._g('set size %s,%s' % (width, height))
         else:
             # use the default width and height in plotting package
             pass
@@ -1194,9 +1198,9 @@ class GnuplotBackend(BaseClass):
                 # this is subplot(nrows,ncolumns,axnr)
                 viewport = ax.getp('viewport')
                 if not viewport:
-                    viewport = (0,0,1,1)
+                    viewport = (0, 0, 1, 1)
                 origin = viewport[:2]
-                size = 1/ncolumns, 1/nrows
+                size = 1 / ncolumns, 1 / nrows
                 self._g('set origin %s,%s' % (origin[0], origin[1]))
                 self._g('set size %s,%s' % (size[0], size[1]))
             loc = self._loc_syntax(ax)
@@ -1204,7 +1208,7 @@ class GnuplotBackend(BaseClass):
             plotitems = ax.getp('plotitems')
             plotitems.sort(key=self._cmpPlotProperties)
             for item in plotitems:
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     if func[:4] == 'fill':  # fill and fill3
                         gdata.extend(self._add_filled_line(item))
@@ -1214,7 +1218,7 @@ class GnuplotBackend(BaseClass):
                         self._use_splot = True
                 elif isinstance(item, Bars):
                     shading = ax.getp('shading')
-                    gdata.extend(self._add_bar_graph(item,shading=shading))
+                    gdata.extend(self._add_bar_graph(item, shading=shading))
                 elif isinstance(item, Surface):
                     gdata.append(self._add_surface(item,
                                                    shading=ax.getp('shading')))
@@ -1306,7 +1310,7 @@ class GnuplotBackend(BaseClass):
             'center right': 'right center',
             'lower center': 'center bottom',
             'upper center': 'center top',
-            'best': 'right top', # default
+            'best': 'right top',  # default
             'right': 'right top',
             'center': 'center center'}
         loc = mpl2gp[loc]
@@ -1319,7 +1323,6 @@ class GnuplotBackend(BaseClass):
         if fancybox:
             loc = loc + ' box'
         return loc
-
 
     def cleanup(self):
         """Clean up data."""
@@ -1391,17 +1394,17 @@ class GnuplotBackend(BaseClass):
                 Gnuplot.termdefs.KeywordOrBooleanArg(
                     options=['landscape', 'portrait', 'eps', 'default'],
                     argname='mode',
-                    ),
+                ),
                 Gnuplot.termdefs.KeywordOrBooleanArg(options=['color', 'monochrome']),
                 Gnuplot.termdefs.KeywordOrBooleanArg(options=['solid', 'dashed']),
                 Gnuplot.termdefs.KeywordOrBooleanArg(
                     options=['defaultplex', 'simplex', 'duplex'],
                     argname='duplexing',
-                    ),
+                ),
                 Gnuplot.termdefs.StringArg(argname='fontname'),
                 Gnuplot.termdefs.BareStringArg(argname='fontsize'),
-                ]
-        #elif _check_terminal('pdf'):
+            ]
+        # elif _check_terminal('pdf'):
         #    ext2term['.pdf'] = 'pdf'
 
         basename, ext = os.path.splitext(filename)
@@ -1410,7 +1413,7 @@ class GnuplotBackend(BaseClass):
             ext = '.ps'
             filename += ext
         elif ext not in ext2term:
-            raise ValueError("hardcopy: extension must be %s, not '%s'" % \
+            raise ValueError("hardcopy: extension must be %s, not '%s'" %
                              (list(ext2term.keys()), ext))
         terminal = ext2term.get(ext, 'postscript')
 
@@ -1452,9 +1455,9 @@ class GnuplotBackend(BaseClass):
             setterm.append(color and 'color' or 'monochrome')
             setterm.append(enhanced and 'enhanced' or 'noenhanced')
             setterm.append('font "%s,%s"' % (fontname, fontsize))
-            #setterm.append(' dashlength 3 linewidth 3')  # looks best
+            # setterm.append(' dashlength 3 linewidth 3')  # looks best
             setterm.append(' dashlength 3 linewidth 1')  # looks best
-            #setterm.append('linewidth 4'); setterm.append('dl 3')  # old
+            # setterm.append('linewidth 4'); setterm.append('dl 3')  # old
             setterm.append(solid and 'solid' or 'dashed')
             # FIXME: Should self._doing_PS be True or False in this case?
             self._doing_PS = True
@@ -1462,7 +1465,7 @@ class GnuplotBackend(BaseClass):
         elif terminal == 'png':
             # Options are ' background "#ffffff" fontscale 1.0 size 640, 480 '
             fontsize = kwargs.get('fontsize', 14)
-            fontscale = fontsize/14.0
+            fontscale = fontsize / 14.0
             # no support: setterm.append('linewidth 5')
             setterm.append('fontscale %s' % fontscale)
             keyw.update({'color': color})
@@ -1527,7 +1530,7 @@ class GnuplotBackend(BaseClass):
             ext = '.ps'
             filename += ext
         elif ext not in ext2term:
-            raise ValueError("hardcopy: extension must be %s, not '%s'" % \
+            raise ValueError("hardcopy: extension must be %s, not '%s'" %
                              (list(ext2term.keys()), ext))
         terminal = ext2term.get(ext, 'postscript')
 
@@ -1537,9 +1540,9 @@ class GnuplotBackend(BaseClass):
         orientation = kwargs.get('orientation', 'landscape')
         color = self.getp('color')
 
-        self._g('unset multiplot') # is this necessary?
+        self._g('unset multiplot')  # is this necessary?
 
-        if self.getp('show'): # OK to display to screen
+        if self.getp('show'):  # OK to display to screen
             self._replot()
             kwargs = {'filename': filename, 'terminal': terminal}
             if terminal == 'postscript':
@@ -1550,7 +1553,7 @@ class GnuplotBackend(BaseClass):
                 else:
                     kwargs['mode'] = orientation
             self._g.hardcopy(**kwargs)
-        else: # Manually set terminal and don't show windows
+        else:  # Manually set terminal and don't show windows
             if color:
                 colortype = 'color'
             else:
@@ -1566,7 +1569,7 @@ class GnuplotBackend(BaseClass):
                     self._g('set term postscript eps %s' % colortype)
                     kwargs['mode'] = 'eps'
                 else:
-                    self._g('set term postscript %s %s' % \
+                    self._g('set term postscript %s %s' %
                             (orientation, colortype))
                     kwargs['mode'] = orientation
             elif terminal == 'png':
@@ -1575,13 +1578,13 @@ class GnuplotBackend(BaseClass):
             self._replot()
             self._g.hardcopy(**kwargs)
             self._g('quit')
-            self._g = self.gcf()._g # set _g to the correct instance again
+            self._g = self.gcf()._g  # set _g to the correct instance again
 
     # reimplement methods like clf, closefig, closefigs
     def clf(self):
         """Clear current figure."""
         BaseClass.clf(self)
-        self._g.reset() # reset gnuplot instance
+        self._g.reset()  # reset gnuplot instance
 
     def closefig(self, num=None):
         """Close figure window."""
@@ -1598,73 +1601,73 @@ class GnuplotBackend(BaseClass):
         for key in self._figs:
             self._figs[key]._g('quit')
         del self._g
-        self._figs = {1:Figure()}
+        self._figs = {1: Figure()}
         self._figs[1]._g = Gnuplot.Gnuplot()
         self._g = self._figs[1]._g
 
     # Colormaps:
     def hsv(self, m=0):
         c = 'rgbformulae 3,2,2'
-        return 'set palette model HSV maxcolors %d %s' % (m,c)
+        return 'set palette model HSV maxcolors %d %s' % (m, c)
 
     def hot(self, m=0):
         c = 'rgbformulae 21,22,23'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def gray(self, m=0):
         c = 'defined (0 "black", 1 "white")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def bone(self, m=0):
         c = 'defined (0 "black", 4 "light-blue", 5 "white")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def copper(self, m=0):
         c = 'defined (0 "black", 1 "coral")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def pink(self, m=0):
         c = 'defined (0 "black", 1 "pink", 8 "pink", 10 "white")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def white(self, m=64):
         c = 'defined (0 "white", 1 "white")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
-##         if m > 0:
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
+# if m > 0:
 ##             cmap = ones((m, 3), float)
-##         else:
+# else:
 ##             cmap = []
-##         return cmap
+# return cmap
 
     def flag(self, m=0):
         colors = "red,white,blue,black".split(',')
-        j=k=0
+        j = k = 0
         c = 'defined ('
         while k < 16:
             i = 0
-            while i < len(colors)-1:
-                j += 1;  i += 2
-                c += '%d "%s", %d "%s", ' % (j-1,colors[i-2],j,colors[i-1])
+            while i < len(colors) - 1:
+                j += 1; i += 2
+                c += '%d "%s", %d "%s", ' % (j - 1, colors[i - 2], j, colors[i - 1])
             k += 1
-        c = c[:-2]+')'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        c = c[:-2] + ')'
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def lines(self, m=0):
         # NOTE: not finished
         colors = "blue,green,red,cyan,magenta,yellow,black".split(',')
-        j=k=0
+        j = k = 0
         c = 'defined ('
         while k < 9:
             i = 0
-            c += '%d "%s"' % (j,colors[0])
-            while i < len(colors)-1:
-                j += 1;  i += 2
-                c += ', %d "%s", %d "%s"' % (j,colors[i-1],j,colors[i])
+            c += '%d "%s"' % (j, colors[0])
+            while i < len(colors) - 1:
+                j += 1; i += 2
+                c += ', %d "%s", %d "%s"' % (j, colors[i - 1], j, colors[i])
             k += 1
             c += ', '
-        c = c[:-2]+')'
-        #print c
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        c = c[:-2] + ')'
+        # print c
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def colorcube(self, m=0):
         colors = "white,black,gray0,gray10,grey20,grey30,gray40,gray50,"\
@@ -1679,45 +1682,44 @@ class GnuplotBackend(BaseClass):
                  "dark-salmon,aquamarine,khaki,dark-khaki,gold,goldenrod,"\
                  "light-goldenrod,dark-goldenrod,beige,brown,orange,"\
                  "dark-orange,violet,dark-violet,plum,purple".split(',')
-        i=j=0
-        c = 'defined (%d "%s"' % (i,colors[0])
-        while i < len(colors)-1:
-            j += 1;  i += 2
-            c += ', %d "%s", %d "%s"' % (j,colors[i-1],j,colors[i])
+        i = j = 0
+        c = 'defined (%d "%s"' % (i, colors[0])
+        while i < len(colors) - 1:
+            j += 1; i += 2
+            c += ', %d "%s", %d "%s"' % (j, colors[i - 1], j, colors[i])
         c += ')'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def vga(self, m=0):
         return None
 
     def jet(self, m=0):
         c = 'defined (0 "blue", 3 "cyan", 4 "green", 5 "yellow", '\
-            '8 "red", 10 "black")' # stop at red (remove black)
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+            '8 "red", 10 "black")'  # stop at red (remove black)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def prism(self, m=0):
         return None
 
     def cool(self, m=0):
         c = 'defined (0 "cyan", 1 "magenta")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def autumn(self, m=0):
         c = 'defined (0 "red", 1 "yellow")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def spring(self, m=0):
         c = 'defined (0 "magenta", 1 "yellow")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def winter(self, m=0):
         c = 'defined (0 "blue", 1 "spring-green")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     def summer(self, m=0):
         c = 'defined (0 "green", 1 "yellow")'
-        return 'set palette model RGB maxcolors %d %s' % (m,c)
-
+        return 'set palette model RGB maxcolors %d %s' % (m, c)
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

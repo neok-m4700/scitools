@@ -92,9 +92,6 @@ TODO:
 """
 
 
-
-
-
 from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
 from scitools.misc import check_if_module_exists
@@ -110,6 +107,7 @@ DXMACROS = os.environ.get('DXMACROS', DXMACROS)
 
 
 class _DXFigure(object):
+
     def __init__(self, plt, width=640, height=480, depth=24, title='',
                  hw_render_mode='opengl'):
         # create the GUI:
@@ -122,12 +120,12 @@ class _DXFigure(object):
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.bind("<KeyPress-q>", self.close)
         self.root.minsize(200, 200)
-        self.root.geometry('%sx%s' % (width,height))
+        self.root.geometry('%sx%s' % (width, height))
         self.root.withdraw()
         self.frame = tkinter.Frame(self.root, relief='sunken', bd=2)
         self.frame.pack(side='top', fill='both', expand=1)
         #button = Tkinter.Button(self.root, text="Quit", command=self.close)
-        #button.pack()
+        # button.pack()
 
         # start DX:
         cmd = DX.DXEXEC + ' -execonly -hwrender opengl'
@@ -147,7 +145,7 @@ class _DXFigure(object):
 
     def send(self, cmd):
         if not isinstance(cmd, str):
-            raise ValueError('DX command must be string, not %s' \
+            raise ValueError('DX command must be string, not %s'
                              % type(cmd))
         self.script += cmd + '\n'
         if not cmd.startswith('//'):  # don't send comments to DX
@@ -168,8 +166,8 @@ class _DXFigure(object):
         self.root.update()
         DX.DXLExecuteOnChange(self.conn)
         DX.WaitForDXIdle(self.conn)
-        #DX.DXLExecuteOnce(self.conn)
-        #DX.uiDXLOpenVPE(self.conn)
+        # DX.DXLExecuteOnce(self.conn)
+        # DX.uiDXLOpenVPE(self.conn)
 
     def exit(self):
         self.root.destroy()
@@ -178,6 +176,7 @@ class _DXFigure(object):
 
 
 class DXBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -205,7 +204,7 @@ class DXBackend(BaseClass):
             '>': None,  # triangle (right)
             'p': None,  # pentagram
             'h': None,  # hexagram
-            }
+        }
 
         self._colors = {
             '': None,       # no color --> blue
@@ -213,11 +212,11 @@ class DXBackend(BaseClass):
             'g': "green",   # green
             'b': "blue",    # blue
             'c': "cyan",    # cyan
-            'm': "magenta", # magenta
+            'm': "magenta",  # magenta
             'y': "yellow",  # yellow
             'k': "black",   # black
             'w': "white",   # white
-            }
+        }
 
         self._line_styles = {
             '': None,    # no line
@@ -225,7 +224,7 @@ class DXBackend(BaseClass):
             ':': None,   # dotted line
             '-.': None,  # dash-dot line
             '--': None,  # dashed line
-            }
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -237,7 +236,7 @@ class DXBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
             print("Setting backend standard variables")
@@ -269,7 +268,7 @@ class DXBackend(BaseClass):
         xlabel = ax.getp('xlabel')
         ylabel = ax.getp('ylabel')
         zlabel = ax.getp('zlabel')
-        self._g('labels = {"%s","%s","%s"};' % (xlabel,ylabel,zlabel))
+        self._g('labels = {"%s","%s","%s"};' % (xlabel, ylabel, zlabel))
 
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
@@ -329,12 +328,12 @@ class DXBackend(BaseClass):
 
         # scale limits according to data aspect ratio:
         dar = ax.getp('daspect')
-        xmin /= dar[0];  xmax /= dar[0]
-        ymin /= dar[1];  ymax /= dar[1]
-        zmin /= dar[2];  zmax /= dar[2]
+        xmin /= dar[0]; xmax /= dar[0]
+        ymin /= dar[1]; ymax /= dar[1]
+        zmin /= dar[2]; zmax /= dar[2]
         # create vector to be used in AutoAxes later:
-        self._g('axislimits = {[%s,%s,%s],[%s,%s,%s]};' % \
-                (xmin,ymin,zmin,xmax,ymax,zmax))
+        self._g('axislimits = {[%s,%s,%s],[%s,%s,%s]};' %
+                (xmin, ymin, zmin, xmax, ymax, zmax))
         #self._g('clipped = ClipBox(collected,axislimits);')
         #self._g('collected = Collect(clipped);')
 
@@ -353,7 +352,7 @@ class DXBackend(BaseClass):
         """Set data aspect ratio."""
         if ax.getp('daspectmode') == 'manual':
             dar = ax.getp('daspect')  # dar is a list (len(dar) is 3).
-            self._g('daspect = [%s %s %s];' % (dar[0],dar[1],dar[2]))
+            self._g('daspect = [%s %s %s];' % (dar[0], dar[1], dar[2]))
         else:
             # daspectmode is 'auto'. Plotting package handles data
             # aspect ratio automatically.
@@ -455,7 +454,7 @@ class DXBackend(BaseClass):
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             pass
         else:
@@ -479,7 +478,7 @@ class DXBackend(BaseClass):
         width = self._g.width
         height = self._g.height
         self._g('resolution = %s;' % width)
-        self._g('aspect = %f;' % ((height)/width))
+        self._g('aspect = %f;' % ((height) / width))
 
         if view == 2:
             # setup a default 2D view
@@ -499,7 +498,7 @@ class DXBackend(BaseClass):
                 self._g('campos = Direction(-37.5, 30, 10);')
             else:
                 # set a 3D view according to az and el
-                self._g('campos = Direction(%s, %s, 10);' % (az,el))
+                self._g('campos = Direction(%s, %s, 10);' % (az, el))
 
             if cam.getp('cammode') == 'manual':
                 # for advanced camera handling:
@@ -509,7 +508,7 @@ class DXBackend(BaseClass):
                 target = cam.getp('camtarget')
                 position = cam.getp('campos')
                 assert target != position, \
-                       'camera target and position cannot be equal'
+                    'camera target and position cannot be equal'
                 up_vector = cam.getp('camup')
                 view_angle = cam.getp('camva')
                 projection = cam.getp('camproj')
@@ -517,7 +516,7 @@ class DXBackend(BaseClass):
                 self._g('campos = [%s,%s,%s];' % position)
                 self._g('camup = [%s,%s,%s];' % up_vector)
                 if view_angle is None:
-                    view_angle = 30;
+                    view_angle = 30
                 self._g('camva = %s;' % view_angle)
                 if projection == 'perspective':
                     self._g('camproj = 1;')
@@ -530,7 +529,7 @@ class DXBackend(BaseClass):
                 self._g('camup = [0,0,1];')
                 self._g('camva = 30;')
 
-            #self._g('camera = Camera(to=camtarget, from=campos, ' +
+            # self._g('camera = Camera(to=camtarget, from=campos, ' +
             #        'resolution=resolution, aspect=aspect, up=camup, ' +
             #        'angle=camva, ' +
             #        'perspective=camproj, background="black");')
@@ -602,33 +601,33 @@ end
                                     regular_grid=False, indexing='ij'):
         tmp = tempfile.mktemp()
         # first create data file:
-        data_file = open(tmp+'.dat', 'w')
+        data_file = open(tmp + '.dat', 'w')
         nx, ny = shape(z)
         if regular_grid:
             for i in range(nx):
                 for j in range(ny):
-                    data_file.write("%5.3lf\t" % z[i,j])
+                    data_file.write("%5.3lf\t" % z[i, j])
                 data_file.write("\n")
         else:
-            if shape(x) != (nx,ny) and shape(y) != (nx,ny):
-                x, y = ndgrid(x,y,sparse=False)
+            if shape(x) != (nx, ny) and shape(y) != (nx, ny):
+                x, y = ndgrid(x, y, sparse=False)
             for i in range(nx):
                 for j in range(ny):
-                    data_file.write("%5.3lf\t%5.3lf\t%5.3lf\n" % \
-                                    (x[i,j],y[i,j],z[i,j]))
+                    data_file.write("%5.3lf\t%5.3lf\t%5.3lf\n" %
+                                    (x[i, j], y[i, j], z[i, j]))
         data_file.write("\n")
         data_file.close()
         # then create general header file:
-        header_file = open(tmp+'.general', 'w')
+        header_file = open(tmp + '.general', 'w')
         if regular_grid:
-            x0 = x[0,0]
-            y0 = y[0,0]
+            x0 = x[0, 0]
+            y0 = y[0, 0]
             if indexing == 'ij':
-                dx = x[1,0] - x[0,0]
-                dy = y[0,1] - y[0,0]
+                dx = x[1, 0] - x[0, 0]
+                dy = y[0, 1] - y[0, 0]
             else:
-                dx = x[0,1] - x[0,0]
-                dy = y[1,0] - y[0,0]
+                dx = x[0, 1] - x[0, 0]
+                dy = y[1, 0] - y[0, 0]
             header_file.write("""file = %s
 grid = %d x %d
 format = ascii
@@ -641,7 +640,7 @@ dependency = positions
 positions = regular, regular, %s, %s, %s, %s
 
 end
-""" % (data_file.name,nx,ny,x0,dx,y0,dy))
+""" % (data_file.name, nx, ny, x0, dx, y0, dy))
         else:
             header_file.write("""file = %s
 grid = %d x %d
@@ -653,7 +652,7 @@ structure = 2-vector, scalar
 type = float, float
 
 end
-""" % (data_file.name,nx,ny))
+""" % (data_file.name, nx, ny))
         header_file.close()
         return header_file.name
 
@@ -661,39 +660,39 @@ end
                                     regular_grid=False, indexing='ij'):
         tmp = tempfile.mktemp()
         # create data file:
-        data_file = open(tmp+'.dat', 'w')
+        data_file = open(tmp + '.dat', 'w')
         nx, ny, nz = shape(v)
         if regular_grid:
             for i in range(nx):
                 for j in range(ny):
                     for k in range(nz):
-                        data_file.write("%5.3lf\t" % v[i,j,k])
+                        data_file.write("%5.3lf\t" % v[i, j, k])
                     data_file.write("\n")
         else:
-            if shape(x) != (nx,ny,nz) and shape(y) != (nx,ny,nz) \
-                   and shape(z) != (nx,ny,nz):
-                x, y, z = ndgrid(x,y,z,sparse=False)
+            if shape(x) != (nx, ny, nz) and shape(y) != (nx, ny, nz) \
+                    and shape(z) != (nx, ny, nz):
+                x, y, z = ndgrid(x, y, z, sparse=False)
             for i in range(nx):
                 for j in range(ny):
                     for k in range(nz):
-                        data_file.write("%5.3lf\t%5.3lf\t%5.3lf\t%5.3lf\n" % \
-                                        (x[i,j,k],y[i,j,k],z[i,j,k],v[i,j,k]))
+                        data_file.write("%5.3lf\t%5.3lf\t%5.3lf\t%5.3lf\n" %
+                                        (x[i, j, k], y[i, j, k], z[i, j, k], v[i, j, k]))
         data_file.write("\n")
         data_file.close()
         # create general header file:
-        header_file = open(tmp+'.general', 'w')
+        header_file = open(tmp + '.general', 'w')
         if regular_grid:
-            x0 = x[0,0,0]
-            y0 = y[0,0,0]
-            z0 = z[0,0,0]
+            x0 = x[0, 0, 0]
+            y0 = y[0, 0, 0]
+            z0 = z[0, 0, 0]
             if indexing == 'ij':
-                dx = x[1,0,0] - x[0,0,0]
-                dy = y[0,1,0] - y[0,0,0]
-                dz = z[0,0,1] - z[0,0,0]
+                dx = x[1, 0, 0] - x[0, 0, 0]
+                dy = y[0, 1, 0] - y[0, 0, 0]
+                dz = z[0, 0, 1] - z[0, 0, 0]
             else:
-                dx = x[0,1,0] - x[0,0,0]
-                dy = y[1,0,0] - y[0,0,0]
-                dz = z[0,0,1] - z[0,0,0]
+                dx = x[0, 1, 0] - x[0, 0, 0]
+                dy = y[1, 0, 0] - y[0, 0, 0]
+                dz = z[0, 0, 1] - z[0, 0, 0]
             header_file.write("""file = %s
 grid = %d x %d x %d
 format = ascii
@@ -706,7 +705,7 @@ dependency = positions
 positions = regular, regular, regular, %s, %s, %s, %s, %s, %s
 
 end
-""" % (data_file.name,nx,ny,nz,x0,dx,y0,dy,z0,dz))
+""" % (data_file.name, nx, ny, nz, x0, dx, y0, dy, z0, dz))
         else:
             header_file.write("""file = %s
 grid = %d x %d x %d
@@ -718,7 +717,7 @@ structure = 3-vector, scalar
 type = float, float
 
 end
-""" % (data_file.name,nx,ny,nz))
+""" % (data_file.name, nx, ny, nz))
         header_file.close()
         return header_file.name
 
@@ -726,8 +725,8 @@ end
                                 regular_grid=False,
                                 indexing='ij'):
         nx, ny = shape(z)
-        if shape(x) != (nx,ny) and shape(y) != (nx,ny):
-            x, y = ndgrid(x,y,sparse=False,indexing=indexing)
+        if shape(x) != (nx, ny) and shape(y) != (nx, ny):
+            x, y = ndgrid(x, y, sparse=False, indexing=indexing)
 
         # the scalar field should be a string on the form
         # 'z0 z1 z2 ... zn' where n=nx*ny*nz:
@@ -736,35 +735,35 @@ end
 
         data = 'data%s' % id
         if regular_grid:
-            x0 = x[0,0]
-            y0 = y[0,0]
+            x0 = x[0, 0]
+            y0 = y[0, 0]
             if indexing == 'ij':
-                dx = x[1,0] - x0
-                dy = y[0,1] - y0
+                dx = x[1, 0] - x0
+                dy = y[0, 1] - y0
             else:
-                dx = x[0,1] - x0
-                dy = y[1,0] - y0
+                dx = x[0, 1] - x0
+                dy = y[1, 0] - y0
 
-            self._g('%s = Construct([%s %s],[%s %s],[%s %s],{%s});' % \
-                    (data,x0,y0,dx,dy,nx,ny,scalar_field))
+            self._g('%s = Construct([%s %s],[%s %s],[%s %s],{%s});' %
+                    (data, x0, y0, dx, dy, nx, ny, scalar_field))
         else:
             x = ravel(x).tolist()
             y = ravel(y).tolist()
             # create a string with grid positions on the form
             # '[x0 y0][x1 y0] ... [xn y0][x0 y1] ... [xn yn]':
-            positions = ''.join(['[%s %s]' % (xp,yp) for xp, yp in zip(x,y)])
+            positions = ''.join(['[%s %s]' % (xp, yp) for xp, yp in zip(x, y)])
 
-            self._g('%s = Construct({%s},NULL,[%d %d],{%s});' % \
-                    (data,positions,nx,ny,scalar_field))
+            self._g('%s = Construct({%s},NULL,[%d %d],{%s});' %
+                    (data, positions, nx, ny, scalar_field))
         return data
 
     def _create_3D_scalar_field(self, x, y, z, v, id,
                                 regular_grid=False,
                                 indexing='ij'):
         nx, ny, nz = shape(v)
-        if shape(x) != (nx,ny,nz) and shape(y) != (nx,ny,nz) \
-               and shape(z) != (nx,ny,nz):
-            x, y, z = ndgrid(x,y,z,sparse=False,indexing=indexing)
+        if shape(x) != (nx, ny, nz) and shape(y) != (nx, ny, nz) \
+                and shape(z) != (nx, ny, nz):
+            x, y, z = ndgrid(x, y, z, sparse=False, indexing=indexing)
 
         # the scalar field should be a string on the form
         # 'z0 z1 z2 ... zn' where n=nx*ny*nz:
@@ -773,30 +772,30 @@ end
 
         data = 'data%s' % id
         if regular_grid:
-            x0 = x[0,0,0]
-            y0 = y[0,0,0]
-            z0 = z[0,0,0]
+            x0 = x[0, 0, 0]
+            y0 = y[0, 0, 0]
+            z0 = z[0, 0, 0]
             if indexing == 'ij':
-                dx = x[1,0,0] - x0
-                dy = y[0,1,0] - y0
-                dz = z[0,0,1] - z0
+                dx = x[1, 0, 0] - x0
+                dy = y[0, 1, 0] - y0
+                dz = z[0, 0, 1] - z0
             else:
-                dx = x[0,1,0] - x0
-                dy = y[1,0,0] - y0
-                dz = z[0,0,1] - z0
-            self._g('%s = Construct([%s %s %s],[%s %s %s],[%s %s %s],{%s});' \
-                    % (data,x0,y0,z0,dx,dy,dz,nx,ny,nz,scalar_field))
+                dx = x[0, 1, 0] - x0
+                dy = y[1, 0, 0] - y0
+                dz = z[0, 0, 1] - z0
+            self._g('%s = Construct([%s %s %s],[%s %s %s],[%s %s %s],{%s});'
+                    % (data, x0, y0, z0, dx, dy, dz, nx, ny, nz, scalar_field))
         else:
             x = ravel(x).tolist()
             y = ravel(y).tolist()
             z = ravel(z).tolist()
             # create a string with grid positions on the form
             # '[x0 y0 z0][x1 y0 z0] ... [xn y0 z0][x0 y1 z0] ... [xn yn zn]'
-            positions = ''.join(['[%s %s %s]' % (xp,yp,zp) \
-                                 for xp, yp, zp in zip(x,y,z)])
+            positions = ''.join(['[%s %s %s]' % (xp, yp, zp)
+                                 for xp, yp, zp in zip(x, y, z)])
 
-            self._g('%s = Construct({%s},NULL,[%d %d %d],{%s});' % \
-                    (data,positions,nx,ny,nz,scalar_field))
+            self._g('%s = Construct({%s},NULL,[%d %d %d],{%s});' %
+                    (data, positions, nx, ny, nz, scalar_field))
         return data
 
     def _get_linespecs(self, item):
@@ -838,20 +837,20 @@ end
         c = item.getp('cdata')  # pseudocolor data (can be None)
         indexing = item.getp('indexing')
 
-        #general_file = self._create_2D_scalar_data_file(x, y, z,
+        # general_file = self._create_2D_scalar_data_file(x, y, z,
         #                                                regular_grid=False,
         #                                                indexing=indexing)
-        #self._g('imported%s = Import("%s",format="general");' \
+        # self._g('imported%s = Import("%s",format="general");' \
         #        % (id,general_file))
         #data_field = 'imported%s' % id
         data_field = self._create_2D_scalar_field(x, y, z, id,
                                                   regular_grid=False,
                                                   indexing=indexing)
-        self._g('colored%s = AutoColor(%s);' % (id,data_field))
-        self._g('rubbersheet%s = RubberSheet(colored%s,scale=1);' % (id,id))
+        self._g('colored%s = AutoColor(%s);' % (id, data_field))
+        self._g('rubbersheet%s = RubberSheet(colored%s,scale=1);' % (id, id))
         dar = self._ax.getp('daspect')
-        self._g('rubbersheet%s = Scale(rubbersheet%s,[%s %s %s]);' % \
-                (id,id,dar[0],dar[1],dar[2]))
+        self._g('rubbersheet%s = Scale(rubbersheet%s,[%s %s %s]);' %
+                (id, id, dar[0], dar[1], dar[2]))
 
         contours = item.getp('contours')
         if contours:
@@ -861,32 +860,32 @@ end
 
         if item.getp('wireframe'):
             # wireframe mesh (as produced by mesh or meshc)
-            self._g('obj%s = ShowConnections(rubbersheet%s);' % (id,id))
+            self._g('obj%s = ShowConnections(rubbersheet%s);' % (id, id))
         else:
             # colored surface (as produced by surf, surfc, or pcolor)
             # use keyword argument shading to set the color shading mode
             pcolor = item.getp('function') == 'pcolor'
             if pcolor:
-                self._g('rubbersheet%s = colored%s;' % (id,id))
+                self._g('rubbersheet%s = colored%s;' % (id, id))
             if shading == 'flat':
-                self._g('obj%s = FaceNormals(rubbersheet%s);' % (id,id))
+                self._g('obj%s = FaceNormals(rubbersheet%s);' % (id, id))
             elif shading == 'interp':
-                self._g('obj%s = Normals(rubbersheet%s);' % (id,id))
+                self._g('obj%s = Normals(rubbersheet%s);' % (id, id))
                 #self._g('obj%s = rubbersheet%s;' % (id,id))
             else:
-                self._g('colored_mesh%s = Color(%s,"black");' % \
-                        (id,data_field)) # FIXME: add sup. for other colors
-                self._g(('mesh_rubbersheet%s = RubberSheet(colored_mesh%s, ' +\
-                        'scale=1);') % (id,id))
-                self._g(('mesh_rubbersheet%s = Scale(mesh_rubbersheet%s, ' + \
-                         '[%s %s %s]);') % (id,id,dar[0],dar[1],dar[2]))
+                self._g('colored_mesh%s = Color(%s,"black");' %
+                        (id, data_field))  # FIXME: add sup. for other colors
+                self._g(('mesh_rubbersheet%s = RubberSheet(colored_mesh%s, ' +
+                         'scale=1);') % (id, id))
+                self._g(('mesh_rubbersheet%s = Scale(mesh_rubbersheet%s, ' +
+                         '[%s %s %s]);') % (id, id, dar[0], dar[1], dar[2]))
                 if pcolor:
-                    self._g('mesh_rubbersheet%s = colored_mesh%s;' % \
-                            (id,id))
-                self._g('faceted%s = ShowConnections(mesh_rubbersheet%s);' % \
-                        (id,id))
+                    self._g('mesh_rubbersheet%s = colored_mesh%s;' %
+                            (id, id))
+                self._g('faceted%s = ShowConnections(mesh_rubbersheet%s);' %
+                        (id, id))
                 self._g('collected = Append(collected,faceted%s);' % id)
-                self._g('obj%s = FaceNormals(rubbersheet%s);' % (id,id))
+                self._g('obj%s = FaceNormals(rubbersheet%s);' % (id, id))
 
         self._g('collected = Append(collected, obj%s);' % id)
 
@@ -903,11 +902,11 @@ end
         dar = self._ax.getp('daspect')
 
         #general_file = self._create_2D_scalar_data_file(x, y, z)
-        #self._g('imported%s = Import("%s",format="general");' \
+        # self._g('imported%s = Import("%s",format="general");' \
         #        % (id,general_file))
         data_field = self._create_2D_scalar_field(x, y, z, id,
                                                   indexing=indexing)
-        self._g('colored%s = AutoColor(%s);' % (id,data_field))
+        self._g('colored%s = AutoColor(%s);' % (id, data_field))
 
         filled = item.getp('filled')  # draw filled contour plot if True
 
@@ -924,12 +923,12 @@ end
         location = item.getp('clocation')
         if location == 'surface':
             # place the contours at the corresponding z level (contour3)
-            self._g('rubbersheet%s = RubberSheet(colored%s,scale=1);' % \
-                    (id,id))
-            self._g('rubbersheet%s = Scale(rubbersheet%s, [%s %s %s]);' % \
-                    (id,id,dar[0],dar[1],dar[2]))
-            self._g(('obj%s = Isosurface(rubbersheet%s, value=cvector, ' + \
-                     'number=clevels);') % (id,id))
+            self._g('rubbersheet%s = RubberSheet(colored%s,scale=1);' %
+                    (id, id))
+            self._g('rubbersheet%s = Scale(rubbersheet%s, [%s %s %s]);' %
+                    (id, id, dar[0], dar[1], dar[2]))
+            self._g(('obj%s = Isosurface(rubbersheet%s, value=cvector, ' +
+                     'number=clevels);') % (id, id))
         elif location == 'base':
             if placement == 'bottom':
                 # place the contours at the bottom (as in meshc or surfc)
@@ -937,10 +936,10 @@ end
             else:
                 # standard contour plot
                 pass
-            self._g(('obj%s = Isosurface(colored%s, value=cvector, ' + \
-                     'number=clevels);') % (id,id))
-            self._g('obj%s = Scale(obj%s, [%s %s %s]);' % \
-                    (id,id,dar[0],dar[1],dar[2]))
+            self._g(('obj%s = Isosurface(colored%s, value=cvector, ' +
+                     'number=clevels);') % (id, id))
+            self._g('obj%s = Scale(obj%s, [%s %s %s]);' %
+                    (id, id, dar[0], dar[1], dar[2]))
 
         if item.getp('clabels'):
             # add labels on the contour curves
@@ -948,8 +947,8 @@ end
 
         linewidth = item.getp('linewidth')
         if linewidth:
-            self._g('obj%s = Options(obj%s, "line width", %s);' % \
-                    (id,id,linewidth))
+            self._g('obj%s = Options(obj%s, "line width", %s);' %
+                    (id, id, linewidth))
         self._g('collected = Append(collected, obj%s);' % id)
 
     def _add_vectors(self, item):
@@ -957,7 +956,7 @@ end
             print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
@@ -970,7 +969,7 @@ end
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -993,7 +992,7 @@ end
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -1021,16 +1020,16 @@ end
         dar = self._ax.getp('daspect')
 
         #general_file = self._create_3D_scalar_data_file(x, y, z, v)
-        #self._g('data%s = Import("%s",format="general");' \
+        # self._g('data%s = Import("%s",format="general");' \
         #        % (id,general_file))
         data_field = self._create_3D_scalar_field(x, y, z, v, id,
                                                   regular_grid=False,
                                                   indexing=indexing)
-        self._g('colored%s = AutoColor(%s);' % (id,data_field))
-        self._g('obj%s = Isosurface(colored%s, value=%s);' % \
-                (id,id,isovalue))
-        self._g('obj%s = Scale(obj%s,[%s %s %s]);' % \
-                (id,id,dar[0],dar[1],dar[2]))
+        self._g('colored%s = AutoColor(%s);' % (id, data_field))
+        self._g('obj%s = Isosurface(colored%s, value=%s);' %
+                (id, id, isovalue))
+        self._g('obj%s = Scale(obj%s,[%s %s %s]);' %
+                (id, id, dar[0], dar[1], dar[2]))
 
         self._g('collected = Append(collected, obj%s);' % id)
 
@@ -1043,12 +1042,12 @@ end
         indexing = item.getp('indexing')
         dar = self._ax.getp('daspect')
         xmin, xmax, ymin, ymax, zmin, zmax = item.get_limits()
-        center = [(xmax+xmin)/2, (ymax+ymin)/2, (zmax+zmin)/2]
+        center = [(xmax + xmin) / 2, (ymax + ymin) / 2, (zmax + zmin) / 2]
 
         data_field = self._create_3D_scalar_field(x, y, z, v, id,
                                                   regular_grid=False,
                                                   indexing=indexing)
-        self._g('colored%s = AutoColor(%s);' % (id,data_field))
+        self._g('colored%s = AutoColor(%s);' % (id, data_field))
 
         self._g('slices%s = Collect();' % id)
 
@@ -1060,24 +1059,24 @@ end
             # sx, sy, and sz is either numbers or vectors with numbers
             points = []
             normals = []
-            sx = ravel(sx)#/dar[0]
-            sy = ravel(sy)#/dar[1]
-            sz = ravel(sz)#/dar[2]
+            sx = ravel(sx)  # /dar[0]
+            sy = ravel(sy)  # /dar[1]
+            sz = ravel(sz)  # /dar[2]
             for i in range(len(sx)):
-                normals.append([1,0,0])
+                normals.append([1, 0, 0])
                 points.append([sx[i], center[1], center[2]])
             for i in range(len(sy)):
-                normals.append([0,1,0])
+                normals.append([0, 1, 0])
                 points.append([center[0], sy[i], center[2]])
             for i in range(len(sz)):
-                normals.append([0,0,1])
+                normals.append([0, 0, 1])
                 points.append([center[0], center[1], sz[i]])
             for i in range(len(normals)):
                 normal = normals[i]
                 point = points[i]
-                self._g('normal = [%s %s %s];' % \
-                        (normal[0],normal[1],normal[2]))
-                self._g('point = [%s %s %s];' % (point[0],point[1],point[2]))
+                self._g('normal = [%s %s %s];' %
+                        (normal[0], normal[1], normal[2]))
+                self._g('point = [%s %s %s];' % (point[0], point[1], point[2]))
                 self._g('slice = MapToPlane(colored%s, point, normal);' % id)
                 if shading == 'interp':
                     self._g('slice = Normals(slice);')
@@ -1085,12 +1084,12 @@ end
                     self._g('slice = FaceNormals(slice);')
                 else:
                     self._g('mesh_slice%s = Color(slice,"black");' % id)
-                    self._g('mesh_slice%s = ShowConnections(mesh_slice%s);' % \
-                            (id,id))
-                    self._g('slices%s = Append(slices%s, mesh_slice%s);' % \
-                            (id,id,id))
-                #self._g(
-                self._g('slices%s = Append(slices%s, slice);' % (id,id))
+                    self._g('mesh_slice%s = ShowConnections(mesh_slice%s);' %
+                            (id, id))
+                    self._g('slices%s = Append(slices%s, mesh_slice%s);' %
+                            (id, id, id))
+                # self._g(
+                self._g('slices%s = Append(slices%s, slice);' % (id, id))
 
         self._g('collected = Append(collected, slices%s);' % id)
 
@@ -1113,7 +1112,7 @@ end
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
@@ -1123,7 +1122,7 @@ end
         width, height = fig.getp('size')
         if width and height:
             # set figure width and height
-            self._g.root.geometry('%sx%s' % (width,height))
+            self._g.root.geometry('%sx%s' % (width, height))
             self._g.root.update()
         else:
             # use the default width and height in plotting package
@@ -1203,7 +1202,7 @@ end
             plotitems.sort(key=self._cmpPlotProperties)
             for item in plotitems:
                 item_id = str(i)
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     self._add_line(item)
                 elif isinstance(item, Surface):
@@ -1238,12 +1237,12 @@ end
                      'renderMode="%s", defaultCamera=camera, ' +
                      'interactionMode=%d, parentSize=size, parent=where, ' +
                      'title="image", totalSubimages={%d}, ' +
-                     'nHorizontal={%d}, which={%d});') % \
-                    (nr,nr,nr,self._rendermode,self._interactionmode,
-                     nrows*ncolumns,ncolumns,nr))
+                     'nHorizontal={%d}, which={%d});') %
+                    (nr, nr, nr, self._rendermode, self._interactionmode,
+                     nrows * ncolumns, ncolumns, nr))
             #self._g('Display(renderable, camera, where=where);')
 
-        #DX.exDXLEndMacroDefinition(self._g.conn)
+        # DX.exDXLEndMacroDefinition(self._g.conn)
 
         if self.getp('show'):
             # display plot on the screen
@@ -1306,7 +1305,7 @@ end
             color = 'color'
         else:
             color = 'gray'
-        size = kwargs.get('size', (8.5,11))
+        size = kwargs.get('size', (8.5, 11))
         dpi = kwargs.get('dpi', None)
         orientation = kwargs.get('orientation', 'auto')
         margin = kwargs.get('margin', 0.5)
@@ -1324,7 +1323,7 @@ end
         options = ''
         if ext in ['.ps', '.epsf']:
             options += '%s page=%sx%s margin=%s orient=%s' % \
-                       (color,size[0],size[1],margin,orientation)
+                       (color, size[0], size[1], margin, orientation)
             if dpi is not None:
                 options += ' dpi=%s' % dpi
             if width is not None:
@@ -1336,16 +1335,16 @@ end
                 options += ' delayed=1'
         options += ' gamma=%s' % gamma
 
-        format_str = '%s %s' % (format,options)
+        format_str = '%s %s' % (format, options)
         # render image(s):
         nrows, ncolumns = self.gcf().getp('axshape')
         self._g('images = Collect();')
-        for i in range(nrows*ncolumns):
-            self._g('image%d = Render(object%d, cam%d);' % (i,i,i))
+        for i in range(nrows * ncolumns):
+            self._g('image%d = Render(object%d, cam%d);' % (i, i, i))
             self._g('images = Append(images, image%d);' % i)
         self._g('arranged = Arrange(images, %d);' % ncolumns)
         # write to file:
-        self._g('WriteImage(arranged,"%s","%s");' % (basename,format_str))
+        self._g('WriteImage(arranged,"%s","%s");' % (basename, format_str))
 
     # reimplement methods like clf, closefig, closefigs
     def clf(self):
@@ -1366,10 +1365,9 @@ end
         f.close()
 
     # implement colormap functions here
-    #def jet(self, m=None):
+    # def jet(self, m=None):
     #    """Variant of hsv."""
     #    pass
-
 
     # Now we add the doc string from the methods in BaseClass to the
     # methods that are reimplemented in this backend:

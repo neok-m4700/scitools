@@ -8,14 +8,11 @@ from warnings import warn
 
 from scitools.globaldata import backend
 from scitools.numpyutils import (seq, iseq)
-# from scitools.numpyutils import (np.asarray, iseq, meshgrid, ndarray, ndgrid,
-#                                  ones, ravel, reshape, seq, shape, size, sqrt,
-#                                  squeeze, np.zeros)
 import numpy as np
 
 from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
                    _check_xyzuvw, _check_xyzv, _toggle_state,
-                   _update_from_config_file)
+                   _update_from_config_file, aslist)
 
 
 def docadd(comment, *lists, **kwargs):
@@ -54,9 +51,8 @@ def docadd(comment, *lists, **kwargs):
 
 class MaterialProperties:
 
-    '''
-    Storage of various properties for a material on a PlotProperties object.
-    '''
+    'storage of various properties for a material on a PlotProperties object'
+
     _local_prop = {
         'opacity': None,
         'ambient': None,
@@ -178,8 +174,7 @@ class PlotProperties:
         props = {}
         for key in self._prop:
             prop = self._prop[key]
-            if isinstance(prop, (list, tuple, np.ndarray)) and \
-                    len(np.ravel(prop)) > 3:
+            if isinstance(prop, (list, tuple, np.ndarray)) and prop.size > 3:
                 props[key] = '{} with shape {}'.format(type(prop), prop.shape)
             else:
                 props[key] = self._prop[key]
@@ -357,12 +352,8 @@ class PlotProperties:
 
     def _set_lim(self, a, name, adj_step=0.03):
         if isinstance(a, np.ndarray):
-            try:
-                amin = a.min()
-                amax = a.max()
-            except ValueError:
-                amin = min(np.ravel(a))
-                amax = max(np.ravel(a))
+            amin = a.min()
+            amax = a.max()
         else:
             amin = min(a)
             amax = max(a)
@@ -692,7 +683,7 @@ class Contours(PlotProperties):
         self._prop['zdata'] = z
         nx, ny = z.shape
         self._prop['dims'] = (nx, ny, 1)
-        self._prop['numberofpoints'] = len(np.ravel(z))
+        self._prop['numberofpoints'] = z.size
         if self._prop['function'] == 'contour3':
             self._prop['clocation'] = 'surface'
         elif self._prop['function'] == 'contourf':
@@ -701,9 +692,8 @@ class Contours(PlotProperties):
 
 class VelocityVectors(PlotProperties):
 
-    '''
-    Information about velocity vectors in a vector plot.
-    '''
+    'information about velocity vectors in a vector plot'
+
     _local_prop = {
         'arrowscale': 1.,
         'filledarrows': False,
@@ -758,8 +748,7 @@ class VelocityVectors(PlotProperties):
         elif func == 'quiver' and nargs >= 2 and nargs <= 3:  # quiver(U,V)
             x, y, u, v = _check_xyuv(*args[:2], **kwargs)
         else:
-            raise TypeError(
-                'VelocityVectors._parseargs: wrong number of arguments')
+            raise TypeError('VelocityVectors._parseargs: wrong number of arguments')
 
         if (func == 'quiver3' and nargs in (5, 7)) or (func == 'quiver' and nargs in (3, 5)):  # quiver?(...,arrowscale)
             _check_type(args[-1], 'arrowscale', (float, int))
@@ -817,7 +806,7 @@ class VelocityVectors(PlotProperties):
             self._prop['dims'] = (nx, ny, 1)
         else:
             self._prop['dims'] = u.shape
-        self._prop['numberofpoints'] = len(np.ravel(u))
+        self._prop['numberofpoints'] = u.size
 
 
 class Streams(PlotProperties):
@@ -966,8 +955,8 @@ class Streams(PlotProperties):
             self._prop['dims'] = (nx, ny, 1)
         else:
             self._prop['dims'] = u.shape
-        self._prop['numberofpoints'] = len(np.ravel(u))
-        self._prop['numberofstreams'] = len(np.ravel(sx))
+        self._prop['numberofpoints'] = u.size
+        self._prop['numberofstreams'] = sx.size
 
 
 class Volume(PlotProperties):
@@ -1118,7 +1107,7 @@ class Volume(PlotProperties):
         if isovalue is not None:
             self._prop['isovalue'] = isovalue
         self._prop['dims'] = v.shape
-        self._prop['numberofpoints'] = len(np.ravel(v))
+        self._prop['numberofpoints'] = v.size
 
 
 class Colorbar:
@@ -1603,14 +1592,14 @@ class Axis:
         self.update()
 
     def getp(self, name):
-        'Return parameter with name "name"'
+        'return parameter with name "name"'
         try:
             return self._prop[name]
         except:
             raise KeyError('{}.getp: no parameter with name {}'.format(self.__class__.__name__, name))
 
     def get_next_color(self):
-        'Return the next color defined in the "colororder" property.'
+        'return the next color defined in the "colororder" property'
         colors = self._prop['colororder']
         if self._prop['curcolor'] == len(colors):
             self._prop['curcolor'] = 0
@@ -1619,7 +1608,7 @@ class Axis:
         return curcolor
 
     def reset(self):
-        'Reset axis attributes to default values'
+        'reset axis attributes to default values'
         viewport = self._prop['viewport']  # don't reset viewport coords
         pth = self._prop['pth']  # don't reset p-th axis information
         self._prop = self._defaults.copy()
@@ -1651,18 +1640,18 @@ class Axis:
         self.update()
 
     def get_limits(self):
-        'Return axis limits'
+        'return axis limits'
         return self._prop['xlim'] + self._prop['ylim'] + self._prop['zlim']
 
     def toggle(self, name):
-        'Toggle axis parameter with name "name"'
+        'toggle axis parameter with name "name"'
         if self._prop[name]:
             self._prop[name] = False
         else:
             self._prop[name] = True
 
     def update(self):
-        'Update axis'
+        'update axis'
         if len(self._prop['plotitems']) > self._prop['numberofitems']:
             self._prop['numberofitems'] = len(self._prop['plotitems'])
             for item in self._prop['plotitems']:
@@ -1762,7 +1751,7 @@ class Axis:
 
 class Figure:
 
-    'Hold figure attributtes like axes, size, ....'
+    'hold figure attributtes like axes, size, ....'
 
     _local_prop = {
         'axes': None,     # dictionary of axis instances
@@ -1787,7 +1776,7 @@ class Figure:
         return pprint.pformat(self._prop)
 
     def dump(self):
-        '''Dump the contents of the figure (all axes).'''
+        'dump the contents of the figure (all axes)'
         s = '\nFigure object:\n'
         if self._prop['size'] is not None:
             s += pprint.pformat(self._prop['size']) + '\n'
@@ -1798,11 +1787,11 @@ class Figure:
         return s
 
     def gca(self):
-        '''Return current axis.'''
+        'return current axis'
         return self._prop['axes'][self._prop['curax']]
 
     def reset(self):
-        '''Reset figure attributes and backend to defaults.'''
+        'reset figure attributes and backend to defaults'
         self._prop = self._defaults.copy()
         self._prop['axes'] = {1: Axis()}
         self._prop['axes'][1].reset()
@@ -1915,7 +1904,7 @@ class BaseClass:
         'isosurface', 'jet', 'legend', 'light', 'lines',
         'loglog', 'material', 'mesh', 'meshc', 'loadfig',
         'pcolor', 'pink', 'plot', 'plot3', 'prism',
-        'quiver', 'quiver3', 'quiver4', 'reducevolum', 'semilogx',
+        'quiver', 'quiverslice', 'quiver3', 'quiver4', 'reducevolum', 'semilogx',
         'semilogy', 'set', 'shading', 'show', 'showfigs', 'slice_',
         'spring', 'streamline', 'streamribbon', 'streamslice',
         'streamtube', 'savefig', 'subplot', 'subvolume', 'suptitle',
@@ -1945,7 +1934,7 @@ class BaseClass:
         BaseClass.init(self)
 
     def init(self):
-        '''Initialize internal data structures.'''
+        'initialize internal data structures'
         self._g = None  # Pointer to the backend for manual labour.
         self._figs = {1: Figure()}  # dictionary of figure instances
         self._attrs = {}
@@ -3108,7 +3097,7 @@ class BaseClass:
                         lines.append(Line(x='auto', y=args[0], format=''))
                     else:
                         if not isinstance(args[1], str):
-                            lines.append(Line(x=args[0],  y=args[1], format=''))
+                            lines.append(Line(x=args[0], y=args[1], format=''))
                         else:
                             lines.append(Line(x='auto', y=args[0], format=args[1]))
                     i + 100  # return
@@ -4065,7 +4054,7 @@ class BaseClass:
         title, suptitle = kwargs.pop('title', ''), kwargs.pop('suptitle', '')
         titlex, titley, titlez = kwargs.pop('titlex', ''), kwargs.pop('titley', ''), kwargs.pop('titlez', '')
         x, y, z, u, v, w = args
-        null = np.np.zeros_like(u)
+        null = np.zeros_like(u)
 
         self.suptitle(suptitle)
         self.subplot(221)
@@ -4076,6 +4065,26 @@ class BaseClass:
         self.quiver3(x, y, z, null, v, null, title=titley, **kwargs)
         self.subplot(224)
         self.quiver3(x, y, z, null, null, w, title=titlez, **kwargs)
+
+    def quiverslice(self, *args, **kwargs):
+        '''
+        plot a 2D quiver plot from a 3D volumetric data
+        for now only quiverslice(x, y, z, u, v, w, sx, sy, sz) is supported in xyz ordering
+        '''
+        kwargs['description'] = 'quiverslice: 2D slice quiver plot of 3D data'
+        x, y, z, u, v, w, sx, sy, sz = args
+
+        sx, sy, sz = aslist(sx), aslist(sy), aslist(sz)
+        print(sx, sy, sz)
+
+        self.hold('on')
+        # self.slice_(x, y, z, np.zeros_like(u), sx, sy, sz)
+        for dim, sl in enumerate([sx, sy, sz]):
+            for idx in sl:
+                s = [slice(None)] * 3
+                s[dim] = idx
+                self.quiver(x[s], y[s], z[s], u[s], v[s], w[s], **kwargs)
+        self.hold('off')
 
     def contour3(self, *args, **kwargs):
         '''Draw 3D contour plot.
@@ -5275,98 +5284,98 @@ class BaseClass:
 
     # Colormap methods:
     def hsv(self, m=None):
-        'Hue-saturation-value color map'
+        'hue-saturation-value color map'
         raise NotImplementedError('hsv not implemented in class %s' %
                                   self.__class__.__name__)
 
     def hot(self, m=None):
-        'Black-red-yellow-white color map'
+        'black-red-yellow-white color map'
         raise NotImplementedError('hot not implemented in class %s' %
                                   self.__class__.__name__)
 
     def gray(self, m=None):
-        'Linear gray-scale color map'
+        'linear gray-scale color map'
         raise NotImplementedError('gray not implemented in class %s' %
                                   self.__class__.__name__)
 
     def bone(self, m=None):
-        'Gray-scale with a tinge of blue color map.'''
+        'gray-scale with a tinge of blue color map.'''
         raise NotImplementedError('bone not implemented in class %s' %
                                   self.__class__.__name__)
 
     def copper(self, m=None):
-        'Linear copper-tone color map'
+        'linear copper-tone color map'
         raise NotImplementedError('copper not implemented in class %s' %
                                   self.__class__.__name__)
 
     def pink(self, m=None):
-        'Pastel shades of pink color map'
+        'pastel shades of pink color map'
         raise NotImplementedError('pink not implemented in class %s' %
                                   self.__class__.__name__)
 
     def white(self, m=None):
-        'All white color map'
+        'all white color map'
         raise NotImplementedError('white not implemented in class %s' %
                                   self.__class__.__name__)
 
     def flag(self, m=None):
-        'Alternating red, white, blue, and black color map'
+        'alternating red, white, blue, and black color map'
         raise NotImplementedError('flag not implemented in class %s' %
                                   self.__class__.__name__)
 
     def lines(self, m=None):
-        'Color map with the line colors'
+        'color map with the line colors'
         raise NotImplementedError('lines not implemented in class %s' %
                                   self.__class__.__name__)
 
     def colorcube(self, m=None):
-        'Enhanced color-cube color map'
+        'enhanced color-cube color map'
         raise NotImplementedError('colorcube not implemented in class %s' %
                                   self.__class__.__name__)
 
     def vga(self, m=None):
-        'Windows colormap for 16 colors'
+        'windows colormap for 16 colors'
         raise NotImplementedError('vga not implemented in class %s' %
                                   self.__class__.__name__)
 
     def jet(self, m=None):
-        'Variant of hsv'
+        'variant of hsv'
         raise NotImplementedError('jet not implemented in class %s' %
                                   self.__class__.__name__)
 
     def prism(self, m=None):
-        'Prism color map'
+        'prism color map'
         raise NotImplementedError('prism not implemented in class %s' %
                                   self.__class__.__name__)
 
     def cool(self, m=None):
-        'Shades of cyan and magenta color map'
+        'shades of cyan and magenta color map'
         raise NotImplementedError('cool not implemented in class %s' %
                                   self.__class__.__name__)
 
     def autumn(self, m=None):
-        'Shades of red and yellow color map'
+        'shades of red and yellow color map'
         raise NotImplementedError('autumn not implemented in class %s' %
                                   self.__class__.__name__)
 
     def spring(self, m=None):
-        'Shades of magenta and yellow color map'
+        'shades of magenta and yellow color map'
         raise NotImplementedError('spring not implemented in class %s' %
                                   self.__class__.__name__)
 
     def winter(self, m=None):
-        'Shades of blue and green color map'
+        'shades of blue and green color map'
         raise NotImplementedError('winter not implemented in class %s' %
                                   self.__class__.__name__)
 
     def summer(self, m=None):
-        'Shades of green and yellow color map'
+        'shades of green and yellow color map'
         raise NotImplementedError('summer not implemented in class %s' %
                                   self.__class__.__name__)
 
 
 def turn_off_plotting(namespace=globals()):
-    'Call turn_off_plotting(globals()) to turn off all plotting'
+    'call turn_off_plotting(globals()) to turn off all plotting'
     use(namespace['plt'], namespace, True)
 
 
@@ -5418,12 +5427,11 @@ def debug(plt, level=10):
         pref = ' ' * spaces
         print(pref + ('\n' + pref).join((str(item)).split('\n')))
 
-    print('((')
-    print('plt:')
+    print('(( plt')
     print(plt)
     if level > 0:
         for fignr in plt._figs:
-            print('\nFig %d:' % fignr)
+            print('\nfig %d:' % fignr)
             fig = plt._figs[fignr]
             print(fig)
 

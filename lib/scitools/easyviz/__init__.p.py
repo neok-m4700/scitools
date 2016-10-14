@@ -41,4 +41,4 @@ __doc__ += '\nImport statements in this module:\n' + '\n'.join(_import_list)
 
 
 # add plot doc string to package doc string:
-#__doc__ += plot.__doc__
+# __doc__ += plot.__doc__

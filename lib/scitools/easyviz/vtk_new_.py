@@ -45,7 +45,6 @@ import numpy as np
 from enum import Enum
 from scitools.globaldata import DEBUG, OPTIMIZATION, VERBOSE, VTK_BACKEND
 from scitools.misc import check_if_module_exists
-from scitools.numpyutils import allclose
 from util.vtkAlgorithm import VTKPythonAlgorithmBase
 from vtk import *
 
@@ -936,10 +935,9 @@ class VTKBackend(BaseClass):
         slim = self._ax._scaled_limits
         dlim = data.GetBounds()
         for i in range(0, len(slim), 2):
-            if dlim[i] < slim[i] and not allclose(dlim[i], slim[i]):
-                return False
+            if dlim[i] < slim[i] and not np.allclose(dlim[i], slim[i]): return False
         for i in range(1, len(slim), 2):
-            if dlim[i] > slim[i] and not allclose(dlim[i], slim[i]):
+            if dlim[i] > slim[i] and not np.allclose(dlim[i], slim[i]):
                 return False
         return True
 
@@ -1083,21 +1081,21 @@ class VTKBackend(BaseClass):
             actor.GetProperty().SetSpecularPower(mat.getp('specularpower'))
 
     def _create_2D_scalar_data(self, item):
-        x, y = squeeze(item.getp('xdata')), squeeze(item.getp('ydata'))
-        z = asarray(item.getp('zdata'))  # scalar field
+        x, y = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata'))
+        z = np.asarray(item.getp('zdata'))  # scalar field
         try:
             c = item.getp('cdata')       # pseudocolor data
         except KeyError:
             c = z.copy()
 
-        c = z.copy() if c is None else asarray(c)
-        assert shape(c) == shape(z)
+        c = z.copy() if c is None else np.asarray(c)
+        assert c.shape == z.shape
 
-        if shape(x) != shape(z) and shape(y) != shape(z):
+        if x.shape != z.shape and y.shape != z.shape:
             assert x.ndim == 1 and y.ndim == 1
-            x, y = meshgrid(x, y, sparse=False, indexing=item.getp('indexing'))
-            # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(z) and shape(y) == shape(z)
+            x, y = np.meshgrid(x, y, sparse=False, indexing=item.getp('indexing'))
+            # FIXME: use np.ndgrid instead of np.meshgrid
+        assert x.shape == z.shape and y.shape == z.shape
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
@@ -1118,7 +1116,7 @@ class VTKBackend(BaseClass):
         scalars.SetName('vectors')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
-        nx, ny = shape(z)
+        nx, ny = z.shape
 
         if OPTIMIZATION == 'numba':
             pass
@@ -1140,28 +1138,28 @@ class VTKBackend(BaseClass):
 
     def _create_2D_vector_data(self, item):
         # grid coordinates
-        x, y = squeeze(item.getp('xdata')), squeeze(item.getp('ydata'))
+        x, y = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata'))
         z = item.getp('zdata')           # scalar field
         # vector components
-        u, v = asarray(item.getp('udata')), asarray(item.getp('vdata'))
+        u, v = np.asarray(item.getp('udata')), np.asarray(item.getp('vdata'))
         w = item.getp('wdata')
 
-        z = zeros(shape(u)) if z is None else squeeze(z)
-        w = zeros(shape(u)) if w is None else asarray(w)
+        z = np.zeros(u.shape) if z is None else np.squeeze(z)
+        w = np.zeros(u.shape) if w is None else np.asarray(w)
 
         # print(z, w)
-        # print(shape(u), shape(w))
-        # print(shape(x) == shape(u), shape(y) == shape(u), shape(z) == shape(u), shape(v) == shape(u), shape(w) == shape(u))
+        # print(u.shape, w.shape)
+        # print(x.shape == u.shape, y.shape == u.shape, z.shape == u.shape, v.shape == u.shape, w.shape == u.shape)
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
         x = x / dx; y = y / dy; z = z / dz
 
-        if shape(x) != shape(u) and shape(y) != shape(u):
+        if x.shape != u.shape and y.shape != u.shape:
             assert x.ndim == 1 and y.ndim == 1
-            x, y = meshgrid(x, y, sparse=False, indexing=item.getp('indexing'))
-            # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(u) and shape(y) == shape(u) and shape(z) == shape(u) and shape(v) == shape(u) and shape(w) == shape(u)
+            x, y = np.meshgrid(x, y, sparse=False, indexing=item.getp('indexing'))
+            # FIXME: use np.ndgrid instead of np.meshgrid
+        assert x.shape == u.shape and y.shape == u.shape and z.shape == u.shape and v.shape == u.shape and w.shape == u.shape
 
         n = item.getp('numberofpoints')
         points = vtkPoints()
@@ -1171,7 +1169,7 @@ class VTKBackend(BaseClass):
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
-        nx, ny = shape(u)
+        nx, ny = u.shape
 
         if OPTIMIZATION == 'numba':
             pass
@@ -1192,15 +1190,15 @@ class VTKBackend(BaseClass):
         return self.sgrid
 
     def _create_3D_scalar_data(self, item):
-        x, y, z = squeeze(item.getp('xdata')), squeeze(item.getp('ydata')), squeeze(item.getp('zdata'))
-        v = asarray(item.getp('vdata'))  # scalar data
+        x, y, z = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata')), np.squeeze(item.getp('zdata'))
+        v = np.asarray(item.getp('vdata'))  # scalar data
         c = item.getp('cdata')           # pseudocolor data
 
-        if shape(x) != shape(v) and shape(y) != shape(v) and shape(z) != shape(v):
+        if x.shape != v.shape and y.shape != v.shape and z.shape != v.shape:
             assert x.ndim == 1 and y.ndim == 1 and z.ndim == 1
-            x, y, z = meshgrid(x, y, z, sparse=False, indexing=item.getp('indexing'))
-            # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(v) and shape(y) == shape(v) and shape(z) == shape(v)
+            x, y, z = np.meshgrid(x, y, z, sparse=False, indexing=item.getp('indexing'))
+            # FIXME: use np.ndgrid instead of np.meshgrid
+        assert x.shape == v.shape and y.shape == v.shape and z.shape == v.shape
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
@@ -1217,7 +1215,7 @@ class VTKBackend(BaseClass):
             pseudoc.SetName('pseudocolor')
             pseudoc.SetNumberOfTuples(item.getp('numberofpoints'))
             pseudoc.SetNumberOfComponents(1)
-        nx, ny, nz = shape(v)
+        nx, ny, nz = v.shape
 
         if OPTIMIZATION == 'numba':
             pass
@@ -1253,19 +1251,19 @@ class VTKBackend(BaseClass):
 
     def _create_3D_vector_data(self, item):
         # grid components
-        x, y, z = squeeze(item.getp('xdata')), squeeze(item.getp('ydata')), squeeze(item.getp('zdata'))
+        x, y, z = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata')), np.squeeze(item.getp('zdata'))
         # vector components
-        u, v, w = asarray(item.getp('udata')), asarray(item.getp('vdata')), asarray(item.getp('wdata'))
+        u, v, w = np.asarray(item.getp('udata')), np.asarray(item.getp('vdata')), np.asarray(item.getp('wdata'))
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
         x, y, z = x / dx, y / dy, z / dz
 
-        if shape(x) != shape(u) and shape(y) != shape(u) and shape(z) != shape(u):
+        if x.shape != u.shape and y.shape != u.shape and z.shape != u.shape:
             assert x.ndim == 1 and y.ndim == 1 and z.ndim == 1
-            x, y, z = meshgrid(x, y, z, sparse=False, indexing=item.getp('indexing'))
-            # FIXME: use ndgrid instead of meshgrid
-        assert shape(x) == shape(u) and shape(y) == shape(u) and shape(z) == shape(u) and shape(v) == shape(u) and shape(w) == shape(u)
+            x, y, z = np.meshgrid(x, y, z, sparse=False, indexing=item.getp('indexing'))
+            # FIXME: use np.ndgrid instead of np.meshgrid
+        assert x.shape == u.shape and y.shape == u.shape and z.shape == u.shape and v.shape == u.shape and w.shape == u.shape
 
         n = item.getp('numberofpoints')
         points = vtkPoints()
@@ -1275,7 +1273,7 @@ class VTKBackend(BaseClass):
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
-        nx, ny, nz = shape(u)
+        nx, ny, nz = u.shape
         nc = (nx - 1) * (ny - 1) * (nz - 1)
         scalars = vtkFloatArray()
         scalars.SetName('scalars')
@@ -1299,7 +1297,7 @@ class VTKBackend(BaseClass):
             for k in range(nz - 1):
                 for j in range(ny - 1):
                     for i in range(nx - 1):
-                        scalars.SetValue(ind, sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
+                        scalars.SetValue(ind, np.sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
                         ind += 1
 
         sgrid = vtkStructuredGrid()
@@ -1315,7 +1313,7 @@ class VTKBackend(BaseClass):
         # TODO generate a polydata with lines see CylinderContour.py
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
         if z is None:
-            z = zeros(x.shape)
+            z = np.zeros(x.shape)
 
         points = vtkPoints()
         [points.InsertPoint(_, x[_], y[_], z[_]) for _ in range(len(x))]
@@ -1574,9 +1572,9 @@ class VTKBackend(BaseClass):
         # max_time = 35. * length / max_velocity
 
         dx, dy, dz = self._ax.getp('daspect')
-        sx = ravel(item.getp('startx')) / dx
-        sy = ravel(item.getp('starty')) / dy
-        sz = ravel(zeros(sx.shape)) if item.getp('startz') is None else ravel(item.getp('startz')) / dz
+        sx = np.ravel(item.getp('startx')) / dx
+        sy = np.ravel(item.getp('starty')) / dy
+        sz = np.ravel(np.zeros(sx.shape)) if item.getp('startz') is None else np.ravel(item.getp('startz')) / dz
 
         seeds = vtkProgrammableSource()
 
@@ -1726,7 +1724,7 @@ class VTKBackend(BaseClass):
             # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
             dx, dy, dz = self._ax.getp('daspect')
-            sx, sy, sz = ravel(sx) / dx, ravel(sy) / dy, ravel(sz) / dz
+            sx, sy, sz = np.ravel(sx) / dx, np.ravel(sy) / dy, np.ravel(sz) / dz
             for i in range(len(sx)):
                 normals.append([1, 0, 0])
                 origins.append([sx[i], center[1], center[2]])
@@ -2592,7 +2590,7 @@ class VTKBackend(BaseClass):
         lut = vtkLookupTable()
         if isinstance(cmap_or_name, str):
             _data = _cmaps[cmap_or_name].colors
-        elif isinstance(cmap_or_name, (list, tuple, ndarray)):
+        elif isinstance(cmap_or_name, (list, tuple, np.ndarray)):
             _data = cmap_or_name
         else:  # case LinearSegmentedColormap
             _data = cmap_or_name(range(cmap_or_name.N))[:, :3]  # remove alpha channel from RGBA

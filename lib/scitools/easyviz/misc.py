@@ -8,9 +8,7 @@ from functools import cmp_to_key
 
 
 def _update_from_config_file(d, section='easyviz'):
-    """
-    Update the dictionary d with values from the config file scitools.cfg.
-    """
+    'update the dictionary d with values from the config file scitools.cfg'
     import pprint
     for key in d:
         data = scitools.globaldata._config_data.get(section, {})
@@ -20,6 +18,15 @@ def _update_from_config_file(d, section='easyviz'):
             except Exception as e:
                 raise Exception('%s, trying to set key=%s to "%s"' %
                                 (str(e), key, data[key][0]))
+
+
+def aslist(obj):
+    'ensure a list item'
+    try:
+        iter(obj)
+        return obj
+    except:
+        return [obj]
 
 
 def _toggle_state(state):

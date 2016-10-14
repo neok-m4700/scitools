@@ -30,8 +30,6 @@ NOTES:
 """
 
 
-
-
 from .common import *
 from scitools.globaldata import DEBUG, VERBOSE
 from scitools.misc import check_if_module_exists
@@ -51,6 +49,7 @@ visit.Launch()
 
 
 class VisitBackend(BaseClass):
+
     def __init__(self):
         BaseClass.__init__(self)
         self._init()
@@ -77,27 +76,27 @@ class VisitBackend(BaseClass):
             '>': None,  # triangle (right)
             'p': None,  # pentagram
             'h': None,  # hexagram
-            }
+        }
 
         self._colors = {
             '': None,            # no color --> blue
-            'r': (255,0,0),      # red
-            'g': (0,255,0),      # green
-            'b': (0,0,255),      # blue
-            'c': (0,255,255),    # cyan
-            'm': (255,0,255),    # magenta
-            'y': (255,255,0),    # yellow
-            'k': (0,0,0),        # black
-            'w': (255,255,255),  # white
-            }
+            'r': (255, 0, 0),      # red
+            'g': (0, 255, 0),      # green
+            'b': (0, 0, 255),      # blue
+            'c': (0, 255, 255),    # cyan
+            'm': (255, 0, 255),    # magenta
+            'y': (255, 255, 0),    # yellow
+            'k': (0, 0, 0),        # black
+            'w': (255, 255, 255),  # white
+        }
 
         self._line_styles = {
-            '': None, # no line
+            '': None,  # no line
             '-': 0,   # solid line
             ':': 2,   # dotted line
             '-.': 3,  # dash-dot line
             '--': 1,  # dashed line
-            }
+        }
 
         # convert table for colorbar location:
         self._colorbar_locations = {
@@ -109,7 +108,7 @@ class VisitBackend(BaseClass):
             'SouthOutside': None,
             'EastOutside': None,
             'WestOutside': None,
-            }
+        }
 
         if DEBUG:
             print("Setting backend standard variables")
@@ -163,11 +162,11 @@ class VisitBackend(BaseClass):
         title = ax.getp('title')
         t = self._g.CreateAnnotationObject("Text2D")
         t.SetText(title)
-        t.SetPosition(0.3,0.9)  # (0,0) is lower left corner
+        t.SetPosition(0.3, 0.9)  # (0,0) is lower left corner
         t.SetFontFamily(0)      # 0: Arial, 1: Courier, 2: Times
         t.SetWidth(0.25)        # 25%
-        #t.SetTextColor((0,0,0)) # FIXME: Use ax.getp('fgcolor')
-        #t.SetUseForegroundForTextColor(False)
+        # t.SetTextColor((0,0,0)) # FIXME: Use ax.getp('fgcolor')
+        # t.SetUseForegroundForTextColor(False)
         if title:
             t.SetVisible(True)  # set title
         else:
@@ -339,7 +338,7 @@ class VisitBackend(BaseClass):
             cmin, cmax = ax.getp('caxis')
             # NOTE: cmin and cmax might be None:
             if cmin is None or cmax is None:
-                cmin, cmax = [0,1]
+                cmin, cmax = [0, 1]
             # set color axis scaling according to cmin and cmax
             pass
         else:
@@ -365,8 +364,8 @@ class VisitBackend(BaseClass):
         v3D.SetPerspective(False)
         if view == 2:
             # setup a default 2D view
-            v3D.SetViewUp(0,1,0)
-            v3D.SetViewNormal(0,0,1)
+            v3D.SetViewUp(0, 1, 0)
+            v3D.SetViewNormal(0, 0, 1)
             v3D.SetImageZoom(1.2)
         elif view == 3:
             az = cam.getp('azimuth')
@@ -379,8 +378,8 @@ class VisitBackend(BaseClass):
             else:
                 # set a 3D view according to az and el
                 pass
-            v3D.SetViewUp(0,0,1)
-            v3D.SetViewNormal(-0.5,-0.8,0.4)
+            v3D.SetViewUp(0, 0, 1)
+            v3D.SetViewNormal(-0.5, -0.8, 0.4)
             v3D.SetImageZoom(1.0)
 
             if cam.getp('cammode') == 'manual':
@@ -449,37 +448,37 @@ class VisitBackend(BaseClass):
         z = asarray(z)
         c = asarray(c)
         nx, ny = shape(z)
-        if shape(x) != (nx,ny) and shape(y) != (nx,ny):
+        if shape(x) != (nx, ny) and shape(y) != (nx, ny):
             x, y = meshgrid(x, y, sparse=False, indexing=indexing)
         dx, dy, dz = self._ax.getp('daspect')
-        x = x/dx
-        y = y/dy
-        z = z/dz
+        x = x / dx
+        y = y / dy
+        z = z / dz
 
         tmpfname = tempfile.mktemp(suffix='.vtk')
         self.gcf()._tmpfiles.append(tmpfname)  # clean up later
         f = open(tmpfname, 'w')
         f.write(
-"""# vtk DataFile Version 2.0
+            """# vtk DataFile Version 2.0
 vtk file written by scitools.easyviz
 ASCII
 
 DATASET STRUCTURED_GRID
 DIMENSIONS %d %d 1
 POINTS %d float
-""" % (nx,ny,nx*ny))
+""" % (nx, ny, nx * ny))
         for j in range(ny):
             for i in range(nx):
-                f.write("%s %s %s\n" % (x[i,j],y[i,j],z[i,j]))
+                f.write("%s %s %s\n" % (x[i, j], y[i, j], z[i, j]))
 
         f.write("""
 POINT_DATA %d
 SCALARS scalars float
 LOOKUP_TABLE default
-""" % (nx*ny))
+""" % (nx * ny))
         for i in range(nx):
             for j in range(ny):
-                f.write("%s\n" % c[i,j])
+                f.write("%s\n" % c[i, j])
         f.close()
         return tmpfname
 
@@ -490,13 +489,13 @@ LOOKUP_TABLE default
         v = asarray(v)
         c = asarray(c)
         nx, ny, nz = shape(v)
-        if shape(x) != (nx,ny,nz) and shape(y) != (nx,ny,nz) and \
-               shape(z) != (nx,ny,nz):
+        if shape(x) != (nx, ny, nz) and shape(y) != (nx, ny, nz) and \
+                shape(z) != (nx, ny, nz):
             x, y, z = meshgrid(x, y, z, sparse=False, indexing=indexing)
         dx, dy, dz = self._ax.getp('daspect')
-        x = x/dx
-        y = y/dy
-        z = z/dz
+        x = x / dx
+        y = y / dy
+        z = z / dz
 
         tmpfname = tempfile.mktemp(suffix='.vtk')
         self.gcf()._tmpfiles.append(tmpfname)  # clean up later
@@ -508,21 +507,21 @@ ASCII
 DATASET STRUCTURED_GRID
 DIMENSIONS %d %d %d
 POINTS %d float
-""" % (nx,ny,nz,nx*ny*nz))
+""" % (nx, ny, nz, nx * ny * nz))
         for i in range(nx):
             for j in range(ny):
                 for k in range(nz):
-                    f.write("%s %s %s\n" % (x[i,j,k],y[i,j,k],z[i,j,k]))
+                    f.write("%s %s %s\n" % (x[i, j, k], y[i, j, k], z[i, j, k]))
 
         f.write("""
 POINT_DATA %d
 SCALARS scalars float
 LOOKUP_TABLE default
-""" % (nx*ny*nz))
+""" % (nx * ny * nz))
         for i in range(nx):
             for j in range(ny):
                 for k in range(nz):
-                    f.write("%s\n" % v[i,j,k])
+                    f.write("%s\n" % v[i, j, k])
         f.close()
         return tmpfname
 
@@ -570,8 +569,8 @@ LOOKUP_TABLE default
             c = asarray(z).copy()
         function = item.getp('function')
         if function == 'pcolor':
-            z = 0.0*z
-        db = self._generate_2D_database(x,y,z,c,indexing=item.getp('indexing'))
+            z = 0.0 * z
+        db = self._generate_2D_database(x, y, z, c, indexing=item.getp('indexing'))
         self._g.OpenDatabase(db)
 
         contours = item.getp('contours')
@@ -588,8 +587,8 @@ LOOKUP_TABLE default
                 ma.SetLineStyle(style)
             if color is not None:
                 ma.SetMeshColor(color)
-                #ma.SetBackgroundFlag(False)
-                #ma.SetForegroundFlag(False)
+                # ma.SetBackgroundFlag(False)
+                # ma.SetForegroundFlag(False)
             if width:
                 ma.SetLineWidth(int(width))
             if DEBUG:
@@ -626,8 +625,8 @@ LOOKUP_TABLE default
 
         c = asarray(z).copy()
         if item.getp('function') == 'contour':
-            z = 0.0*z
-        db = self._generate_2D_database(x,y,z,c)
+            z = 0.0 * z
+        db = self._generate_2D_database(x, y, z, c)
         self._g.OpenDatabase(db)
 
         filled = item.getp('filled')  # draw filled contour plot if True
@@ -639,7 +638,7 @@ LOOKUP_TABLE default
         clevels = item.getp('clevels')  # number of contour levels
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             ca.SetContourMethod(0)  # Level
             ca.SetContourNLevels(clevels)
         else:
@@ -670,7 +669,7 @@ LOOKUP_TABLE default
             print("Adding vectors")
         # uncomment the following command if there is no support for
         # automatic scaling of vectors in the current plotting package:
-        #item.scale_vectors()
+        # item.scale_vectors()
 
         # grid components:
         x, y, z = item.getp('xdata'), item.getp('ydata'), item.getp('zdata')
@@ -683,7 +682,7 @@ LOOKUP_TABLE default
         # turn off automatic scaling):
         scale = item.getp('arrowscale')
 
-        filled = item.getp('filledarrows') # draw filled arrows if True
+        filled = item.getp('filledarrows')  # draw filled arrows if True
 
         if z is not None and w is not None:
             # draw velocity vectors as arrows with components (u,v,w) at
@@ -706,7 +705,7 @@ LOOKUP_TABLE default
 
         if item.getp('tubes'):
             # draw stream tubes from vector data (u,v,w) at points (x,y,z)
-            n = item.getp('n') # no points along the circumference of the tube
+            n = item.getp('n')  # no points along the circumference of the tube
             scale = item.getp('tubescale')
             pass
         elif item.getp('ribbons'):
@@ -733,7 +732,7 @@ LOOKUP_TABLE default
 
         if c is None:
             c = asarray(z).copy()
-        db = self._generate_3D_database(x,y,z,v,c,
+        db = self._generate_3D_database(x, y, z, v, c,
                                         indexing=item.getp('indexing'))
         self._g.OpenDatabase(db)
 
@@ -780,7 +779,7 @@ LOOKUP_TABLE default
         clevels = item.getp('clevels')  # number of contour levels per plane
         if cvector is None:
             # the contour levels are chosen automatically
-            #cvector =
+            # cvector =
             pass
         pass
 
@@ -849,7 +848,7 @@ LOOKUP_TABLE default
             plotitems = ax.getp('plotitems')
             plotitems.sort(key=self._cmpPlotProperties)
             for item in plotitems:
-                func = item.getp('function') # function that produced this item
+                func = item.getp('function')  # function that produced this item
                 if isinstance(item, Line):
                     self._add_line(item)
                 elif isinstance(item, Surface):
@@ -985,7 +984,7 @@ LOOKUP_TABLE default
         swa.SetMaintainAspect(maintain_aspect)
 
         size = kwargs.get('size', None)
-        if isinstance(size, (tuple,list)) and len(size) == 2:
+        if isinstance(size, (tuple, list)) and len(size) == 2:
             width, height = size
             swa.SetWidth(int(width))
             swa.SetHeight(int(height))
@@ -1029,7 +1028,6 @@ LOOKUP_TABLE default
     def clf(self):
         BaseClass.clf(self)
         self._g.ClearWindow()
-
 
     # Colormap methods:
     def hsv(self, m=64):

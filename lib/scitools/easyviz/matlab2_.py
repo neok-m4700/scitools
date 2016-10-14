@@ -182,7 +182,6 @@ class Matlab2Backend(BaseClass):
         legend = legend.replace('\\', '')
         return legend
 
-
     def _set_title(self, ax):
         """Add a title at the top of the axis."""
         if DEBUG:
