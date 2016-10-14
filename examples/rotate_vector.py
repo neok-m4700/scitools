@@ -9,13 +9,14 @@ display single vectors in a coordinate system.
 from scitools.std import *
 
 vec1 = matrix([1, 2], dtype=float).transpose()
-theta = pi/3  # rotation angle
+theta = pi / 3  # rotation angle
 transformation = matrix([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
 print(transformation)
-vec2 = transformation*vec1
+vec2 = transformation * vec1
 
 # Use quiver to plot vector fields on a 1x1 grid with the field
 # being 0 at all points except the origin.
+
 
 def vec2vecfield(vec, shape):
     """
@@ -24,7 +25,7 @@ def vec2vecfield(vec, shape):
     except for the origin where the field equals vec.
     """
     u, v = zeros(shape), zeros(shape)  # vector field
-    u[0,0] = vec[0]; v[0,0] = vec[1]
+    u[0, 0] = vec[0]; v[0, 0] = vec[1]
     return u, v
 
 # Make 1x1 grid

@@ -1,15 +1,17 @@
 
 import collections
-# import operator
-# import os
+import operator
+import os
 import pickle
 import pprint
 from warnings import warn
 
 from scitools.globaldata import backend
-from scitools.numpyutils import (asarray, iseq, meshgrid, ndarray, ndgrid,
-                                 ones, ravel, reshape, seq, shape, size, sqrt,
-                                 squeeze, zeros)
+from scitools.numpyutils import (seq, iseq)
+# from scitools.numpyutils import (np.asarray, iseq, meshgrid, ndarray, ndgrid,
+#                                  ones, ravel, reshape, seq, shape, size, sqrt,
+#                                  squeeze, np.zeros)
+import numpy as np
 
 from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
                    _check_xyzuvw, _check_xyzv, _toggle_state,
@@ -176,9 +178,9 @@ class PlotProperties:
         props = {}
         for key in self._prop:
             prop = self._prop[key]
-            if isinstance(prop, (list, tuple, ndarray)) and \
-                    len(ravel(prop)) > 3:
-                props[key] = '{} with shape {}'.format(type(prop), shape(prop))
+            if isinstance(prop, (list, tuple, np.ndarray)) and \
+                    len(np.ravel(prop)) > 3:
+                props[key] = '{} with shape {}'.format(type(prop), prop.shape)
             else:
                 props[key] = self._prop[key]
         return pprint.pformat(props)
@@ -354,13 +356,13 @@ class PlotProperties:
         return self._prop['xlim'] + self._prop['ylim'] + self._prop['zlim']
 
     def _set_lim(self, a, name, adj_step=0.03):
-        if isinstance(a, ndarray):
+        if isinstance(a, np.ndarray):
             try:
                 amin = a.min()
                 amax = a.max()
             except ValueError:
-                amin = min(ravel(a))
-                amax = max(ravel(a))
+                amin = min(np.ravel(a))
+                amax = max(np.ravel(a))
         else:
             amin = min(a)
             amax = max(a)
@@ -403,7 +405,7 @@ class Line(PlotProperties):
         # The proper casting should be in the backends plotroutine
 
         if 'z' in kwargs:
-            if not isinstance(kwargs['z'], (collections.Sequence, ndarray)):
+            if not isinstance(kwargs['z'], (collections.Sequence, np.ndarray)):
                 raise TypeError('Can only plot sequence types, '
                                 'z is %s' % type(kwargs['z']))
             z = kwargs['z']
@@ -415,7 +417,7 @@ class Line(PlotProperties):
                     # now y is the indicies of z
                     y = list(range(len(z)))
                 else:
-                    if not isinstance(kwargs['y'], (collections.Sequence, ndarray)):
+                    if not isinstance(kwargs['y'], (collections.Sequence, np.ndarray)):
                         raise TypeError('Can only plot sequence types, y is {}'.format(type(kwargs['y'])))
                     y = kwargs['y']
             if 'x' in kwargs:  # will only set x variable if y is set
@@ -423,18 +425,18 @@ class Line(PlotProperties):
                     # now x is the indicies of y
                     x = list(range(len(y)))
                 else:
-                    if not isinstance(kwargs['x'], (collections.Sequence, ndarray)):
+                    if not isinstance(kwargs['x'], (collections.Sequence, np.ndarray)):
                         raise TypeError('Can only plot sequence types, x is {}'.format(type(kwargs['x'])))
                     x = kwargs['x']
 
             # Consitency check
-            assert size(x) == size(y), 'Line.setp: x has size {:d}, expected y to have size {:d}, not {:d}'.format(size(x), size(x), size(y))
-            assert size(x) == size(z), 'Line.setp: x has size {:d}, expected z to have size {:d}, not {:d}'.format(size(x), size(x), size(z))
+            assert x.size == y.size, 'Line.setp: x has size {:d}, expected y to have size {:d}, not {:d}'.format(x.size, x.size, y.size)
+            assert x.size == z.size, 'Line.setp: x has size {:d}, expected z to have size {:d}, not {:d}'.format(x.size, x.size, z.size)
 
             self._set_data(x, y, z)
 
         elif 'y' in kwargs:
-            if not isinstance(kwargs['y'], (collections.Sequence, ndarray)):
+            if not isinstance(kwargs['y'], (collections.Sequence, np.ndarray)):
                 raise TypeError('Can only plot sequence types y is {}'.format(type(kwargs['y'])))
             y = kwargs['y']
             if 'format' in kwargs:
@@ -445,12 +447,12 @@ class Line(PlotProperties):
                     # now x is the indicies of y
                     x = list(range(len(y)))
                 else:
-                    if not isinstance(kwargs['x'], (collections.Sequence, ndarray)):
+                    if not isinstance(kwargs['x'], (collections.Sequence, np.ndarray)):
                         raise TypeError('Can only plot sequence types, x is {}'.format(type(kwargs['x'])))
                     x = kwargs['x']
 
             # Consitency check
-            assert size(x) == size(y), 'Line.setp: x has size {:d}, expected y to have size {:d}, not {:d}'.format(size(x), size(x), size(y))
+            assert x.size == y.size, 'Line.setp: x has size {:d}, expected y to have size {:d}, not {:d}'.format(x.size, x.size, y.size)
 
             self._set_data(x, y)
 
@@ -529,7 +531,7 @@ class Bars(PlotProperties):
                 for key in keys:
                     a.append(list(y[key].values()))
                 self._prop['barticks'] = keys
-                y = asarray(a)
+                y = np.asarray(a)
             x = list(range(len(y)))
         else:
             raise TypeError('Bars._parseargs: wrong number of arguments')
@@ -541,8 +543,8 @@ class Bars(PlotProperties):
             pass
         self._set_lim(x, 'xlim')
         self._set_lim(y, 'ylim')
-        self._prop['xdata'] = asarray(x)
-        self._prop['ydata'] = asarray(y)
+        self._prop['xdata'] = np.asarray(x)
+        self._prop['ydata'] = np.asarray(y)
         n = len(x)
         self._prop['dims'] = (n, 1, 1)
         self._prop['numberofpoints'] = n
@@ -605,7 +607,7 @@ class Surface(PlotProperties):
         self._prop['xdata'] = x
         self._prop['ydata'] = y
         self._prop['zdata'] = z
-        nx, ny = shape(z)
+        nx, ny = z.shape
         self._prop['dims'] = (nx, ny, 1)
         self._prop['numberofpoints'] = nx * ny
         if 'mesh' not in self._prop['function']:
@@ -642,7 +644,7 @@ class Contours(PlotProperties):
         PlotProperties.setp(self, **kwargs)
 
         if 'cvector' in kwargs:
-            _check_type(kwargs['cvector'], 'cvector', (tuple, list, ndarray))
+            _check_type(kwargs['cvector'], 'cvector', (tuple, list, np.ndarray))
             self._prop['cvector'] = kwargs['cvector']
             self._prop['clevels'] = len(kwargs['cvector'])
 
@@ -671,7 +673,7 @@ class Contours(PlotProperties):
 
         if nargs == 2 or nargs == 4:
             tmp = args[-1]
-            if isinstance(tmp, (collections.Sequence, ndarray)):
+            if isinstance(tmp, (collections.Sequence, np.ndarray)):
                 self._prop['cvector'] = tmp
                 self._prop['clevels'] = len(tmp)
             elif isinstance(tmp, int):
@@ -688,9 +690,9 @@ class Contours(PlotProperties):
         self._prop['xdata'] = x
         self._prop['ydata'] = y
         self._prop['zdata'] = z
-        nx, ny = shape(z)
+        nx, ny = z.shape
         self._prop['dims'] = (nx, ny, 1)
-        self._prop['numberofpoints'] = len(ravel(z))
+        self._prop['numberofpoints'] = len(np.ravel(z))
         if self._prop['function'] == 'contour3':
             self._prop['clocation'] = 'surface'
         elif self._prop['function'] == 'contourf':
@@ -781,9 +783,9 @@ class VelocityVectors(PlotProperties):
                 d += dx**2
             if d > 0:
                 if w is not None:
-                    length = sqrt((u / d)**2 + (v / d)**2 + (w / d)**2)
+                    length = np.sqrt((u / d)**2 + (v / d)**2 + (w / d)**2)
                 else:
-                    length = sqrt((u / d)**2 + (v / d)**2)
+                    length = np.sqrt((u / d)**2 + (v / d)**2)
                 maxlen = max(length.flat)
             else:
                 maxlen = 0
@@ -811,11 +813,11 @@ class VelocityVectors(PlotProperties):
         if u.ndim == 1:
             self._prop['dims'] = (len(u), 1, 1)
         elif u.ndim == 2:
-            nx, ny = shape(u)
+            nx, ny = u.shape
             self._prop['dims'] = (nx, ny, 1)
         else:
             self._prop['dims'] = u.shape
-        self._prop['numberofpoints'] = len(ravel(u))
+        self._prop['numberofpoints'] = len(np.ravel(u))
 
 
 class Streams(PlotProperties):
@@ -872,30 +874,30 @@ class Streams(PlotProperties):
         # kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
         if nargs >= 9 and nargs <= 10:
-            x, y, z, u, v, w, sx, sy, sz = [asarray(_) for _ in args[:9]]
+            x, y, z, u, v, w, sx, sy, sz = [np.asarray(_) for _ in args[:9]]
             # x, y, z, u, v, w = _check_xyzuvw(*args[:6])
-            # x, y, z = [asarray(_) for _ in args[:3]] #_check_xyz(*args[:3])
-            # u, v, w = [asarray(_) for _ in args[3:6]]
-            # sx, sy, sz = [asarray(_) for _ in args[6:9]]
+            # x, y, z = [np.asarray(_) for _ in args[:3]] #_check_xyz(*args[:3])
+            # u, v, w = [np.asarray(_) for _ in args[3:6]]
+            # sx, sy, sz = [np.asarray(_) for _ in args[6:9]]
         elif nargs >= 6 and nargs <= 7:
-            u, v = [asarray(_) for _ in args[:2]]
+            u, v = [np.asarray(_) for _ in args[:2]]
             if u.ndim == 3:  # streamline(U,V,W,startx,starty,startz)
-                nx, ny, nz = shape(u)
-                x, y, z = ndgrid(seq(nx - 1), seq(ny - 1), seq(nz - 1))
-                # w = asarray(args[2])
-                w, sx, sy, sz = [asarray(_) for _ in args[2:6]]
+                nx, ny, nz = u.shape
+                x, y, z = np.ndgrid(seq(nx - 1), seq(ny - 1), seq(nz - 1))
+                # w = np.asarray(args[2])
+                w, sx, sy, sz = [np.asarray(_) for _ in args[2:6]]
             else:  # streamline(X,Y,U,V,startx,starty)
                 x, y = u, v
-                # u, v = [asarray(_) for _ in args[2:4]]
-                u, v, sx, sy = [asarray(_) for _ in args[2:6]]
+                # u, v = [np.asarray(_) for _ in args[2:4]]
+                u, v, sx, sy = [np.asarray(_) for _ in args[2:6]]
         elif nargs >= 4 and nargs <= 5:  # streamline(U,V,startx,starty)
-            u, v = [asarray(_) for _ in args[:2]]
+            u, v = [np.asarray(_) for _ in args[:2]]
             try:
-                nx, ny = shape(u)
+                nx, ny = u.shape
             except:
                 raise ValueError('u must be 2D, not {:d}D'.format(u.ndim))
-            x, y = ndgrid(seq(nx - 1), seq(ny - 1))
-            sx, sy = [asarray(_) for _ in args[2:4]]
+            x, y = np.ndgrid(seq(nx - 1), seq(ny - 1))
+            sx, sy = [np.asarray(_) for _ in args[2:4]]
         elif nargs >= 1 and nargs <= 2:  # streamline(XYZ) or streamline(XY)
             raise NotImplementedError('Streams._parseargs: not implemented')
         else:
@@ -930,18 +932,18 @@ class Streams(PlotProperties):
                 raise ValueError(msg)
 
         # if len(u.shape) == 3:
-        # assert shape(x) == shape(y) == shape(z) == \
-        #                     shape(u) == shape(v) == shape(w), \
+        # assert x.shape == y.shape == z.shape == \
+        #                     u.shape == v.shape == w.shape, \
         #                     'x, y, z, u, v, and z must be 3D arrays and of same shape'
-        # assert shape(sx) == shape(sy) == shape(sz), \
+        # assert sx.shape == sy.shape == sz.shape, \
         #                     'startx, starty, and startz must all be of same shape'
         # else:
-        # assert shape(x) == shape(y) == shape(u) == shape(v), \
+        # assert x.shape == y.shape == u.shape == v.shape, \
         #                     'x, y, u, and v must be 2D arrays and of same shape'
-        # assert shape(sx) == shape(sy), \
+        # assert sx.shape == sy.shape, \
         #                    'startx and starty must be of same shape'
-            z = w = zeros(shape(u))
-            sz = zeros(shape(sx))
+            z = w = np.zeros(u.shape)
+            sz = np.zeros(sx.shape)
 
         self._set_data(x, y, z, u, v, w, sx, sy, sz)
 
@@ -960,12 +962,12 @@ class Streams(PlotProperties):
         self._prop['starty'] = sy
         self._prop['startz'] = sz
         if u.ndim == 2:
-            nx, ny = shape(u)
+            nx, ny = u.shape
             self._prop['dims'] = (nx, ny, 1)
         else:
-            self._prop['dims'] = shape(u)
-        self._prop['numberofpoints'] = len(ravel(u))
-        self._prop['numberofstreams'] = len(ravel(sx))
+            self._prop['dims'] = u.shape
+        self._prop['numberofpoints'] = len(np.ravel(u))
+        self._prop['numberofstreams'] = len(np.ravel(sx))
 
 
 class Volume(PlotProperties):
@@ -1041,11 +1043,11 @@ class Volume(PlotProperties):
         if nargs >= 7 and nargs <= 8:
             # slice_(X,Y,Z,V,Sx,Sy,Sz) or slice_(X,Y,Z,V,XI,YI,ZI)
             x, y, z, v = _check_xyzv(*args[:4], **kwargs)
-            slices = [asarray(a) for a in args[4:7]]
+            slices = [np.asarray(a) for a in args[4:7]]
         elif nargs >= 4 and nargs <= 5:
             # slice_(V,Sx,Sy,Sz) or slice_(V,XI,YI,ZI)
             x, y, z, v = _check_xyzv(args[0], indexing=kwargs['indexing'])
-            slices = [asarray(a) for a in args[1:4]]
+            slices = [np.asarray(a) for a in args[1:4]]
         else:
             raise TypeError('Wrong number of arguments')
 
@@ -1080,7 +1082,7 @@ class Volume(PlotProperties):
             raise TypeError('Wrong number of arguments')
 
         if nargs in (3, 6):  # isosurface(...,COLORS)
-            cdata = asarray(args[-1])
+            cdata = np.asarray(args[-1])
             assert v.shape == cdata.shape, 'COLORS must have shape {} (as V), not {}'.format(v.shape, cdata.shape)
             self._prop['cdata'] = cdata
 
@@ -1097,7 +1099,7 @@ class Volume(PlotProperties):
             raise TypeError('Wrong number of arguments')
 
         if nargs in (2, 5):  # threshold(...,COLORS)
-            cdata = asarray(args[-1])
+            cdata = np.asarray(args[-1])
             assert v.shape == cdata.shape, 'COLORS must have shape {} (as V), not {}'.format(v.shape, cdata.shape)
             self._prop['cdata'] = cdata
 
@@ -1116,7 +1118,7 @@ class Volume(PlotProperties):
         if isovalue is not None:
             self._prop['isovalue'] = isovalue
         self._prop['dims'] = v.shape
-        self._prop['numberofpoints'] = len(ravel(v))
+        self._prop['numberofpoints'] = len(np.ravel(v))
 
 
 class Colorbar:
@@ -1243,7 +1245,6 @@ class Camera:
         'camzoom': 1,
         'campos': (0, 0, 0),
         'camproj': 'orthographic',
-        # 'camshare': None  # a vtk object for sharing camera between subplots
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -1914,7 +1915,7 @@ class BaseClass:
         'isosurface', 'jet', 'legend', 'light', 'lines',
         'loglog', 'material', 'mesh', 'meshc', 'loadfig',
         'pcolor', 'pink', 'plot', 'plot3', 'prism',
-        'quiver', 'quiver3', 'reducevolum', 'semilogx',
+        'quiver', 'quiver3', 'quiver4', 'reducevolum', 'semilogx',
         'semilogy', 'set', 'shading', 'show', 'showfigs', 'slice_',
         'spring', 'streamline', 'streamribbon', 'streamslice',
         'streamtube', 'savefig', 'subplot', 'subvolume', 'suptitle',
@@ -2561,7 +2562,7 @@ class BaseClass:
             return xmin, xmax
         elif nargs == 1:
             arg = args[0]
-            if isinstance(arg, (list, tuple, ndarray)) and len(arg) == 2:
+            if isinstance(arg, (list, tuple, np.ndarray)) and len(arg) == 2:
                 ax.setp(xmin=arg[0], xmax=arg[1])
             elif isinstance(arg, str):
                 raise NotImplementedError()
@@ -2612,7 +2613,7 @@ class BaseClass:
             return ymin, ymax
         elif nargs == 1:
             arg = args[0]
-            if isinstance(arg, (list, tuple, ndarray)) and len(arg) == 2:
+            if isinstance(arg, (list, tuple, np.ndarray)) and len(arg) == 2:
                 ax.setp(ymin=arg[0], ymax=arg[1])
             elif isinstance(arg, str):
                 raise NotImplementedError()
@@ -2663,7 +2664,7 @@ class BaseClass:
             return zmin, zmax
         elif nargs == 1:
             arg = args[0]
-            if isinstance(arg, (list, tuple, ndarray)) and len(arg) == 2:
+            if isinstance(arg, (list, tuple, np.ndarray)) and len(arg) == 2:
                 ax.setp(zmin=arg[0], zmax=arg[1])
             elif isinstance(arg, str):
                 raise NotImplementedError()
@@ -3060,9 +3061,9 @@ class BaseClass:
         A somewhat more complex example:
         >>> x = linspace(0, 15, 76)   # 0, 0.2, 0.4, ..., 15
         >>> y1 = sin(x)*x
-        >>> y2 = sin(x)*sqrt(x)
+        >>> y2 = sin(x)*np.sqrt(x)
         >>> plot(x, y1, 'b-', x, y2, 'ro',
-        ...      legend=('x*sin(x)', 'sqrt(x)*sin(x)'))
+        ...      legend=('x*sin(x)', 'np.sqrt(x)*sin(x)'))
 
         Note: loglog, semilogy, and semilogx are like plot(...,log='xy'),
         plot(...,log='y'), and plot(...,log='x'), respectively.
@@ -3085,24 +3086,16 @@ class BaseClass:
                 if nargs == 1:
                     lines.append(Line(x=kwargs['x'], y=args[0], format=''))
                 else:
-                    lines.append(Line(x=kwargs['x'],
-                                      y=args[0],
-                                      format=args[1]))
+                    lines.append(Line(x=kwargs['x'], y=args[0], format=args[1]))
             else:
                 for i in range(len(args) - 1):
                     if not isinstance(args[i], str):
                         if isinstance(args[i + 1], str):
-                            lines.append(Line(x=kwargs['x'],
-                                              y=args[i],
-                                              format=args[1 + i]))
+                            lines.append(Line(x=kwargs['x'], y=args[i], format=args[1 + i]))
                         else:
-                            lines.append(Line(x=kwargs['x'],
-                                              y=args[i],
-                                              format=''))
+                            lines.append(Line(x=kwargs['x'], y=args[i], format=''))
                             if i == nargs - 2:
-                                lines.append(Line(x=kwargs['x'],
-                                                  y=args[i + 1],
-                                                  format=''))
+                                lines.append(Line(x=kwargs['x'], y=args[i + 1], format=''))
             del kwargs['x']  # x in kwargs is no longer needed
         else:  # Normal case
             # If an odd number, larger than 2, of non-strings in args are
@@ -3112,18 +3105,12 @@ class BaseClass:
             if nargs in (1, 2):
                 if not isinstance(args[0], str):
                     if nargs == 1:
-                        lines.append(Line(x='auto',
-                                          y=args[0],
-                                          format=''))
+                        lines.append(Line(x='auto', y=args[0], format=''))
                     else:
                         if not isinstance(args[1], str):
-                            lines.append(Line(x=args[0],
-                                              y=args[1],
-                                              format=''))
+                            lines.append(Line(x=args[0],  y=args[1], format=''))
                         else:
-                            lines.append(Line(x='auto',
-                                              y=args[0],
-                                              format=args[1]))
+                            lines.append(Line(x='auto', y=args[0], format=args[1]))
                     i + 100  # return
                 else:
                     raise ValueError('plot: cannot plot a formatstring')
@@ -3133,38 +3120,26 @@ class BaseClass:
                 if not isinstance(args[i], str):
                     if not isinstance(args[i + 1], str):
                         if isinstance(args[i + 2], str):
-                            lines.append(Line(x=args[i],
-                                              y=args[i + 1],
-                                              format=args[i + 2]))
+                            lines.append(Line(x=args[i], y=args[i + 1], format=args[i + 2]))
                             i = i + 3
                         else:
-                            lines.append(Line(y=args[i + 1],
-                                              x=args[i],
-                                              format=''))
+                            lines.append(Line(y=args[i + 1], x=args[i], format=''))
                             i = i + 2
 
                     # Next element is str --> no x-value
                     else:
-                        lines.append(Line(y=args[i],
-                                          x='auto',
-                                          format=args[i + 1]))
+                        lines.append(Line(y=args[i], x='auto', format=args[i + 1]))
                         i = i + 2
                     # These last cases could be run outside the while loop
                     if i == nargs - 2:
                         # Either y and format or x and y value left
                         if isinstance(args[i + 1], str):
-                            lines.append(Line(y=args[i],
-                                              x='auto',
-                                              format=args[i + 1]))
+                            lines.append(Line(y=args[i], x='auto', format=args[i + 1]))
                         else:
-                            lines.append(Line(x=args[i],
-                                              y=args[i + 1],
-                                              format=''))
+                            lines.append(Line(x=args[i], y=args[i + 1], format=''))
                     elif i == nargs - 1:
                         # In this case we have only an y value left
-                        lines.append(Line(y=args[i],
-                                          x='auto',
-                                          format=''))
+                        lines.append(Line(y=args[i], x='auto', format=''))
 
         # add the lines to the axes in ax:
         ax.add(lines)
@@ -3324,33 +3299,18 @@ class BaseClass:
         if 'x' in kwargs and 'y' in kwargs:
             if nargs == 1 or (nargs == 2 and isinstance(args[1], str)):
                 if nargs == 1:
-                    lines.append(Line(x=kwargs['x'],
-                                      y=kwargs['y'],
-                                      z=args[0],
-                                      format=''))
+                    lines.append(Line(x=kwargs['x'], y=kwargs['y'], z=args[0], format=''))
                 else:
-                    lines.append(Line(x=kwargs['x'],
-                                      y=kwargs['y'],
-                                      z=args[0],
-                                      format=args[1]))
+                    lines.append(Line(x=kwargs['x'], y=kwargs['y'], z=args[0], format=args[1]))
             else:
                 for i in range(len(args) - 1):
                     if not isinstance(args[i], str):
                         if isinstance(args[i + 1], str):
-                            lines.append(Line(x=kwargs['x'],
-                                              y=kwargs['y'],
-                                              z=args[i],
-                                              format=args[1 + i]))
+                            lines.append(Line(x=kwargs['x'], y=kwargs['y'], z=args[i], format=args[1 + i]))
                         else:
-                            lines.append(Line(x=kwargs['x'],
-                                              y=kwargs['y'],
-                                              z=args[i],
-                                              format=''))
+                            lines.append(Line(x=kwargs['x'], y=kwargs['y'], z=args[i], format=''))
                             if i == nargs - 2:
-                                lines.append(Line(x=kwargs['x'],
-                                                  y=kwargs['y'],
-                                                  z=args[i + 1],
-                                                  format=''))
+                                lines.append(Line(x=kwargs['x'], y=kwargs['y'], z=args[i + 1], format=''))
             # x and y in kwargs are no longer needed:
             del kwargs['x']
             del kwargs['y']
@@ -3362,25 +3322,19 @@ class BaseClass:
             if nargs in (1, 2, 3, 4):
                 if not isinstance(args[0], str):
                     if nargs == 1:  # plot3(z)
-                        lines.append(Line(x='auto', y='auto', z=args[0],
-                                          format=''))
+                        lines.append(Line(x='auto', y='auto', z=args[0], format=''))
                     elif nargs == 2:  # plot3(z,fmt)
                         if isinstance(args[1], str):
-                            lines.append(Line(x='auto', y='auto', z=args[0],
-                                              format=args[1]))
+                            lines.append(Line(x='auto', y='auto', z=args[0], format=args[1]))
                     elif nargs == 3:  # plot3(x,y,z)
                         if not isinstance(args[2], str):
-                            lines.append(Line(x=args[0], y=args[1], z=args[2],
-                                              format=''))
+                            lines.append(Line(x=args[0], y=args[1], z=args[2], format=''))
                     else:  # plot(x,y,z,fmt) or plot(z1,fmt1,z2,fmt2)
                         if not isinstance(args[3], str):
-                            lines.append(Line(x='auto', y='auto', z=args[0],
-                                              format=args[1]))
-                            lines.append(Line(x='auto', y='auto', z=args[2],
-                                              format=args[3]))
+                            lines.append(Line(x='auto', y='auto', z=args[0], format=args[1]))
+                            lines.append(Line(x='auto', y='auto', z=args[2], format=args[3]))
                         else:
-                            lines.append(Line(x=args[0], y=args[1], z=args[2],
-                                              format=args[3]))
+                            lines.append(Line(x=args[0], y=args[1], z=args[2], format=args[3]))
                     i + 100  # return
                 else:
                     raise ValueError('plot3: cannot plot a formatstring')
@@ -3392,20 +3346,13 @@ class BaseClass:
                     if not isinstance(args[i + 1], str):
                         if not isinstance(args[i + 2], str):
                             if isinstance(args[i + 3], str):
-                                lines.append(Line(x=args[i],
-                                                  y=args[i + 1],
-                                                  z=args[i + 2],
-                                                  format=args[i + 3]))
+                                lines.append(Line(x=args[i], y=args[i + 1], z=args[i + 2], format=args[i + 3]))
                                 i += 4
                             else:
-                                lines.append(Line(x=args[i],
-                                                  y=args[i + 1],
-                                                  z=args[i + 2],
-                                                  format=''))
+                                lines.append(Line(x=args[i], y=args[i + 1], z=args[i + 2], format=''))
                                 i += 3
                     else:  # next element is str --> no x and y values
-                        lines.append(Line(x='auto', y='auto', z=args[i],
-                                          format=args[i + 1]))
+                        lines.append(Line(x='auto', y='auto', z=args[i], format=args[i + 1]))
                         i += 2
 
                     # 2. plot3(x1,y1,z1, x2,y2,z2, ...)
@@ -3413,25 +3360,17 @@ class BaseClass:
 
                     if i == nargs - 4:
                         if not isinstance(args[i + 1], str):
-                            lines.append(Line(x=args[i],
-                                              y=args[i + 1],
-                                              z=args[i + 2],
-                                              format=args[i + 3]))
+                            lines.append(Line(x=args[i], y=args[i + 1], z=args[i + 2], format=args[i + 3]))
                         else:
-                            lines.append(Line(x='auto', y='auto', z=args[i],
-                                              format=args[i + 1]))
-                            lines.append(Line(x='auto', y='auto', z=args[i + 2],
-                                              format=args[i + 3]))
+                            lines.append(Line(x='auto', y='auto', z=args[i], format=args[i + 1]))
+                            lines.append(Line(x='auto', y='auto', z=args[i + 2], format=args[i + 3]))
                     elif i == nargs - 3:  # x, y, and z left
-                        lines.append(Line(x=args[i], y=args[i + 1], z=args[i + 2],
-                                          format=''))
+                        lines.append(Line(x=args[i], y=args[i + 1], z=args[i + 2], format=''))
                     elif i == nargs - 2:  # only z and format string left
                         if isinstance(args[i + 1], str):
-                            lines.append(Line(x='auto', y='auto', z=args[i],
-                                              format=args[i + 1]))
+                            lines.append(Line(x='auto', y='auto', z=args[i], format=args[i + 1]))
                     elif i == nargs - 1:  # only a z value left
-                        lines.append(Line(x='auto', y='auto', z=args[i],
-                                          format=''))
+                        lines.append(Line(x='auto', y='auto', z=args[i], format=''))
 
         # add the lines to the axes in ax:
         ax.add(lines)
@@ -3572,14 +3511,14 @@ class BaseClass:
         defined by X and Y. The arrays U and V must both have the same shape
         and the grid components X and Y must either have the same shape as
         U or fulfill the requirement len(X)==n and len(y)==m, where
-        m,n=shape(u).
+        m,n=u.shape.
 
         Calling::
 
             quiver(U, V)
 
         is the same as calling quiver(range(n),range(m),U,V), where
-        m,n=shape(u)).
+        m,n=u.shape).
 
         Calling::
 
@@ -3598,7 +3537,7 @@ class BaseClass:
 
         Plot the gradient field of the function z = x**2 + y**2:
         >>> x = y = linspace(-2, 2, 21)
-        >>> xv, yv = meshgrid(x,y)
+        >>> xv, yv = np.meshgrid(x,y)
         >>> values = xv**2 + yv**2
         >>> contour(xv, yv, values, 10, hold='on')
         <scitools.easyviz.common.Contours object at 0xb45f374c>
@@ -3652,14 +3591,14 @@ class BaseClass:
         displays a contour plot where the values in the scalar field Z are
         treated as heights above a plane. The grid components X and Y must
         either have the same shape as Z or fulfill the requirement len(X)==n
-        and len(Y)==m, where m,n=shape(Z).
+        and len(Y)==m, where m,n=Z.shape.
 
         Calling::
 
             contour(Z)
 
         is the same as calling contour(range(n),range(m),Z), where
-        m,n=shape(Z).
+        m,n=Z.shape.
 
         Calling::
 
@@ -3698,7 +3637,7 @@ class BaseClass:
 
         >>> # draw a contour plot of the peaks function:
         >>> x = y = linspace(-3, 3, 13)
-        >>> xv, yv = meshgrid(x, y)
+        >>> xv, yv = np.meshgrid(x, y)
         >>> values = peaks(xv, yv)
         >>> contour(xv, yv, values)
 
@@ -3764,7 +3703,7 @@ class BaseClass:
 
         same as above, only that the grid is specified by the X and Y arrays.
         These arrays must either have the same shape as C or fulfill the
-        requirement len(X)==n and len(Y)==m, where m,n=shape(C).
+        requirement len(X)==n and len(Y)==m, where m,n=C.shape.
 
         Calling::
 
@@ -3810,7 +3749,7 @@ class BaseClass:
         U,V,W defined on the grid given by X,Y,Z. The arrays U,V,W should
         all have the same shape and the grid components X,Y,Z must either
         have the same shape as U or fulfill the requirement len(X)==n,
-        len(Y)==m, and len(Z)==p, where m,n,p=shape(U). The starting
+        len(Y)==m, and len(Z)==p, where m,n,p=U.shape. The starting
         positions for the streamlines are defined in the arrays startx,
         starty, and startz.
 
@@ -3819,7 +3758,7 @@ class BaseClass:
             streamline(U,V,W,startx,starty,startz)
 
         is the same as above, except that it is assumed that
-        X,Y,Z = meshgrid(range(n),range(m),range(p)), where m,n,p=shape(U).
+        X,Y,Z = np.meshgrid(range(n),range(m),range(p)), where m,n,p=U.shape.
 
         Calling::
 
@@ -3829,7 +3768,7 @@ class BaseClass:
         defined on the grid given by X,Y. The arrays U,V should have the same
         shape and the grid componetns X,Y mist either have the same shape as
         U or fulfill the requirement len(X)==n and len(Y)==m, where
-        m,n=shape(u). The starting positions for the streamlines are defined
+        m,n=u.shape. The starting positions for the streamlines are defined
         in the arrays startx and starty.
 
         Calling::
@@ -3837,7 +3776,7 @@ class BaseClass:
             streamline(U,V,startx,starty)
 
         is the same as above, except that it is assumed that
-        X,Y = meshgrid(range(n),range(m)), where m,n=shape(U).
+        X,Y = np.meshgrid(range(n),range(m)), where m,n=U.shape.
 
         Calling::
 
@@ -3930,7 +3869,7 @@ class BaseClass:
         plots the colored mesh defined by scalar field Z defined on the grid
         given by X and Y. The grid components X and Y must either have the
         same shape as Z or fulfill the requirement len(X)==n and len(Y)==m,
-        where m,n=shape(Z). The color is determined by the array C which must
+        where m,n=Z.shape. The color is determined by the array C which must
         have the same shape as Z. If the color array C is not given, Z is used
         as the color array (i.e., C=Z).
 
@@ -3939,7 +3878,7 @@ class BaseClass:
             mesh(Z[, C])
 
         is the same as calling mesh(range(n), range(m), Z[, C]),
-        where m,n = shape(Z).
+        where m,n = Z.shape.
 
         Calling::
 
@@ -3952,7 +3891,7 @@ class BaseClass:
         Examples:
 
         >>> x = y = linspace(-2, 2, 21)
-        >>> xx, yy = meshgrid(x, y)
+        >>> xx, yy = np.meshgrid(x, y)
         >>> zz = exp(-xx**2)*exp(-yy**2)
         >>> mesh(xx, yy, zz)
         '''
@@ -3986,7 +3925,7 @@ class BaseClass:
 
         Draw a mesh with contour lines:
         >>> x = linspace(-2, 2, 21)
-        >>> xx, yy = meshgrid(x)
+        >>> xx, yy = np.meshgrid(x)
         >>> zz = peaks(xx, yy)
         >>> meshc(xx, yy, zz)
 
@@ -4015,7 +3954,7 @@ class BaseClass:
         Examples:
 
         >>> x = linspace(-2, 2, 21)
-        >>> xx, yy = meshgrid(x)
+        >>> xx, yy = np.meshgrid(x)
         >>> zz = xx**2 + yy**2
         >>> surf(xx, yy, zz)
         '''
@@ -4051,14 +3990,14 @@ class BaseClass:
         grid defined by X,Y,Z. The shape of the three vector components is
         assumed to be the same, while the grid components must either have
         the same shape as U or fulfill the requirements len(X)==n, len(Y)==m,
-        and len(Z)==p, where m,n,p=shape(U).
+        and len(Z)==p, where m,n,p=U.shape.
 
         Calling::
 
             quiver3(Z,U,V,W)
 
         gives the same result as above, but it is assumed that
-        X,Y = meshgrid(range(n),range(m)), where m,n=shape(Z).
+        X,Y = np.meshgrid(range(n),range(m)), where m,n=Z.shape.
 
         Calling::
 
@@ -4092,7 +4031,7 @@ class BaseClass:
 
         Draw the 'radius vector field' v = (x,y,z):
         >>> x = y = linspace(-3,3,4)
-        >>> xv, yv, zv = meshgrid(x, y, sparse=False)
+        >>> xv, yv, zv = np.meshgrid(x, y, sparse=False)
         >>> yv, vv, wv = xv, yv, zv
         >>> quiver3(xv, yv, zv, uv, uv, wv, 'filled', 'r',
         ...         axis=[-7,7,-7,7,-7,7])
@@ -4116,6 +4055,27 @@ class BaseClass:
         '''
         kwargs['description'] = 'quiver3: 3D vector field'
         return self.quiver(*args, **kwargs)
+
+    def quiver4(self, *args, **kwargs):
+        '''
+        4 subplot of quiver3, amgnitude, x, y, and z components
+        for now only quiver4(x, y, z, u, v, w, **kwargs is supported)
+        '''
+        kwargs['description'] = 'quiver4: 3D vector field, magnitude, and xyz components'
+        title, suptitle = kwargs.pop('title', ''), kwargs.pop('suptitle', '')
+        titlex, titley, titlez = kwargs.pop('titlex', ''), kwargs.pop('titley', ''), kwargs.pop('titlez', '')
+        x, y, z, u, v, w = args
+        null = np.np.zeros_like(u)
+
+        self.suptitle(suptitle)
+        self.subplot(221)
+        self.quiver3(*args, title=title, **kwargs)
+        self.subplot(222)
+        self.quiver3(x, y, z, u, null, null, title=titlex, **kwargs)
+        self.subplot(223)
+        self.quiver3(x, y, z, null, v, null, title=titley, **kwargs)
+        self.subplot(224)
+        self.quiver3(x, y, z, null, null, w, title=titlez, **kwargs)
 
     def contour3(self, *args, **kwargs):
         '''Draw 3D contour plot.
@@ -4145,7 +4105,7 @@ class BaseClass:
         draws orthogonal slice planes through the volumetric data set V
         defined on the grid with components X, Y, and Z. The grid components
         must either have the same shape as V or fulfill the requirement
-        len(X)==n, len(Y)==m, and len(Z)==p, where m,n,p=shape(V). The Sx,
+        len(X)==n, len(Y)==m, and len(Z)==p, where m,n,p=V.shape. The Sx,
         Sy, and Sz arrays defines the slice planes in the x, y, and z
         direction, respectively.
 
@@ -4154,7 +4114,7 @@ class BaseClass:
             slice_(V,Sx,Sy,Sz)
 
         is the same as calling slice_(range(n),range(m),range(p),V,Sx,Sy,Sz),
-        where m,n,p = shape(V).
+        where m,n,p = V.shape.
 
         Calling::
 
@@ -4168,7 +4128,7 @@ class BaseClass:
             slice_(V,XI,YI,ZI)
 
         is the same as calling slice_(range(n),range(m),range(p)),V,XI,YI,ZI),
-        where m,n,p = shape(V).
+        where m,n,p = V.shape.
 
         Calling::
 
@@ -4189,7 +4149,7 @@ class BaseClass:
 
         Visualize the function x*exp(-x**2-y**2-z**2) over the range
         -2 > x,y,z < 2:
-        >>> xx, yy, zz = meshgrid(linspace(-2,2,21), linspace(-2,2,17),
+        >>> xx, yy, zz = np.meshgrid(linspace(-2,2,21), linspace(-2,2,17),
         ...                       linspace(-2,2,25))
         >>> vv = x*exp(-xx**2-yy**2-zz**2)
         >>> slice_(xx, yy, zz, vv, [-1.2,.8,2], 2, [-2,-.2])
@@ -4225,14 +4185,14 @@ class BaseClass:
         at the points in the arrays Sx, Sy, and Sz. The arrays X, Y, and Z
         defines the grid coordinates for the volume V and they must either
         have the same shape as V or fulfill the requirement len(X)==n,
-        len(Y)==m, and len(Z)==p, where m,n,p = shape(V).
+        len(Y)==m, and len(Z)==p, where m,n,p = V.shape.
 
         Calling::
 
             contourslice(V,Sx,Sy,Sz)
 
         is the same as above, but it is assumed that
-        X,Y,Z = meshgrid(range(n),range(m),range(p)), where m,n,p = shape(V).
+        X,Y,Z = np.meshgrid(range(n),range(m),range(p)), where m,n,p = V.shape.
 
         Calling::
 
@@ -4246,7 +4206,7 @@ class BaseClass:
             contourslice(V,XI,YI,ZI)
 
         is the same as above, but it is assumed that
-        X,Y,Z = meshgrid(range(n),range(m),range(p)), where m,n,p = shape(V).
+        X,Y,Z = np.meshgrid(range(n),range(m),range(p)), where m,n,p = V.shape.
 
         Calling::
 
@@ -4270,7 +4230,7 @@ class BaseClass:
         @return: A Volume object.
 
         Example:
-        >>> xx, yy, zz = meshgrid(linspace(-2,2,21), linspace(-2,2,17),
+        >>> xx, yy, zz = np.meshgrid(linspace(-2,2,21), linspace(-2,2,17),
         ...                       linspace(-2,2,25))
         >>> vv = xx*exp(-xx**2-yy**2-zz**2)
         >>> contourslice(xx, yy, zz, vv, [-.7,.7], [], [0], view=3)
@@ -4285,39 +4245,39 @@ class BaseClass:
 
             coneplot(X,Y,Z,U,V,W,Cx,Cy,Cz)
 
-        draws velocity vectors as cones from the 3D vector field defined by
+        draws velocity vectors as cnp.ones from the 3D vector field defined by
         U, V, and W at the points given in the arrays Cx, Cy, and Cz. The
         arrays X, Y, and Z defines the grid coordinates for vector field. The
         shape of U, V, and W is assumed to be the same, while the grid
         components must either have the same shape as U or fulfill the
-        requirement len(X)==n, len(Y)==m, and len(Z)==p, where m,n,p=shape(U).
+        requirement len(X)==n, len(Y)==m, and len(Z)==p, where m,n,p=U.shape.
 
         Calling::
 
             coneplot(U,V,W,Cx,Cy,Cz)
 
         is the same as above, but it is assumed that
-        X,Y,Z = meshgrid(range(n),range(m),range(p)), where m,n,p = shape(U).
+        X,Y,Z = np.meshgrid(range(n),range(m),range(p)), where m,n,p = U.shape.
 
         Calling::
 
             coneplot(..., scale)
 
-        will automatically scale the cones by the factor scale (default is 1).
+        will automatically scale the cnp.ones by the factor scale (default is 1).
         To turn of automatic scaling, use a scale value of 0.
 
         Calling::
 
             coneplot(..., C)
 
-        uses the colors in the array C to color the cones (C must have the
+        uses the colors in the array C to color the cnp.ones (C must have the
         same shape as U).
 
         Calling::
 
             coneplot(..., 'quiver')
 
-        will plot arrows instead of cones.
+        will plot arrows instead of cnp.ones.
 
         Calling::
 
@@ -4356,14 +4316,14 @@ class BaseClass:
         arrays U, V, and W must all have the same shape and the grid
         coordinates given in the arrays X, Y, and Z must either have the same
         shape as U or fulfill the requirement len(X)==n, len(Y)==m, and
-        len(Z)==p, where m,n,p=shape(U).
+        len(Z)==p, where m,n,p=U.shape.
 
         Calling::
 
             streamslice(U,V,W,startx,starty,startz)
 
         is the same as above, except that it is assumed that
-        X,Y,Z = meshgrid(range(n),range(m),range(p)), where m,n,p=shape(U).
+        X,Y,Z = np.meshgrid(range(n),range(m),range(p)), where m,n,p=U.shape.
 
         Calling::
 
@@ -4372,14 +4332,14 @@ class BaseClass:
         will draw streamlines from the 2D vector field with components U and
         V. The vector components must have equal shape and the arrays X and Y
         should either have the same shape as U or fulfill the requirement
-        len(X)==n and len(Y)==m, where m,n=shape(U).
+        len(X)==n and len(Y)==m, where m,n=U.shape.
 
         Calling::
 
             streamslice(U,V)
 
         is the same as above, except that it is assumed that
-        X,Y = meshgrid(range(n),range(m)), where m,n=shape(U).
+        X,Y = np.meshgrid(range(n),range(m)), where m,n=U.shape.
 
         Calling::
 
@@ -4430,14 +4390,14 @@ class BaseClass:
         isovalue. The arrays X, Y, and Z defines the grid for the volume V
         and they must either have the same shape as V or fulfill the
         requirement len(X)==n, len(Y)==m, and len(Z)==p, where
-        m,n,p = shape(V).
+        m,n,p = V.shape.
 
         Calling::
 
             isosurface(V,isovalue)
 
         is the same as above, but it is assumed that
-        X,Y,Z = meshgrid(range(n),range(m),range(p)), where m,n,p = shape(V).
+        X,Y,Z = np.meshgrid(range(n),range(m),range(p)), where m,n,p = V.shape.
 
         Calling::
 

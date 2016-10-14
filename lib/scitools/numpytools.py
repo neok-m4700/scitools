@@ -5,7 +5,10 @@
 """
 
 
-import os, sys, operator, math
+import os
+import sys
+import operator
+import math
 import collections
 import numbers
 from functools import reduce
@@ -159,7 +162,8 @@ different names in Numeric, numarray, and numpy:
 Some frequently standard modules like sys, os, and operator are
 imported into the namespace of the present module.
 """
-import sys, os
+import sys
+import os
 
 # The first task to accomplish in this module is to determine
 # whether to use Numeric, numarray, or numpy
@@ -195,20 +199,21 @@ if basic_NumPy is None:
 # check the environment variable NUMPYARRAY:
 if basic_NumPy is None:
     if 'NUMPYARRAY' in os.environ:
-        if   os.environ['NUMPYARRAY'] == 'numpy':
+        if os.environ['NUMPYARRAY'] == 'numpy':
             basic_NumPy = 'numpy'
         elif os.environ['NUMPYARRAY'] == 'numarray':
             basic_NumPy = 'numarray'
         elif os.environ['NUMPYARRAY'] == 'Numeric':
             basic_NumPy = 'Numeric'
 
-if basic_NumPy is None:  basic_NumPy = 'numpy' # final default choice
+if basic_NumPy is None:
+    basic_NumPy = 'numpy'  # final default choice
 
 if basic_NumPy not in ('Numeric', 'numarray', 'numpy'):
-    raise ImportError('cannot decide which Numerical Python '\
-          'implementation to use (ended up with "%s")' % basic_NumPy)
+    raise ImportError('cannot decide which Numerical Python '
+                      'implementation to use (ended up with "%s")' % basic_NumPy)
 
-#print 'from', basic_NumPy, 'import *'
+# print 'from', basic_NumPy, 'import *'
 
 # table of equivalent names of Numerical Python modules:
 # (used to import modules under Numeric, numarray, or numpy name)
@@ -223,7 +228,7 @@ _NumPy_modules = (
     ('FFT', 'numarray.fft', 'numpy.fft'),
     ('MLab', 'numarray.linear_algebra.mlab', 'numpy.oldnumeric.mlab'),
     ('MA', 'numarray.ma.MA', 'numpy.ma'),
-    )
+)
 
 if basic_NumPy == 'numpy':
     try:
@@ -235,13 +240,13 @@ if basic_NumPy == 'numpy':
         for _Numeric_name, _dummy1, _numpy_name in _NumPy_modules[1:]:
             if oldversion and (_Numeric_name in ['RNG', 'FFT']):
                 n, module = _numpy_name.split('.')
-                exec ("from %s import %s as %s" %(n, module, _Numeric_name))
+                exec ("from %s import %s as %s" % (n, module, _Numeric_name))
             elif oldversion and (_Numeric_name == 'MLab'):
                 from numpy.lib import mlab as MLab
             elif (oldversion or (majorversion == 1 and minorversion < 1)) and (_Numeric_name == 'MA'):
                 import numpy.core.ma; MA = numpy.core.ma
             elif _numpy_name != '':
-                exec( 'import %s; %s = %s' % (_numpy_name, _Numeric_name, _numpy_name))
+                exec('import %s; %s = %s' % (_numpy_name, _Numeric_name, _numpy_name))
 
         del _Numeric_name, _dummy1, _numpy_name, _NumPy_modules
 
@@ -258,10 +263,9 @@ if basic_NumPy == 'numpy':
         LinearAlgebra.eigenvectors = linalg.eig
 
     except ImportError as e:
-        raise ImportError('%s\nnumpy import failed!\n'\
-              'see doc of %s module for how to choose Numeric instead' % \
-              (e, __name__))
-
+        raise ImportError('%s\nnumpy import failed!\n'
+                          'see doc of %s module for how to choose Numeric instead' %
+                          (e, __name__))
 
     def array_output_precision(no_of_decimals):
         """Set no of decimals in printout of arrays."""
@@ -299,22 +303,23 @@ if basic_NumPy == 'numarray':
     try:
         for _Numeric_name, _numarray_name, _dummy1 in _NumPy_modules[1:]:
             if _numarray_name:
-                exec ('import %s; %s = %s' %  (_numarray_name, _Numeric_name, _numarray_name))
+                exec ('import %s; %s = %s' % (_numarray_name, _Numeric_name, _numarray_name))
 
         # RNG is not supported, make an object that gives an error message:
         class __Dummy:
+
             def __getattr__(self, name):
-                raise ImportError('You have chosen the numarray package, '\
-                'but it does not have the functionality of the RNG module')
+                raise ImportError('You have chosen the numarray package, '
+                                  'but it does not have the functionality of the RNG module')
         RNG = __Dummy()
         del _Numeric_name, _numarray_name, _dummy1, __Dummy, _NumPy_modules
 
         from numarray import *
 
     except ImportError as e:
-        raise ImportError('%s\nnumarray import failed!\n'\
-        'see doc of %s module for how to choose Numeric instead' % \
-        (e, __name__))
+        raise ImportError('%s\nnumarray import failed!\n'
+                          'see doc of %s module for how to choose Numeric instead' %
+                          (e, __name__))
 
     def array_output_precision(no_of_decimals):
         """Set no of decimals in printout of arrays."""
@@ -364,9 +369,9 @@ if basic_NumPy == 'Numeric':
 
         # define new numpy names:
         newaxis = NewAxis
+
         def linspace(start, stop, num=50, endpoint=True, retstep=False):
             return asarray(numpy.linspace(start, stop, num, endpoint, retstep))
-
 
         # hack if LinearAlgebra.eigenvalues hang (because of trouble
         # with gcc and Numeric and -ffloat-store flag):
@@ -405,10 +410,9 @@ if basic_NumPy == 'Numeric':
         del _problems
 
     except ImportError as e:
-        raise ImportError('%s\nNumeric import failed!\n'\
-        'see doc of %s module for how to choose numarray instead' % \
-        (e, __name__))
-
+        raise ImportError('%s\nNumeric import failed!\n'
+                          'see doc of %s module for how to choose numarray instead' %
+                          (e, __name__))
 
     # fix of matrixmultiply bug in Numeric (according to Fernando Perez,
     # SciPy-dev mailing list, Sep 28, 2004:
@@ -481,6 +485,7 @@ except NameError:
 ra = RandomArray
 la = LinearAlgebra
 
+
 def NumPy_type(a):
     """
     @param a: NumPy array
@@ -500,7 +505,7 @@ def NumPy_type(a):
         return "tuple"
     elif isinstance(a, list):
         return "list"
-    exec ("import %s" % basic_NumPy) # Why isn't basic_NumPy imported?
+    exec ("import %s" % basic_NumPy)  # Why isn't basic_NumPy imported?
     if isinstance(a, eval(types[basic_NumPy])):
         return basic_NumPy
 
@@ -514,6 +519,7 @@ def NumPy_type(a):
     import numarray
     if isinstance(a, numarray.NumArray):
         return 'numarray'
+
 
 def NumPy_dtype(a):
     """
@@ -531,6 +537,7 @@ def NumPy_dtype(a):
         return a.dtype
     else:
         raise TypeError("array should be NumPy array, not %s" % type(a))
+
 
 def fortran_storage(a):
     """
@@ -610,14 +617,15 @@ Functionality of this module that extends Numerical Python
 if __name__.find('numpyutils') != -1:
     from numpy import *
 
-#else if name is some other module name:
+# else if name is some other module name:
 # this file is included in numpytools.py (through a preprocessing step)
 # and the code below then relies on previously imported Numerical Python
 # modules (Numeric, numpy, numarray)
 
 import operator
 from .FloatComparison import float_eq, float_ne, float_lt, float_le, \
-     float_gt, float_ge
+    float_gt, float_ge
+
 
 def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
              memoryorder=None):
@@ -776,9 +784,12 @@ def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
 
     # if x,y,z are identical, make copies:
     try:
-        if y is x: y = x.copy()
-        if z is x: z = x.copy()
-        if z is y: z = y.copy()
+        if y is x:
+            y = x.copy()
+        if z is x:
+            z = x.copy()
+        if z is y:
+            z = y.copy()
     except AttributeError:  # x, y, or z not numpy array
         pass
 
@@ -802,65 +813,65 @@ def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
     if arr1D(x) and arr1D(y) and fixed(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(x),len(y)))
+                mult_fact = ones((len(x), len(y)))
             if z is None:
-                return x[:,newaxis]*mult_fact, y[newaxis,:]*mult_fact
+                return x[:, newaxis] * mult_fact, y[newaxis, :] * mult_fact
             else:
-                return x[:,newaxis]*mult_fact, y[newaxis,:]*mult_fact, z
+                return x[:, newaxis] * mult_fact, y[newaxis, :] * mult_fact, z
         else:
             if not sparse:
-                mult_fact = ones((len(y),len(x)))
+                mult_fact = ones((len(y), len(x)))
             if z is None:
-                return x[newaxis,:]*mult_fact, y[:,newaxis]*mult_fact
+                return x[newaxis, :] * mult_fact, y[:, newaxis] * mult_fact
             else:
-                return x[newaxis,:]*mult_fact, y[:,newaxis]*mult_fact, z
+                return x[newaxis, :] * mult_fact, y[:, newaxis] * mult_fact, z
 
     if arr1D(x) and fixed(y) and arr1D(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(x),len(z)))
+                mult_fact = ones((len(x), len(z)))
             if y is None:
-                return x[:,newaxis]*mult_fact, z[newaxis,:]*mult_fact
+                return x[:, newaxis] * mult_fact, z[newaxis, :] * mult_fact
             else:
-                return x[:,newaxis]*mult_fact, y, z[newaxis,:]*mult_fact
+                return x[:, newaxis] * mult_fact, y, z[newaxis, :] * mult_fact
         else:
             if not sparse:
-                mult_fact = ones((len(z),len(x)))
+                mult_fact = ones((len(z), len(x)))
             if y is None:
-                return x[newaxis,:]*mult_fact, z[:,newaxis]*mult_fact
+                return x[newaxis, :] * mult_fact, z[:, newaxis] * mult_fact
             else:
-                return x[newaxis,:]*mult_fact, y, z[:,newaxis]*mult_fact
+                return x[newaxis, :] * mult_fact, y, z[:, newaxis] * mult_fact
 
     if fixed(x) and arr1D(y) and arr1D(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(y),len(z)))
+                mult_fact = ones((len(y), len(z)))
             if x is None:
-                return y[:,newaxis]*mult_fact, z[newaxis,:]*mult_fact
+                return y[:, newaxis] * mult_fact, z[newaxis, :] * mult_fact
             else:
-                return x, y[:,newaxis]*mult_fact, z[newaxis,:]*mult_fact
+                return x, y[:, newaxis] * mult_fact, z[newaxis, :] * mult_fact
         else:
             if not sparse:
-                mult_fact = ones((len(z),len(y)))
+                mult_fact = ones((len(z), len(y)))
             if x is None:
-                return y[newaxis,:]*mult_fact, z[:,newaxis]*mult_fact
+                return y[newaxis, :] * mult_fact, z[:, newaxis] * mult_fact
             else:
-                return x, y[newaxis,:]*mult_fact, z[:,newaxis]*mult_fact
+                return x, y[newaxis, :] * mult_fact, z[:, newaxis] * mult_fact
 
     # or maybe we have a full 3D grid:
     if arr1D(x) and arr1D(y) and arr1D(z):
         if indexing == 'ij':
             if not sparse:
-                mult_fact = ones((len(x),len(y),len(z)))
-            return x[:,newaxis,newaxis]*mult_fact, \
-                   y[newaxis,:,newaxis]*mult_fact, \
-                   z[newaxis,newaxis,:]*mult_fact
+                mult_fact = ones((len(x), len(y), len(z)))
+            return x[:, newaxis, newaxis] * mult_fact, \
+                y[newaxis, :, newaxis] * mult_fact, \
+                z[newaxis, newaxis, :] * mult_fact
         else:
             if not sparse:
-                mult_fact = ones((len(y),len(x),len(z)))
-            return x[newaxis,:,newaxis]*mult_fact, \
-                   y[:,newaxis,newaxis]*mult_fact, \
-                   z[newaxis,newaxis,:]*mult_fact
+                mult_fact = ones((len(y), len(x), len(z)))
+            return x[newaxis, :, newaxis] * mult_fact, \
+                y[:, newaxis, newaxis] * mult_fact, \
+                z[newaxis, newaxis, :] * mult_fact
 
     # at this stage we assume that we just have scalars:
     l = []
@@ -876,17 +887,19 @@ def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
         return tuple(l)
 
 
-def ndgrid(*args,**kwargs):
+def ndgrid(*args, **kwargs):
     """
     Same as calling ``meshgrid`` with *indexing* = ``'ij'`` (see
     ``meshgrid`` for documentation).
     """
     kwargs['indexing'] = 'ij'
-    return meshgrid(*args,**kwargs)
+    return meshgrid(*args, **kwargs)
+
 
 def length(a):
     """Return the length of the largest dimension of array a."""
     return max(a.shape)
+
 
 def cut_noise(a, tol=1E-10):
     """
@@ -918,10 +931,10 @@ def Gram_Schmidt1(vecs, row_wise_storage=True):
     basis = array(transpose(vecs))
     eye = identity(n).astype(float)
 
-    basis[:,0] /= sqrt(dot(basis[:,0], basis[:,0]))
+    basis[:, 0] /= sqrt(dot(basis[:, 0], basis[:, 0]))
     for i in range(1, m):
-        v = basis[:,i]/sqrt(dot(basis[:,i], basis[:,i]))
-        U = basis[:,:i]
+        v = basis[:, i] / sqrt(dot(basis[:, i], basis[:, i]))
+        U = basis[:, :i]
         P = eye - dot(U, dot(inv(dot(transpose(U), U)), transpose(U)))
         basis[:, i] = dot(P, v)
         basis[:, i] /= sqrt(dot(basis[:, i], basis[:, i]))
@@ -967,25 +980,25 @@ def Gram_Schmidt(vecs, row_wise_storage=True, tol=1E-10,
         A = vecs.copy()
 
     m, n = A.shape
-    V = zeros((m,n))
+    V = zeros((m, n))
 
     for j in range(n):
-        v0 = A[:,j]
+        v0 = A[:, j]
         v = v0.copy()
         for i in range(j):
-            vi = V[:,i]
+            vi = V[:, i]
 
             if (abs(vi) > tol).any():
-                v -= (vdot(v0,vi)/vdot(vi,vi))*vi
-        V[:,j] = v
+                v -= (vdot(v0, vi) / vdot(vi, vi)) * vi
+        V[:, j] = v
 
     if remove_null_vectors:
-        indices = [i for i in range(n) if (abs(V[:,i]) < tol).all()]
+        indices = [i for i in range(n) if (abs(V[:, i]) < tol).all()]
         V = V[ix_(list(range(m)), indices)]
 
     if normalize:
         for j in range(V.shape[1]):
-            V[:,j] /= linalg.norm(V[:,j])
+            V[:, j] /= linalg.norm(V[:, j])
 
     if remove_noise:
         V = cut_noise(V, tol)
@@ -1002,7 +1015,7 @@ def matrix_rank(A):
     u, s, v = svd(A)
     maxabs = norm(x)
     maxdim = max(A.shape)
-    tol = maxabs*maxdim*1E-13
+    tol = maxabs * maxdim * 1E-13
     r = s > tol
     return sum(r)
 
@@ -1022,11 +1035,11 @@ def orth(A):
 
     see also svd (singular value decomposition of a matrix in scipy.linalg)
     """
-    u,s,vh = svd(A)
-    M,N = A.shape
-    tol = max(M,N)*numpy.amax(s)*eps
-    num = numpy.sum(s > tol,dtype=int)
-    Q = u[:,:num]
+    u, s, vh = svd(A)
+    M, N = A.shape
+    tol = max(M, N) * numpy.amax(s) * eps
+    num = numpy.sum(s > tol, dtype=int)
+    Q = u[:, :num]
     return Q
 
 
@@ -1040,7 +1053,7 @@ def null(A, tol=1e-10, row_wise_storage=True):
     Code by Bastian Weber based on code by Robert Kern and Ryan Krauss.
     """
     n, m = A.shape
-    if n > m :
+    if n > m:
         return transpose(null(transpose(A), tol))
 
     u, s, vh = linalg.svd(A)
@@ -1063,12 +1076,12 @@ class Heaviside:
     def __call__(self, x):
         if self.eps == 0:
             r = x >= 0
-            if isinstance(x, (int,float)):
+            if isinstance(x, (int, float)):
                 return int(r)
             elif isinstance(x, ndarray):
                 return asarray(r, dtype=int)
         else:
-            if isinstance(x, (int,float)):
+            if isinstance(x, (int, float)):
                 return self._smooth_scalar(x)
             elif isinstance(x, ndarray):
                 return self._smooth_vec(x)
@@ -1094,14 +1107,14 @@ class Heaviside:
         elif x > eps:
             return 1
         else:
-            return 0.5 + x/(2*eps) + 1./(2*pi)*sin(pi*x/eps)
+            return 0.5 + x / (2 * eps) + 1. / (2 * pi) * sin(pi * x / eps)
 
     def _smooth_vec(self, x):
         eps = self.eps
         r = zeros_like(x)
         condition1 = operator.and_(x >= -eps, x <= eps)
         xc = x[condition1]
-        r[condition1] = 0.5 + xc/(2*eps) + 1./(2*pi)*sin(pi*xc/eps)
+        r[condition1] = 0.5 + xc / (2 * eps) + 1. / (2 * pi) * sin(pi * xc / eps)
         r[x > eps] = 1
         return r
 
@@ -1117,11 +1130,11 @@ class Heaviside:
         if self.eps == 0:
             return [xmin, center, center, xmax], [0, 0, 1, 1]
         else:
-            n = 200./self.eps
+            n = 200. / self.eps
             x = concatenate(
-                linspace(xmin, center-self.eps, 21),
-                linspace(center-self.eps, center+self.eps, n+1),
-                linspace(center+self.eps, xmax, 21))
+                linspace(xmin, center - self.eps, 21),
+                linspace(center - self.eps, center + self.eps, n + 1),
+                linspace(center + self.eps, xmax, 21))
             y = self(x)
             return x, y
 
@@ -1132,6 +1145,7 @@ class DiracDelta:
     $\frac{1}{2\epsilon}(1 + \cos(\pi x/\epsilon)$ when
     $x\in [-\epsilon, \epsilon]$ and 0 elsewhere.
     """
+
     def __init__(self, eps, vectorized=False):
         self.eps = eps
         if self.eps == 0:
@@ -1150,14 +1164,14 @@ class DiracDelta:
         if x < -eps or x > eps:
             return 0
         else:
-            return 1./(2*eps)*(1 + cos(pi*x/eps))
+            return 1. / (2 * eps) * (1 + cos(pi * x / eps))
 
     def _smooth_vec(self, x):
         eps = self.eps
         r = zeros_like(x)
         condition1 - operator.and_(x >= -eps, x <= eps)
         xc = x[condition1]
-        r[condition1] = 1./(2*eps)*(1 + cos(pi*xc/eps))
+        r[condition1] = 1. / (2 * eps) * (1 + cos(pi * xc / eps))
         return r
 
     def plot(self, center=0, xmin=-1, xmax=1):
@@ -1165,13 +1179,14 @@ class DiracDelta:
         Return arrays x, y for plotting the DiracDelta function
         centered in `center` on the interval [`xmin`, `xmax`].
         """
-        n = 200./self.eps
+        n = 200. / self.eps
         x = concatenate(
-            linspace(xmin, center-self.eps, 21),
-            linspace(center-self.eps, center+self.eps, n+1),
-            linspace(center+self.eps, xmax, 21))
+            linspace(xmin, center - self.eps, 21),
+            linspace(center - self.eps, center + self.eps, n + 1),
+            linspace(center + self.eps, xmax, 21))
         y = self(x)
         return x, y
+
 
 class IndicatorFunction:
     """
@@ -1182,6 +1197,7 @@ class IndicatorFunction:
     defined in terms of the Heaviside function (using class
     :class:`Heaviside`): $I(x; R, L) = H(x-L)H(R-x)$.
     """
+
     def __init__(self, interval, eps_L=0, eps_R=0):
         """
         `interval` is a 2-tuple/list defining the interval [L, R] where
@@ -1203,7 +1219,7 @@ class IndicatorFunction:
             # functions are added)
             tol = 1E-10
             if isinstance(x, (float, int)):
-                #return 0 if x < self.L or x >= self.R else 1
+                # return 0 if x < self.L or x >= self.R else 1
                 return 0 if x < self.L or x > self.R else 1
             elif isinstance(x, ndarray):
                 r = ones_like(x)
@@ -1212,7 +1228,7 @@ class IndicatorFunction:
                 r[x > self.R] = 0
                 return r
         else:
-            return self.Heaviside_L(x - self.L)*self.Heaviside_R(self.R - x)
+            return self.Heaviside_L(x - self.L) * self.Heaviside_R(self.R - x)
 
     def plot(self, xmin=-1, xmax=1):
         """
@@ -1230,11 +1246,11 @@ class IndicatorFunction:
         if self.eps == 0:
             return [xmin, L, L, R, R, xmax], [0, 0, 1, 1, 0, 0]
         else:
-            n = 200./self.eps
+            n = 200. / self.eps
             x = concatenate(
-                linspace(xmin, self.L-self.eps, 21),
-                linspace(self.L-self.eps, self.R+self.eps, n+1),
-                linspace(self.R+self.eps, xmax, 21))
+                linspace(xmin, self.L - self.eps, 21),
+                linspace(self.L - self.eps, self.R + self.eps, n + 1),
+                linspace(self.R + self.eps, xmax, 21))
             y = self(x)
             return x, y
 
@@ -1246,6 +1262,7 @@ class IndicatorFunction:
         return 'IndicatorFunction([%g, %g], eps=%g)' % \
                (self.L, self.R, self.eps)
 
+
 class PiecewiseConstant:
     """
     Representation of a piecewise constant function.
@@ -1254,12 +1271,13 @@ class PiecewiseConstant:
     as a sum of indicator functions (:class:`IndicatorFunction`)
     times corresponding values.
     """
+
     def __init__(self, domain, data, eps=0):
         self.L, self.R = domain
         self.data = data
         self.eps = eps
         if self.L != self.data[0][0]:
-            raise ValueError('domain starts at %g, while data[0][0]=%g' % \
+            raise ValueError('domain starts at %g, while data[0][0]=%g' %
                              (self.L, self.data[0][0]))
         self._boundaries = [x for x, value in data]
         self._boundaries.append(self.R)
@@ -1274,25 +1292,25 @@ class PiecewiseConstant:
         for i in range(len(self.data)):
             if i == 0:
                 eps_L = 0; eps_R = eps  # left boundary
-            elif i == len(self.data)-1:
+            elif i == len(self.data) - 1:
                 eps_R = 0; eps_L = eps  # right boundary
             else:
                 eps_L = eps_R = eps     # internal boundary
             self._indicator_functions.append(IndicatorFunction(
-                [self._boundaries[i], self._boundaries[i+1]],
-                 eps_L=eps_L, eps_R=eps_R))
+                [self._boundaries[i], self._boundaries[i + 1]],
+                eps_L=eps_L, eps_R=eps_R))
 
     def __call__(self, x):
         if self.eps == 0:
             return self.value(x)
         else:
-            return sum(value*I(x) \
-                       for I, value in \
+            return sum(value * I(x)
+                       for I, value in
                        zip(self._indicator_functions, self._values))
 
     def value(self, x):
         """Alternative implementation to __call__."""
-        if isinstance(x, (float,int)):
+        if isinstance(x, (float, int)):
             return self._values[x >= self._boundaries[:-1]][-1]
         else:
             a = array([self._values[xi >= self._boundaries[:-1]][-1]
@@ -1309,17 +1327,17 @@ class PiecewiseConstant:
                 y.append(value)
             return x, y
         else:
-            n = 200/self.eps
+            n = 200 / self.eps
             if len(self.data) == 1:
                 return [self.L, self.R], [self._values[0], self._values[0]]
             else:
-                x = [linspace(self.data[0][0], self.data[1][0]-self.eps, 21)]
+                x = [linspace(self.data[0][0], self.data[1][0] - self.eps, 21)]
                 # Iterate over all internal discontinuities
                 for I in self._indicator_functions[1:]:
-                    x.append(linspace(I.L-self.eps, I.L+self.eps, n+1))
-                    x.append(linspace(I.L+self.eps, I.R-self.eps, 21))
+                    x.append(linspace(I.L - self.eps, I.L + self.eps, n + 1))
+                    x.append(linspace(I.L + self.eps, I.R - self.eps, 21))
                 # Last part
-                x.append(linspace(I.R-self.eps, I.R, 3))
+                x.append(linspace(I.R - self.eps, I.R, 3))
                 x = concatenate(x)
                 y = self(x)
                 return x, y
@@ -1334,6 +1352,7 @@ def norm_l2(u):
     """
     return linalg.norm(u.ravel())
 
+
 def norm_L2(u):
     """
     L2 norm of a multi-dimensional array u viewed as a vector
@@ -1343,15 +1362,17 @@ def norm_L2(u):
     approximate an integral (L2 norm) of the function, this (and
     not norm_l2) is the right norm function to use.
     """
-    return norm_l2(u)/sqrt(float(u.size))
+    return norm_l2(u) / sqrt(float(u.size))
+
 
 def norm_l1(u):
     """
     l1 norm of a multi-dimensional array u viewed as a vector:
     ``linalg.norm(u.ravel(),1)``.
     """
-    #return sum(abs(u.ravel()))
-    return linalg.norm(u.ravel(),1)
+    # return sum(abs(u.ravel()))
+    return linalg.norm(u.ravel(), 1)
+
 
 def norm_L1(u):
     """
@@ -1362,11 +1383,12 @@ def norm_L1(u):
     approximate an integral (L1 norm) of the function, this (and
     not norm_l1) is the right norm function to use.
     """
-    return norm_l1(u)/float(u.size)
+    return norm_l1(u) / float(u.size)
+
 
 def norm_inf(u):
     """Infinity/max norm of a multi-dimensional array u viewed as a vector."""
-    #return abs(u.ravel()).max()
+    # return abs(u.ravel()).max()
     return linalg.norm(u.ravel(), inf)
 
 
@@ -1389,11 +1411,11 @@ def solve_tridiag_linear_system(A, b):
     is stored in A[:-1,2].
     """
 
-    #The storage is not memory friendly in Python/C (diagonals stored
-    #columnwise in A), but if A is sent to F77 for high-performance
-    #computing, a copy is taken and the F77 routine works with the
-    #same algorithm and hence optimal (columnwise traversal)
-    #Fortran storage.
+    # The storage is not memory friendly in Python/C (diagonals stored
+    # columnwise in A), but if A is sent to F77 for high-performance
+    # computing, a copy is taken and the F77 routine works with the
+    # same algorithm and hence optimal (columnwise traversal)
+    # Fortran storage.
 
     c, d = factorize_tridiag_matrix(A)
     return solve_tridiag_factored_system(b, A, c, d)
@@ -1411,15 +1433,15 @@ def factorize_tridiag_matrix(A):
     """
     n = len(b)
     # scratch arrays:
-    d = zeros(n, 'd');  c = zeros(n, 'd');  m = zeros(n, 'd')
+    d = zeros(n, 'd'); c = zeros(n, 'd'); m = zeros(n, 'd')
 
-    d[0] = A[0,1]
+    d[0] = A[0, 1]
     c[0] = b[0]
 
-    for k in iseq(start=1, stop=n-1, inc=1):
-        m[k] = A[k,0]/d[k-1]
-        d[k] = A[k,1] - m[k]*A[k-1,2]
-        c[k] = b[k] - m[k]*c[k-1]
+    for k in iseq(start=1, stop=n - 1, inc=1):
+        m[k] = A[k, 0] / d[k - 1]
+        d[k] = A[k, 1] - m[k] * A[k - 1, 2]
+        c[k] = b[k] - m[k] * c[k - 1]
     return c, d
 
 
@@ -1434,15 +1456,15 @@ def solve_tridiag_factored_system(b, A, c, d):
     x = zeros(n, 'd')  # solution
 
     # back substitution:
-    x[n-1] = c[n-1]/d[n-1]
-    for k in iseq(start=n-2, stop=0, inc=-1):
-        x[k] = (c[k] - A[k,2]*x[k+1])/d[k]
+    x[n - 1] = c[n - 1] / d[n - 1]
+    for k in iseq(start=n - 2, stop=0, inc=-1):
+        x[k] = (c[k] - A[k, 2] * x[k + 1]) / d[k]
     return x
-
 
 
 try:
     import Pmw
+
     class NumPy2BltVector(Pmw.Blt.Vector):
         """
         Copy a numpy array to a BLT vector:
@@ -1451,11 +1473,13 @@ try:
         g = Pmw.Blt.Graph(someframe)
         # send b to g for plotting
         """
+
         def __init__(self, array):
             Pmw.Blt.Vector.__init__(self, len(array))
             self.set(tuple(array))  # copy elements
 except:
     class NumPy2BltVector:
+
         def __init__(self, array):
             raise ImportError("Python is not working properly with BLT")
 
@@ -1467,6 +1491,7 @@ except:
 
 class WrapNo2Callable:
     """Turn a number (constant) into a callable function."""
+
     def __init__(self, constant):
         self.constant = constant
         self._array_shape = None
@@ -1502,11 +1527,11 @@ class WrapNo2Callable:
             # (operator.isNumberType(args[0]) cannot be used as it is
             # true also for numpy arrays
             return self.constant
-        else: # assume numpy array
+        else:  # assume numpy array
             if self._array_shape is None:
                 self._set_array_shape()
             else:
-                r = self.constant*ones(self._array_shape, 'd')
+                r = self.constant * ones(self._array_shape, 'd')
                 # could store r (allocated once) and just return reference
                 return r
 
@@ -1529,8 +1554,10 @@ class WrapNo2Callable:
     # of grids, the shape may change so the next implementation is
     # slower and safer.
 
+
 class WrapNo2Callable:
     """Turn a number (constant) into a callable function."""
+
     def __init__(self, constant):
         self.constant = constant
 
@@ -1591,6 +1618,7 @@ class WrapDiscreteData2Callable:
     >>> f(0.5, 0.1)  # discrete data with extra time prm: f(x,t)
     1.5
     """
+
     def __init__(self, data):
         self.data = data  # (x,y,f) data for an f(x,y) function
 
@@ -1602,11 +1630,11 @@ class WrapDiscreteData2Callable:
         target = '2.9.1'
         if v < target:
             raise ImportError(
-                'ScientificPython is in (old) version %s, need %s' \
+                'ScientificPython is in (old) version %s, need %s'
                 % (v, target))
 
         self.interpolating_function = \
-             InterpolatingFunction(self.data[:-1], self.data[-1])
+            InterpolatingFunction(self.data[:-1], self.data[-1])
         self.ndims = len(self.data[:-1])  # no of spatial dim.
 
     def __call__(self, *args):
@@ -1723,7 +1751,7 @@ def wrap2callable(f, **kwargs):
         # return StringFunction(f, **kwargs).__call__
     elif isinstance(f, (float, int, complex)):
         return WrapNo2Callable(f)
-    elif isinstance(f, (list,tuple)):
+    elif isinstance(f, (list, tuple)):
         return WrapDiscreteData2Callable(f)
     elif isinstance(f, collections.Callable):
         return f
@@ -1841,7 +1869,7 @@ def NumPy_array_iterator(a, **kwargs):
     # elements are parameterized through len(a.shape))
     dims = list(range(len(a.shape)))
     offset_code1 = ['offset%d_start=0' % d for d in dims]
-    offset_code2 = ['offset%d_stop=0'  % d for d in dims]
+    offset_code2 = ['offset%d_stop=0' % d for d in dims]
     for d in range(len(a.shape)):
         key1 = 'offset%d_start' % d
         key2 = 'offset%d_stop' % d
@@ -1852,11 +1880,11 @@ def NumPy_array_iterator(a, **kwargs):
 
     for key in kwargs:
         if key == 'offset_start':
-            offset_code1.extend(['offset%d_start=%d' % (d, kwargs[key]) \
-                            for d in range(len(a.shape))])
+            offset_code1.extend(['offset%d_start=%d' % (d, kwargs[key])
+                                 for d in range(len(a.shape))])
         if key == 'offset_stop':
-            offset_code2.extend(['offset%d_stop=%d' % (d, kwargs[key]) \
-                            for d in range(len(a.shape))])
+            offset_code2.extend(['offset%d_stop=%d' % (d, kwargs[key])
+                                 for d in range(len(a.shape))])
 
     no_value = kwargs.get('no_value', False)
 
@@ -1865,13 +1893,13 @@ def NumPy_array_iterator(a, **kwargs):
     for line in offset_code2:
         exec (line)
     code = 'def nested_loops(a):\n'
-    indentation = ' '*4
+    indentation = ' ' * 4
     indent = '' + indentation
     for dim in range(len(a.shape)):
         code += indent + \
-        'for i%d in xrange(%d, a.shape[%d]-%d):\n' \
-                % (dim, eval('offset%d_start' % dim),
-                   dim, eval('offset%d_stop' % dim))
+            'for i%d in xrange(%d, a.shape[%d]-%d):\n' \
+            % (dim, eval('offset%d_start' % dim),
+               dim, eval('offset%d_stop' % dim))
         indent += indentation
     index = ', '.join(['i%d' % d for d in range(len(a.shape))])
     if no_value:
@@ -1880,6 +1908,7 @@ def NumPy_array_iterator(a, **kwargs):
         code += indent + 'yield ' + 'a[%s]' % index + ', (' + index + ')'
     exec (code)
     return nested_loops, code
+
 
 def compute_histogram(samples, nbins=50, piecewise_constant=True):
     """
@@ -1898,22 +1927,22 @@ def compute_histogram(samples, nbins=50, piecewise_constant=True):
         y0, bin_edges = histogram(samples, bins=nbins, normed=True)
     h = bin_edges[1] - bin_edges[0]  # bin width
     if piecewise_constant:
-        x = zeros(2*len(bin_edges), type(bin_edges[0]))
+        x = zeros(2 * len(bin_edges), type(bin_edges[0]))
         y = x.copy()
         x[0] = bin_edges[0]
         y[0] = 0
-        for i in range(len(bin_edges)-1):
-            x[2*i+1] = bin_edges[i]
-            x[2*i+2] = bin_edges[i+1]
-            y[2*i+1] = y0[i]
-            y[2*i+2] = y0[i]
+        for i in range(len(bin_edges) - 1):
+            x[2 * i + 1] = bin_edges[i]
+            x[2 * i + 2] = bin_edges[i + 1]
+            y[2 * i + 1] = y0[i]
+            y[2 * i + 2] = y0[i]
         x[-1] = bin_edges[-1]
         y[-1] = 0
     else:
-        x = zeros(len(bin_edges)-1, type(bin_edges[0]))
+        x = zeros(len(bin_edges) - 1, type(bin_edges[0]))
         y = y0.copy()
         for i in range(len(x)):
-            x[i] = (bin_edges[i] + bin_edges[i+1])/2.0
+            x[i] = (bin_edges[i] + bin_edges[i + 1]) / 2.0
     return x, y
 
 
@@ -1951,27 +1980,27 @@ def factorial(n, method='reduce'):
 
     if method == 'plain iterative':
         f = 1
-        for i in range(1, n+1):
+        for i in range(1, n + 1):
             f *= i
         return f
     elif method == 'plain recursive':
         if n == 1:
             return 1
         else:
-            return n*factorial(n-1, method)
+            return n * factorial(n - 1, method)
     elif method == 'lambda recursive':
-        fc = lambda n: n and fc(n-1)*int(n) or 1
+        fc = lambda n: n and fc(n - 1) * int(n) or 1
         return fc(n)
     elif method == 'lambda functional':
-        fc = lambda n: n<=0 or \
-             reduce(lambda a,b: int(a)*int(b), range(1,n+1))
+        fc = lambda n: n <= 0 or \
+            reduce(lambda a, b: int(a) * int(b), range(1, n + 1))
         return fc(n)
     elif method == 'lambda list comprehension':
-        fc = lambda n: [j for j in [1] for i in range(2,n+1) \
-                        for j in [j*i]] [-1]
+        fc = lambda n: [j for j in [1] for i in range(2, n + 1)
+                        for j in [j * i]][-1]
         return fc(n)
     elif method == 'reduce':
-        return reduce(operator.mul, range(2, n+1))
+        return reduce(operator.mul, range(2, n + 1))
     elif method == 'scipy':
         try:
             import scipy.misc.common as sc
@@ -1979,7 +2008,7 @@ def factorial(n, method='reduce'):
         except ImportError:
             print('numpyutils.factorial: scipy is not available')
             print('default method="reduce" is used instead')
-            return reduce(operator.mul, range(2, n+1))
+            return reduce(operator.mul, range(2, n + 1))
             # or return factorial(n)
     else:
         raise ValueError('factorial: method="%s" is not supported' % method)
@@ -2014,10 +2043,10 @@ def seq(min=0.0, max=None, inc=1.0, type=float,
     The return_type string governs the type of the returned
     sequence of numbers ('NumPyArray', 'list', or 'tuple').
     """
-    if max is None: # allow sequence(3) to be 0., 1., 2., 3.
+    if max is None:  # allow sequence(3) to be 0., 1., 2., 3.
         # take 1st arg as max, min as 0, and inc=1
         max = min; min = 0.0; inc = 1.0
-    r = arange(min, max + inc/2.0, inc, type)
+    r = arange(min, max + inc / 2.0, inc, type)
     if return_type == 'NumPyArray' or return_type == ndarray:
         return r
     elif return_type == 'list':
@@ -2031,10 +2060,10 @@ def iseq(start=0, stop=None, inc=1):
     Generate integers from start to (and including) stop,
     with increment of inc. Alternative to range/xrange.
     """
-    if stop is None: # allow isequence(3) to be 0, 1, 2, 3
+    if stop is None:  # allow isequence(3) to be 0, 1, 2, 3
         # take 1st arg as stop, start as 0, and inc=1
         stop = start; start = 0; inc = 1
-    return range(start, stop+inc, inc)
+    return range(start, stop + inc, inc)
 
 sequence = seq  # backward compatibility
 isequence = iseq  # backward compatibility
@@ -2129,19 +2158,19 @@ def arr(shape=None, element_type=float,
         if not isinstance(data, collections.Sequence):
             raise TypeError('arr: data argument is not a sequence type')
 
-        if isinstance(shape, (list,tuple)):
+        if isinstance(shape, (list, tuple)):
             # check that shape and data are compatible:
             if reduce(operator.mul, shape) != size(data):
                 raise ValueError(
-                    'arr: shape=%s is not compatible with %d '\
+                    'arr: shape=%s is not compatible with %d '
                     'elements in the provided data' % (shape, size(data)))
         elif isinstance(shape, int):
             if shape != size(data):
                 raise ValueError(
-                    'arr: shape=%d is not compatible with %d '\
+                    'arr: shape=%d is not compatible with %d '
                     'elements in the provided data' % (shape, size(data)))
         elif shape is None:
-            if isinstance(data, (list,tuple)) and copy == False:
+            if isinstance(data, (list, tuple)) and copy == False:
                 # cannot share data (data is list/tuple)
                 copy = True
             return array(data, dtype=element_type, copy=copy, order=order)
@@ -2151,7 +2180,7 @@ def arr(shape=None, element_type=float,
     elif file_ is not None:
         if not isinstance(file_, (str, file, StringIO)):
             raise TypeError(
-                'file_ argument must be a string (filename) or '\
+                'file_ argument must be a string (filename) or '
                 'open file object, not %s' % type(file_))
 
         if isinstance(file_, str):
@@ -2165,7 +2194,7 @@ def arr(shape=None, element_type=float,
         file_.seek(0)
         # we assume that array data in file has element_type=float:
         if not (element_type == float or element_type == 'd'):
-            raise ValueError('element_type must be float_/"%s", not "%s"' % \
+            raise ValueError('element_type must be float_/"%s", not "%s"' %
                              ('d', element_type))
 
         d = array([float(word) for word in file_.read().split()])
@@ -2173,27 +2202,27 @@ def arr(shape=None, element_type=float,
             f.close()
         # shape array d:
         if ncolumns > 1:
-            suggested_shape = (int(len(d)/ncolumns), ncolumns)
-            total_size = suggested_shape[0]*suggested_shape[1]
+            suggested_shape = (int(len(d) / ncolumns), ncolumns)
+            total_size = suggested_shape[0] * suggested_shape[1]
             if total_size != len(d):
                 raise ValueError(
-                    'found %d array entries in file "%s", but first line\n'\
-                    'contains %d elements - no shape is compatible with\n'\
+                    'found %d array entries in file "%s", but first line\n'
+                    'contains %d elements - no shape is compatible with\n'
                     'these values' % (len(d), file, ncolumns))
             d.shape = suggested_shape
         if shape is not None:
             if shape != d.shape:
                 raise ValueError(
-                    'shape=%s is not compatible with shape %s found in "%s"' % \
+                    'shape=%s is not compatible with shape %s found in "%s"' %
                     (shape, d.shape, file))
         return d
 
     elif interval is not None and shape is not None:
         if not isinstance(shape, int):
-            raise TypeError('For array values in an interval, '\
+            raise TypeError('For array values in an interval, '
                             'shape must be an integer')
-        if not isinstance(interval, (list,tuple)):
-            raise TypeError('interval must be list or tuple, not %s' % \
+        if not isinstance(interval, (list, tuple)):
+            raise TypeError('interval must be list or tuple, not %s' %
                             type(interval))
         if len(interval) != 2:
             raise ValueError('interval must be a 2-tuple (or list)')
@@ -2219,11 +2248,12 @@ def arr(shape=None, element_type=float,
             # print more information (size of data):
             print(e, 'of size %s' % shape)
 
+
 def _test():
     _test_FloatComparison()
     # test norm functions for multi-dimensional arrays:
     a = array(list(range(27)))
-    a.shape = (3,3,3)
+    a.shape = (3, 3, 3)
     functions = [norm_l2, norm_L2, norm_l1, norm_L1, norm_inf]
     results = [78.7464284904401239, 15.1547572288924073, 351, 13, 26]
     for f, r in zip(functions, results):
@@ -2231,7 +2261,7 @@ def _test():
             print('%s failed: result=%g, not %g' % (f.__name__, f(a), r))
 
     # Gram-Schmidt:
-    A = array([[1,2,3], [3,4,5], [6,4,1]], float)
+    A = array([[1, 2, 3], [3, 4, 5], [6, 4, 1]], float)
     V1 = Gram_Schmidt(A, normalize=True)
     V2 = Gram_Schmidt1(A)
     if not float_eq(V1, V2):
@@ -2240,11 +2270,11 @@ def _test():
         print('Gram_Schmidt1:\n', V2)
 
     # Null space:
-    K = array([[1,2,3], [1,2,3], [0,0,0], [-1, -2, -3]], float)
-    #K = random.random(3*7).reshape(7,3) # does not work...
+    K = array([[1, 2, 3], [1, 2, 3], [0, 0, 0], [-1, -2, -3]], float)
+    # K = random.random(3*7).reshape(7,3) # does not work...
     print('K=\n', K)
     print('null(K)=\n', null(K))
-    r = K*null(K)
+    r = K * null(K)
     print('K*null(K):', r)
 
 
@@ -2296,10 +2326,11 @@ del _load, _utils
 if __name__ == '__main__':
 
     def _doctest():
-        import doctest, numpytools
+        import doctest
+        import numpytools
         return doctest.testmod(numpytools)
 
-    def verify(N, namecheck = ['fft','mlab','ma','ra','la']):
+    def verify(N, namecheck=['fft', 'mlab', 'ma', 'ra', 'la']):
         """
         Verify that some packages imported by numpytools
         works for Numeric, numarray, or numpy.
@@ -2327,7 +2358,7 @@ if __name__ == '__main__':
 
     #_test1()
 
-    #test_ArrayGen()
+    # test_ArrayGen()
     #_doctest()  # does not work properly with wrap2callable
 
     # Test meshgrid function
@@ -2335,11 +2366,12 @@ if __name__ == '__main__':
     from . import numpytools as N
 
     class numpytoolsTest(unittest.TestCase):
+
         def setUp(self):
             pass
 
         def testMeshgrid(self):
-            #print 'testing Meshgrid'
+            # print 'testing Meshgrid'
             x = N.arange(10)
             y = N.arange(4)
             z = N.arange(3)
@@ -2348,50 +2380,50 @@ if __name__ == '__main__':
 
         def testMeshgrid_DenseFromMixedArrayTypes(self):
             # Other combination of arrays
-            #print 'testing Meshgrid with mixed array implementations'
+            # print 'testing Meshgrid with mixed array implementations'
             y = N.arange(4)
             z = N.arange(3)
 
             import Numeric
             x = Numeric.arange(10)
             X, Y, Z = N.meshgrid(x, y, z, sparse=False)
-            if not  N.ndim(X) == 3:
+            if not N.ndim(X) == 3:
                 raise AssertionError(
-                    "Meshgrid failed with arraytype mix of  Numeric and %s"\
-                    %N.basic_NumPy)
+                    "Meshgrid failed with arraytype mix of  Numeric and %s"
+                    % N.basic_NumPy)
             import numarray
             x = numarray.arange(10)
             X, Y, Z = N.meshgrid(x, y, z, sparse=False)
 
-            if not  N.ndim(X) == 3:
+            if not N.ndim(X) == 3:
                 raise AssertionError(
-                    "Meshgrid failed with arraytype mix of numarray and %s"\
-                    %N.basic_NumPy)
+                    "Meshgrid failed with arraytype mix of numarray and %s"
+                    % N.basic_NumPy)
 
             import numpy
             x = numpy.arange(10)
             X, Y, Z = N.meshgrid(x, y, z, sparse=False)
             #assert N.ndim(X) == 3
-            if not  N.ndim(X) == 3:
+            if not N.ndim(X) == 3:
                 raise AssertionError(
-                    "Meshgrid failed with arraytype mix of numpy and %s"\
-                    %N.basic_NumPy)
+                    "Meshgrid failed with arraytype mix of numpy and %s"
+                    % N.basic_NumPy)
 
         def testMeshGrid_DenseFromNodenseMeshgridOutput(self):
             # sparse fails for dense output when input has singleton dimensions
-            x = seq(-2,2,0.1)
-            y = seq(-4,4,1)
-            xx, yy = meshgrid(x,y) # xx and yy now has singleton dimension
+            x = seq(-2, 2, 0.1)
+            y = seq(-4, 4, 1)
+            xx, yy = meshgrid(x, y)  # xx and yy now has singleton dimension
             self.assertEqual(xx.ndim, 2)
             self.assertEqual(yy.ndim, 2)
             self.assertEqual(multiply.reduce(xx.shape), size(xx))
             self.assertEqual(multiply.reduce(yy.shape), size(yy))
             # This one should fail when xx and yy is not flat as well
-            xx, yy = meshgrid(xx.flat, yy.flat, sparse=False) # no singleton
+            xx, yy = meshgrid(xx.flat, yy.flat, sparse=False)  # no singleton
             self.assertEqual(shape(xx), (size(y), size(x)))
             self.assertEqual(shape(yy), (size(y), size(x)))
 
-            xx, yy = meshgrid(x,y) # Add singleton dimensions
+            xx, yy = meshgrid(x, y)  # Add singleton dimensions
             xx, yy = meshgrid(xx, yy, sparse=False)
             self.assertEqual(shape(xx), (size(y), size(x)))
             self.assertEqual(shape(yy), (size(y), size(x)))
@@ -2404,12 +2436,12 @@ if __name__ == '__main__':
         try:
             __import__(arg[2:])
         except:
-            print("You don't have %s installed" %arg[2:])
+            print("You don't have %s installed" % arg[2:])
             continue
 
         sys.argv[-1] = arg
-        print('\nNow testing with system arg %10s\n%s' %(arg, '='*38))
+        print('\nNow testing with system arg %10s\n%s' % (arg, '=' * 38))
         print(N, dir(N))
-        reload(N);  verify(N)
+        reload(N); verify(N)
         suite = unittest.makeSuite(numpytoolsTest)
         unittest.TextTestRunner(verbosity=2).run(suite)

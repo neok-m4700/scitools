@@ -12,12 +12,12 @@ Functionality of this module that extends Numerical Python
  - NumPy_array_iterator:
            allows iterating over all array elements using
            a single, standard for loop (for value, index in iterator),
-           has some additional features compared with numpy.ndenumerate
+           has some additional features compared with np.ndenumerate
  - asarray_cpwarn:
-           as ``numpy.asarray(a)``, but a warning or exception is issued if
+           as ``np.asarray(a)``, but a warning or exception is issued if
            the array a is copied
  - meshgrid:
-           extended version of ``numpy.meshgrid`` to 1D, 2D and 3D grids,
+           extended version of ``np.meshgrid`` to 1D, 2D and 3D grids,
            with sparse or dense coordinate arrays and matrix or grid
            indexing
  - ndgrid:
@@ -72,13 +72,13 @@ from .FloatComparison import float_eq, float_ne, float_lt, float_le, \
 import collections
 from functools import reduce
 from .Heaviside import *
-import numpy
+import numpy as np
 
 
 def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
              memoryorder=None):
-    """Now just a call to numpy.meshgrid (for numpy version >= 1.7)."""
-    # In the past, numpy.meshgrid only worked for 2D problems and this
+    """Now just a call to np.meshgrid (for numpy version >= 1.7)."""
+    # In the past, np.meshgrid only worked for 2D problems and this
     # was the generalization that is now incorporated in numpy v1.7.
     args = []
     if x is not None:
@@ -87,7 +87,7 @@ def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
         args.append(y)
     if z is not None:
         args.append(z)
-    return numpy.meshgrid(*args, indexing=indexing, sparse=sparse)
+    return np.meshgrid(*args, indexing=indexing, sparse=sparse)
 
 
 def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
@@ -95,7 +95,7 @@ def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
     """
     Original scitools.std.meshgrid:
 
-    Extension of ``numpy.meshgrid`` to 1D, 2D and 3D problems, and also
+    Extension of ``np.meshgrid`` to 1D, 2D and 3D problems, and also
     support of both "matrix" and "grid" numbering.
     (See below how it relates to ``meshgrid``, ``ogrid``, and ``mgrid``
     in ``numpy``.)
@@ -215,7 +215,7 @@ def meshgrid_scitools(x=None, y=None, z=None, sparse=False, indexing='xy',
     ``meshgrid`` function in numpy because we can just switch the order of
     the first two input and output arguments::
 
-    >>> yv, xv = numpy.meshgrid(y, x)
+    >>> yv, xv = np.meshgrid(y, x)
     >>> # same as:
     >>> xv, yv = meshgrid(x, y, indexing='ij')
 
@@ -411,7 +411,7 @@ def Gram_Schmidt1(vecs, row_wise_storage=True):
     This function does not handle null vectors, see Gram_Schmidt
     for a (slower) function that does.
     """
-    from numpy.linalg import inv
+    from np.linalg import inv
     from math import sqrt
 
     vecs = asarray(vecs)  # transform to array if list of vectors
@@ -510,7 +510,7 @@ def matrix_rank(A):
 
 def orth(A):
     """
-    (Plain copy from scipy.linalg.orth - this one here applies numpy.svd
+    (Plain copy from scipy.linalg.orth - this one here applies np.svd
     and avoids the need for having scipy installed.)
 
     Construct an orthonormal basis for the range of A using SVD.
@@ -525,8 +525,8 @@ def orth(A):
     """
     u, s, vh = svd(A)
     M, N = A.shape
-    tol = max(M, N) * numpy.amax(s) * eps
-    num = numpy.sum(s > tol, dtype=int)
+    tol = max(M, N) * np.amax(s) * eps
+    num = np.sum(s > tol, dtype=int)
     Q = u[:, :num]
     return Q
 
@@ -556,7 +556,7 @@ def null(A, tol=1e-10, row_wise_storage=True):
 
 
 # the norm_* functions also work for arrays with dimensions larger than 2,
-# in contrast to (most of) the numpy.linalg.norm functions
+# in contrast to (most of) the np.linalg.norm functions
 
 def norm_l2(u):
     """
@@ -978,7 +978,7 @@ def NumPy_array_iterator(a, **kwargs):
     """
     Iterate over all elements in a numpy array a.
     Two return values: a generator function and the code of this function.
-    The ``numpy.ndenumerate`` iterator performs the same iteration over
+    The ``np.ndenumerate`` iterator performs the same iteration over
     an array, but ``NumPy_array_iterator`` has some additional features
     (especially handy for coding finite difference stencils, see next
     paragraph).
@@ -1130,7 +1130,7 @@ def compute_histogram(samples, nbins=50, piecewise_constant=True):
     constant curve when plotted, otherwise the (x,y) arrays gives a
     piecewise linear curve where the x coordinates coincide with the
     center points in each bin. The function makes use of
-    numpy.lib.function_base.histogram with some additional code
+    np.lib.function_base.histogram with some additional code
     (for a piecewise curve or displaced x values to the centes of
     the bins).
     """

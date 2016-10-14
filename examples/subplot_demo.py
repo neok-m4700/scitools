@@ -7,7 +7,6 @@ scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from scitools.easyviz.vtk_new_ import *
 
-
 setp(interactive=True, show=False)
 x = linspace(-5, 5, 201)
 subplot(2, 2, 1)
