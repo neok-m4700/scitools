@@ -47,6 +47,7 @@ from scitools.globaldata import DEBUG, OPTIMIZATION, VERBOSE, VTK_BACKEND
 from scitools.misc import check_if_module_exists
 from util.vtkAlgorithm import VTKPythonAlgorithmBase
 from vtk import *
+import numba
 
 from .colormaps import _cmaps
 from .common import *
@@ -74,12 +75,22 @@ if _vtk_options['mesa']:
     del _graphics_fact
     del _imaging_fact
 
+os.environ['NUMBA_DISABLE_JIT'] = str(int(True))
+numba.config.reload_config()
+cache = True
 
 if OPTIMIZATION == 'numba':
-    try:
-        import numba
-    except ImportError:
-        print('Numba not available. Optimization turned off')
+    os.environ['NUMBA_DISABLE_JIT'] = str(int(False))
+    numba.config.reload_config()
+
+
+def jit(func):
+    return numba.jit(func, cache=cache)
+
+
+def njit(func):
+    return numba.njit(func, cache=cache)
+
 
 VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
 
@@ -401,7 +412,7 @@ class VTKBackend(BaseClass):
         self._init()
 
     def _invertc(self, color):
-        '''invert rgb colors, pass if str or anything else'''
+        'invert rgb colors, pass if str or anything else'
         try:
             if len(color) == 3:
                 return tuple(1 - _ for _ in color)
@@ -409,7 +420,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _init(self, *args, **kwargs):
-        '''Perform initialization that is special for this backend.'''
+        'perform initialization that is special for this backend'
 
         if 'tk' in VTK_BACKEND.lower():
             self._master = tkinter.Tk()
@@ -506,7 +517,7 @@ class VTKBackend(BaseClass):
         return color
 
     def _set_scale(self, ax):
-        '''set linear or logarithmic (base 10) axis scale'''
+        'set linear or logarithmic (base 10) axis scale'
         _print('<scales>')
 
         scale = ax.getp('scale')
@@ -539,7 +550,7 @@ class VTKBackend(BaseClass):
             pass
 
     def _set_title(self, ax):
-        'Add a title at the top of the axis'
+        'add a title at the top of the axis'
         # title = self._fix_latex(ax.getp('title'))
         title = ax.getp('title')
         if title:
@@ -623,11 +634,11 @@ class VTKBackend(BaseClass):
         'set data aspect ratio'
         dar = ax.getp('daspect')  # dar is a list (len(dar) is 3).
         # the axis limits are stored as ax._limits
-        l = list(ax._limits)
-        l[0] /= dar[0]; l[1] /= dar[0]
-        l[2] /= dar[1]; l[3] /= dar[1]
-        l[4] /= dar[2]; l[5] /= dar[2]
-        ax._scaled_limits = tuple(l)
+        lim = list(ax._limits)
+        lim[0] /= dar[0]; lim[1] /= dar[0]
+        lim[2] /= dar[1]; lim[3] /= dar[1]
+        lim[4] /= dar[2]; lim[5] /= dar[2]
+        ax._scaled_limits = tuple(lim)
 
     def _set_axis_method(self, ax):
         method = ax.getp('method')
@@ -745,7 +756,7 @@ class VTKBackend(BaseClass):
     @staticmethod
     def _get_caxis(ax, obj, auto=True, noi=None, poc='GetPointData'):
         '''
-        get color axis from ax, center the range if caxismode==zerocenter
+        get color axis from ax, center the range if caxismode == zerocenter
         poc: point or cell data
         noi: name or idx
         '''
@@ -935,7 +946,8 @@ class VTKBackend(BaseClass):
         slim = self._ax._scaled_limits
         dlim = data.GetBounds()
         for i in range(0, len(slim), 2):
-            if dlim[i] < slim[i] and not np.allclose(dlim[i], slim[i]): return False
+            if dlim[i] < slim[i] and not np.allclose(dlim[i], slim[i]):
+                return False
         for i in range(1, len(slim), 2):
             if dlim[i] > slim[i] and not np.allclose(dlim[i], slim[i]):
                 return False
@@ -1080,6 +1092,70 @@ class VTKBackend(BaseClass):
         if mat.getp('specularpower') is not None:
             actor.GetProperty().SetSpecularPower(mat.getp('specularpower'))
 
+    @jit
+    def _set_points_vectors_2d(self, x, y, z, u, v, w, points, vectors):
+        nx, ny = v.shape
+        ind = 0
+        for j in range(ny):
+            for i in range(nx):
+                points.SetPoint(ind, x[i, j], y[i, j], z[i, j])
+                vectors.SetTuple3(ind, u[i, j], v[i, j], w[i, j])
+                ind += 1
+
+    @jit
+    def _set_points_vectors_3d(self, x, y, z, u, v, w, points, vectors):
+        nx, ny = v.shape
+        ind = 0
+        for k in range(nz):
+            for j in range(ny):
+                for i in range(nx):
+                    points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
+                    vectors.SetTuple3(ind, u[i, j, k], v[i, j, k], w[i, j, k])
+                    ind += 1
+
+    @jit
+    def _set_points_scalars_2d(self, x, y, z, v, points, scalars):
+        nx, ny = v.shape
+        ind = 0
+        for j in range(ny):
+            for i in range(nx):
+                points.SetPoint(ind, x[i, j], y[i, j], z[i, j])
+                scalars.SetValue(ind, v[i, j])
+                ind += 1
+
+    @jit
+    def _set_points_scalars_3d(self, x, y, z, v, points, scalars):
+        nx, ny, nz = v.shape
+        ind = 0
+        for k in range(nz):
+            for j in range(ny):
+                for i in range(nx):
+                    points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
+                    scalars.SetValue(ind, v[i, j, k])
+                    ind += 1
+
+    @jit
+    def _set_points_scalars_pseudoc_3d(self, x, y, z, v, c, points, scalars, pseudoc):
+        nx, ny, nz = v.shape
+        ind = 0
+        for k in range(nz):
+            for j in range(ny):
+                for i in range(nx):
+                    points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
+                    scalars.SetValue(ind, v[i, j, k])
+                    pseudoc.SetValue(ind, c[i, j, k])
+                    ind += 1
+
+    @jit
+    def _set_norm_3d(self, x, y, z, u, v, w, scalars):
+        nx, ny, nz = v.shape
+        ind = 0
+        for k in range(nz - 1):
+            for j in range(ny - 1):
+                for i in range(nx - 1):
+                    scalars.SetValue(ind, np.sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
+                    ind += 1
+
     def _create_2D_scalar_data(self, item):
         x, y = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata'))
         z = np.asarray(item.getp('zdata'))  # scalar field
@@ -1116,17 +1192,8 @@ class VTKBackend(BaseClass):
         scalars.SetName('vectors')
         scalars.SetNumberOfTuples(item.getp('numberofpoints'))
         scalars.SetNumberOfComponents(1)
-        nx, ny = z.shape
 
-        if OPTIMIZATION == 'numba':
-            pass
-        else:
-            ind = 0
-            for j in range(ny):
-                for i in range(nx):
-                    points.SetPoint(ind, x[i, j], y[i, j], z[i, j])
-                    scalars.SetValue(ind, c[i, j])
-                    ind += 1
+        self._set_points_scalars_2d(x, y, z, c, points, scalars)
 
         sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
@@ -1153,7 +1220,7 @@ class VTKBackend(BaseClass):
 
         # scale x, y, and z according to data aspect ratio:
         dx, dy, dz = self._ax.getp('daspect')
-        x = x / dx; y = y / dy; z = z / dz
+        x, y, z = x / dx, y / dy, z / dz
 
         if x.shape != u.shape and y.shape != u.shape:
             assert x.ndim == 1 and y.ndim == 1
@@ -1169,17 +1236,8 @@ class VTKBackend(BaseClass):
         vectors.SetNumberOfTuples(n)
         vectors.SetNumberOfComponents(3)
         vectors.SetNumberOfValues(3 * n)
-        nx, ny = u.shape
 
-        if OPTIMIZATION == 'numba':
-            pass
-        else:
-            ind = 0
-            for j in range(ny):
-                for i in range(nx):
-                    points.SetPoint(ind, x[i, j], y[i, j], z[i, j])
-                    vectors.SetTuple3(ind, u[i, j], v[i, j], w[i, j])
-                    ind += 1
+        self._set_points_vectors_2d(x, y, z, u, v, w, points, vectors)
 
         sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
@@ -1215,19 +1273,11 @@ class VTKBackend(BaseClass):
             pseudoc.SetName('pseudocolor')
             pseudoc.SetNumberOfTuples(item.getp('numberofpoints'))
             pseudoc.SetNumberOfComponents(1)
-        nx, ny, nz = v.shape
 
-        if OPTIMIZATION == 'numba':
-            pass
+        if c is not None:
+            self._set_points_scalars_pseudoc_3d(x, y, z, v, c, points, scalars, pseudoc)
         else:
-            ind = 0
-            for k in range(nz):
-                for j in range(ny):
-                    for i in range(nx):
-                        points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
-                        scalars.SetValue(ind, v[i, j, k])
-                        pseudoc.SetValue(ind, c[i, j, k]) if c is not None else None
-                        ind += 1
+            self._set_points_scalars_3d(x, y, z, v, points, scalars)
 
         sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
@@ -1281,24 +1331,9 @@ class VTKBackend(BaseClass):
         scalars.SetNumberOfComponents(1)
         scalars.SetNumberOfValues(nc)
 
-        if OPTIMIZATION == 'numba':
-            # TODO
-            pass
-        else:
-            ind = 0
-            for k in range(nz):
-                for j in range(ny):
-                    for i in range(nx):
-                        points.SetPoint(ind, x[i, j, k], y[i, j, k], z[i, j, k])
-                        vectors.SetTuple3(ind, u[i, j, k], v[i, j, k], w[i, j, k])
-                        ind += 1
+        self._set_points_vectors_3d(x, y, z, u, v, w, points, vectors)
 
-            ind = 0
-            for k in range(nz - 1):
-                for j in range(ny - 1):
-                    for i in range(nx - 1):
-                        scalars.SetValue(ind, np.sqrt(u[i, j, k]**2 + v[i, j, k]**2 + w[i, j, k]**2))
-                        ind += 1
+        self._set_norm_3d(x, y, z, u, v, w, scalars)
 
         sgrid = vtkStructuredGrid()
         sgrid.SetDimensions(item.getp('dims'))
@@ -1773,7 +1808,7 @@ class VTKBackend(BaseClass):
         self._add_slice_(item, contours=True)
 
     def _setImage(self, img, color, sz):
-        '''helper for setting texture of a vtkButtonWidget'''
+        'helper for setting texture of a vtkButtonWidget'
         img.SetDimensions(sz, sz, 1)
         img.AllocateScalars(VTK_UNSIGNED_CHAR, 3)
         nx, ny, nz = img.GetDimensions()
@@ -1783,7 +1818,7 @@ class VTKBackend(BaseClass):
                     [img.SetScalarComponentFromFloat(x, y, z, i, val) for i, val in enumerate(color)]
 
     def _setButtonWidget(self, widget, rep, on, off, sz=6):
-        '''configure the vtkButtonWidget, texture, state, ...'''
+        'configure the vtkButtonWidget, texture, state, ...'
         self._setImage(on, (0, 150, 0), sz)
         self._setImage(off, [256 * _ for _ in self._ax._renderer.GetBackground()], sz)
         rep.SetNumberOfStates(2)

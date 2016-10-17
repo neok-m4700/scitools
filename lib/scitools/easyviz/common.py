@@ -920,17 +920,12 @@ class Streams(PlotProperties):
                     msg = 'options must be a [width], not {}'.format(options)
                 raise ValueError(msg)
 
-        # if len(u.shape) == 3:
-        # assert x.shape == y.shape == z.shape == \
-        #                     u.shape == v.shape == w.shape, \
-        #                     'x, y, z, u, v, and z must be 3D arrays and of same shape'
-        # assert sx.shape == sy.shape == sz.shape, \
-        #                     'startx, starty, and startz must all be of same shape'
-        # else:
-        # assert x.shape == y.shape == u.shape == v.shape, \
-        #                     'x, y, u, and v must be 2D arrays and of same shape'
-        # assert sx.shape == sy.shape, \
-        #                    'startx and starty must be of same shape'
+            # if len(u.shape) == 3:
+            #     assert x.shape == y.shape == z.shape == u.shape == v.shape == w.shape, 'x, y, z, u, v, and z must be 3D arrays and of same    shape'
+            #     assert sx.shape == sy.shape == sz.shape, 'startx, starty, and startz must all be of same shape'
+            # else:
+            #     assert x.shape == y.shape == u.shape == v.shape, 'x, y, u, and v must be 2D arrays and of same shape'
+            #     assert sx.shape == sy.shape, 'startx and starty must be of same shape'
             z = w = np.zeros(u.shape)
             sz = np.zeros(sx.shape)
 
@@ -941,15 +936,11 @@ class Streams(PlotProperties):
         self._set_lim(y, 'ylim')
         if z is not None:
             self._set_lim(z, 'zlim')
-        self._prop['xdata'] = x
-        self._prop['ydata'] = y
-        self._prop['zdata'] = z
-        self._prop['udata'] = u
-        self._prop['vdata'] = v
-        self._prop['wdata'] = w
-        self._prop['startx'] = sx
-        self._prop['starty'] = sy
-        self._prop['startz'] = sz
+
+        for _, __ in zip(('xdata', 'ydata', 'zdata', 'udata', 'vdata', 'wdata', 'startx', 'starty', 'startz'),
+                         (x, y, z, u, v, w, sx, sy, sz)):
+            self._prop[_] = __
+
         if u.ndim == 2:
             nx, ny = u.shape
             self._prop['dims'] = (nx, ny, 1)
@@ -1935,7 +1926,7 @@ class BaseClass:
 
     def init(self):
         'initialize internal data structures'
-        self._g = None  # Pointer to the backend for manual labour.
+        self._g = None  # pointer to the backend for manual labour.
         self._figs = {1: Figure()}  # dictionary of figure instances
         self._attrs = {}
         self._attrs.update(BaseClass._local_attrs)
