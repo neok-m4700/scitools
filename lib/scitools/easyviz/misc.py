@@ -16,8 +16,7 @@ def _update_from_config_file(d, section='easyviz'):
             try:
                 d[key] = data[key][0]
             except Exception as e:
-                raise Exception('%s, trying to set key=%s to ' % s'' %
-                                (str(e), key, data[key][0]))
+                raise Exception('%s, trying to set key=%s to % s' % (str(e), key, data[key][0]))
 
 
 def aslist(obj):
@@ -38,7 +37,7 @@ def _toggle_state(state):
 
 def _check_type(var, name, type):
     if not isinstance(var, type):
-        raise TypeError('variable ' % s'=%s is not of %s' % (name, var, str(type)))
+        raise TypeError('variable %s=%s is not of %s' % (name, var, str(type)))
     else:
         return True
 
@@ -47,8 +46,7 @@ def _check_size(a, a_name, expected_size):
     if isinstance(expected_size, int):
         expected_size = (expected_size,)
     if shape(a) != expected_size:
-        raise ValueError('%s has shape %s, expected %s' %
-                         (a_name, a.shape, expected_size))
+        raise ValueError('%s has shape %s, expected %s' % (a_name, a.shape, expected_size))
 
 
 def _check_xyzv(*args, **kwargs):
