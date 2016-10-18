@@ -14,6 +14,8 @@ from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
                    _check_xyzuvw, _check_xyzv, _toggle_state,
                    _update_from_config_file, aslist)
 
+from contextlib import contextmanager
+
 
 def docadd(comment, *lists, **kwargs):
     '''
@@ -764,12 +766,14 @@ class VelocityVectors(PlotProperties):
             w = self._prop['wdata']
             dims = self._prop['dims']
             xmin, xmax, ymin, ymax, zmin, zmax = self.get_limits()
-            dx = (xmax - xmin) / dims[1]
-            dy = (ymax - ymin) / dims[0]
+            dx = (xmax - xmin) / dims[0]
+            dy = (ymax - ymin) / dims[1]
             d = dx**2 + dy**2
             if w is not None:
+                dz = (zmax - zmin) / dims[2]
+                d += dz**2
                 # dz = (zmax - zmin) / max(dims[0], dims[1])
-                d += dx**2
+                # d += dx**2
             if d > 0:
                 if w is not None:
                     length = np.sqrt((u / d)**2 + (v / d)**2 + (w / d)**2)
@@ -1648,8 +1652,7 @@ class Axis:
             for item in self._prop['plotitems']:
                 self._update_limits(item)
         if len(self._prop['plotitems']) > 0:
-            if None in self._prop['daspect'] or \
-                    self._prop['daspectmode'] == 'auto':
+            if None in self._prop['daspect'] or self._prop['daspectmode'] == 'auto':
                 self._update_daspect()
             self._set_center()
         p = self._prop
@@ -1667,8 +1670,7 @@ class Axis:
             # print 'axis method 'square' not implemented yet'
             pass
         elif method == 'normal':
-            if None in self._prop['daspect'] or \
-                    self._prop['daspectmode'] == 'auto':
+            if None in self._prop['daspect'] or self._prop['daspectmode'] == 'auto':
                 self._update_daspect()
 
     def _toggle_state(self, name, state):
@@ -2025,6 +2027,17 @@ class BaseClass:
     # def __getitem__(self, name):  self.getp(name)
 
     # def __setitem__(self, name, value):  self.setp({name:value})
+
+    @contextmanager
+    def tmp_setp(self, **kwargs):
+        'temporary set plotting options for high end calls'
+
+        _saved = {k: self.getp(k) for k in kwargs.keys()}
+        self.setp(**kwargs)
+        try:
+            yield
+        finally:
+            self.setp(**_saved)
 
     def _replot(self, *args, **kwargs):
         '''
@@ -2700,9 +2713,12 @@ class BaseClass:
 
     def closefigs(self):
         'close all figure windows'
-        self._figs = {}
-        self._figs[1] = Figure()
-        self._attrs['curfig'] = 1
+        nums = list(self._figs.keys())
+        for num in nums:
+            self.closefig(num)  # must be overriden
+        # self._figs = {}
+        # self._figs[1] = Figure()
+        # self._attrs['curfig'] = 1
         # the rest should be written in subclass
 
     def showfigs(self, **kwargs):
@@ -4038,7 +4054,8 @@ class BaseClass:
 
     def quiver4(self, *args, **kwargs):
         '''
-        4 subplot of quiver3, amgnitude, x, y, and z components
+        4 subplot of quiver3, magnitude, x, y, and z components
+        volumetric 3D data
         for now only quiver4(x, y, z, u, v, w, **kwargs is supported)
         '''
         kwargs['description'] = 'quiver4: 3D vector field, magnitude, and xyz components'
@@ -4047,15 +4064,24 @@ class BaseClass:
         x, y, z, u, v, w = args
         null = np.zeros_like(u)
 
-        self.suptitle(suptitle)
-        self.subplot(221)
-        self.quiver3(*args, title=title, **kwargs)
-        self.subplot(222)
-        self.quiver3(x, y, z, u, null, null, title=titlex, **kwargs)
-        self.subplot(223)
-        self.quiver3(x, y, z, null, v, null, title=titley, **kwargs)
-        self.subplot(224)
-        self.quiver3(x, y, z, null, null, w, title=titlez, **kwargs)
+        # force the dataset to have equal aspect ratio
+        # it is better this way, it avoid misleading interpretation on the grid size
+        if 'daspect' not in kwargs:
+            kwargs['daspect'] = (1,1,1)
+
+        with self.tmp_setp(show=False):
+            self.suptitle(suptitle)
+            self.subplot(221)
+            self.quiver3(x, y, z, u, v, w, title=title, **kwargs)
+            self.subplot(222)
+            self.quiver3(x, y, z, u, null, null, title=titlex, **kwargs)
+            self.subplot(223)
+            self.quiver3(x, y, z, null, v, null, title=titley, **kwargs)
+            self.subplot(224)
+            self.quiver3(x, y, z, null, null, w, title=titlez, **kwargs)
+
+        if self.getp('interactive') and self.getp('show'):
+            self._replot()
 
     def quiverslice(self, *args, **kwargs):
         '''
@@ -4066,19 +4092,32 @@ class BaseClass:
         x, y, z, u, v, w, sx, sy, sz = args
 
         sx, sy, sz = aslist(sx), aslist(sy), aslist(sz)
-        print(sx, sy, sz)
+        # print(sx, sy, sz)
 
-        self.hold('on')
-        # self.slice_(x, y, z, np.zeros_like(u), sx, sy, sz)
-        for dim, sl in enumerate([sx, sy, sz]):
-            for idx in sl:
-                s = [slice(None)] * 3
-                s[dim] = idx
-                self.quiver(x[s], y[s], z[s], u[s], v[s], w[s], **kwargs)
-        self.hold('off')
+        if 'daspect' not in kwargs:
+            kwargs['daspect'] = (1,1,1)
+
+        hold = self.ishold()
+
+        with self.tmp_setp(show=False):
+            if not hold:
+                self.hold('on')
+
+            # self.slice_(x, y, z, np.zeros_like(u), sx, sy, sz)
+            for dim, sl in enumerate([sx, sy, sz]):
+                for idx in sl:
+                    s = [slice(None)] * 3
+                    s[dim] = idx
+                    self.quiver(x[s], y[s], z[s], u[s], v[s], w[s], **kwargs)
+
+            if not hold:
+                self.hold('off')
+
+        if self.getp('interactive') and self.getp('show'):
+            self._replot()
 
     def contour3(self, *args, **kwargs):
-        '''Draw 3D contour plot.
+        '''Draw 3D contour plot
 
         Calling::
 
