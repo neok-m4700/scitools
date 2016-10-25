@@ -75,36 +75,15 @@ if _vtk_options['mesa']:
     del _imaging_fact
 
 
-@contextmanager
-def set_env(**environ):
-    _environ = dict(os.environ)
-    os.environ.update(environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(_environ)
-
-
-if OPTIMIZATION == 'numba':
-    with set_env(
-        NUMBA_DEBUG=str(int(False)),
-        NUMBA_DEBUG_CACHE=str(int(True))
-    ):
-        numba.config.reload_config()
-else:
-    with set_env(NUMBA_DISABLE_JIT=str(int(True))):
-        numba.config.reload_config()
-
-cache = True
+enable, cache = OPTIMIZATION == 'numba', True
 
 
 def jit(func):
-    return numba.jit(func, cache=cache)
+    return numba.jit(func, cache=cache) if enable else func
 
 
 def njit(func):
-    return numba.njit(func, cache=cache)
+    return numba.njit(func, cache=cache)if enable else func
 
 
 VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
@@ -2236,6 +2215,8 @@ class VTKBackend(BaseClass):
                         else:
                             self.hardcopy('fig.png', replot=False, magnification=4, quality=9)  # pretty good quality withe these setting !
                         return
+                    elif key == 'v':
+                        self.hardcopy('movie.mp4')
                     # got camtarget value from paraview default
                     #  --------- /     ^
                     # |camera-->|      |(view up)   x(focal point) ---> (direction of projection = view plane normal)
@@ -2559,106 +2540,145 @@ class VTKBackend(BaseClass):
                          compression). This option only has effect when
                          vector_file is True.
         '''
-        print('--> hardcopy to', filename)
 
-        self.setp(**kwargs)
+        with _debug('hardcopy to', filename):
+            self.setp(**kwargs)
 
-        compression_or_quality = int(kwargs.get('quality', 9))
-        progressive = int(kwargs.get('progressive', True))
-        vector_file = int(kwargs.get('vector_file', False))
-        landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
-        raster3d = int(kwargs.get('raster3d', False))
-        compression = int(kwargs.get('compression', True))
-        magnification = int(kwargs.get('magnification', 2))
+            compression_or_quality = int(kwargs.get('quality', 9))
+            progressive = int(kwargs.get('progressive', True))
+            vector_file = int(kwargs.get('vector_file', False))
+            landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
+            raster3d = int(kwargs.get('raster3d', False))
+            compression = int(kwargs.get('compression', True))
+            magnification = int(kwargs.get('magnification', 2))
 
-        # scale the fontsize  for text rendering according to magnification
-        old_ft = []
-        for fig in self._figs.values():
-            for ax in fig.getp('axes').values():
-                old_ft.append(ax.getp('fontsize'))
-                ax.setp(fontsize=old_ft[-1] * magnification**.8)
+            # scale the fontsize  for text rendering according to magnification
+            old_ft = []
+            for fig in self._figs.values():
+                for ax in fig.getp('axes').values():
+                    old_ft.append(ax.getp('fontsize'))
+                    ax.setp(fontsize=old_ft[-1] * magnification**.8)
 
-        for _ in ('compression_or_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression', 'magnification'):
-            _print('   ', _, '=', locals()[_])
+            for _ in ('compression_or_quality', 'progressive', 'vector_file', 'landscape', 'raster3d', 'compression', 'magnification'):
+                _print('   ', _, '=', locals()[_])
 
-        if not self.getp('show'):  # don't render to screen
-            # print('offscreen')
-            off_ren = self._g.renwin.GetOffScreenRendering()
-            self._g.renwin.OffScreenRenderingOn()
+            if not self.getp('show'):  # don't render to screen
+                # print('offscreen')
+                off_ren = self._g.renwin.GetOffScreenRendering()
+                self._g.renwin.OffScreenRenderingOn()
 
-        if kwargs.get('replot', True):
-            self._replot()
+            if kwargs.get('replot', True):
+                self._replot()
 
-        basename, ext = os.path.splitext(filename)
-        if not ext:
-            # no extension given, assume .ps:
-            ext = '.ps'
-            filename += ext
+            basename, ext = os.path.splitext(filename)
+            if not ext:
+                # no extension given, assume .ps:
+                ext = '.ps'
+                filename += ext
 
-        vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3, '.svg': 4}
-        if vector_file and ext.lower() in vector_file_formats:
-            exp = vtkOpenGLGL2PSExporter()
-            if DEBUG:
-                exp.DebugOn()
-            exp.SetBufferSize(50 * 1024**2)  #  50MB
-            exp.SetRenderWindow(self._g.renwin)
-            exp.SetFilePrefix(basename)
-            exp.SetFileFormat(vector_file_formats[ext.lower()])
-            exp.SetCompress(compression)
-            exp.SetLandscape(landscape)
-            # exp.SetSortToBSP()
-            exp.SetSortToSimple()  # less expensive sort algorithm
-            exp.DrawBackgroundOn()
-            exp.SetWrite3DPropsAsRasterImage(raster3d)
-            exp.Write()
+            vector_file_formats = {'.ps': 0, '.eps': 1, '.pdf': 2, '.tex': 3, '.svg': 4}
+            if vector_file and ext.lower() in vector_file_formats:
+                exp = vtkOpenGLGL2PSExporter()
+                if DEBUG:
+                    exp.DebugOn()
+                exp.SetBufferSize(50 * 1024**2)  #  50MB
+                exp.SetRenderWindow(self._g.renwin)
+                exp.SetFilePrefix(basename)
+                exp.SetFileFormat(vector_file_formats[ext.lower()])
+                exp.SetCompress(compression)
+                exp.SetLandscape(landscape)
+                # exp.SetSortToBSP()
+                exp.SetSortToSimple()  # less expensive sort algorithm
+                exp.DrawBackgroundOn()
+                exp.SetWrite3DPropsAsRasterImage(raster3d)
+                exp.Write()
 
-        elif ext.lower() in ('.tif', '.tiff', '.bmp', '.pnm', '.png', '.jpg', '.jpeg', '.ps', '.eps'):
-            vtk_image_writers = {
-                '.tif': vtkTIFFWriter(),
-                '.tiff': vtkTIFFWriter(),
-                '.bmp': vtkBMPWriter(),
-                '.pnm': vtkPNMWriter(),
-                '.png': vtkPNGWriter(),
-                '.jpg': vtkJPEGWriter(),
-                '.jpeg': vtkJPEGWriter(),
-                '.ps': vtkPostScriptWriter(),
-                '.eps': vtkPostScriptWriter(),  # gives a normal PS file
-            }
-            w2if = vtkWindowToImageFilter()
-            w2if.SetMagnification(magnification)
-            if magnification > 1:
-                w2if.FixBoundaryOn()
-            w2if.SetInput(self._g.renwin)
-            if ext.lower() in ('.ps', '.eps'):
-                w2if.SetInputBufferTypeToRGB()  # vtkPostScriptWriter only support 1 or 3 (RGB) components not 4 (RGB + alpha)
+            elif ext.lower() in ('.tif', '.tiff', '.bmp', '.pnm', '.png', '.jpg', '.jpeg', '.ps', '.eps', '.avi', '.mp4', '.raw'):
+                vtk_image_writers = {
+                    '.tif': vtkTIFFWriter(),
+                    '.tiff': vtkTIFFWriter(),
+                    '.bmp': vtkBMPWriter(),
+                    '.pnm': vtkPNMWriter(),
+                    '.png': vtkPNGWriter(),
+                    '.jpg': vtkJPEGWriter(),
+                    '.jpeg': vtkJPEGWriter(),
+                    '.ps': vtkPostScriptWriter(),
+                    '.eps': vtkPostScriptWriter(),  # gives a normal PS file
+                    '.avi': vtkFFMPEGWriter(),
+                    '.mp4': vtkFFMPEGWriter(),
+                    '.raw': vtkFFMPEGWriter(),
+                }
+                w2if = vtkWindowToImageFilter()
+                w2if.SetMagnification(magnification)
+                if magnification > 1:
+                    w2if.FixBoundaryOn()
+                w2if.SetInput(self._g.renwin)
+                if ext.lower() in ('.ps', '.eps'):
+                    w2if.SetInputBufferTypeToRGB()  # vtkPostScriptWriter only support 1 or 3 (RGB) components not 4 (RGB + alpha)
+                else:
+                    w2if.SetInputBufferTypeToRGBA()  # else all items drawn using alpha channel won't appear
+                w2if.ReadFrontBufferOff()  # needed to avoid some desktop overlay on linux
+                w2if.Update()  # or w2if.Modified(), advised in documentation
+                writer = vtk_image_writers[ext.lower()]
+                if ext.lower() in ('.png',):
+                    writer.SetCompressionLevel(compression_or_quality)  # 0-9, default 5
+                if ext.lower() in ('.jpg', '.jpeg'):
+                    writer.SetQuality((compression_or_quality + 1) * 10)  # default 10*10 = 100
+                    writer.SetProgressive(progressive)
+                if ext.lower() in ('.tif', '.tiff'):
+                    writer.SetCompressionToDeflate()
+                if ext.lower() in ('.avi', '.mp4', '.raw'):
+                    writer.SetBitRate(1024 * 1024 * 30)
+                    writer.SetBitRateTolerance(1024 * 1024 * 3)
+                    if ext.lower() in ('.raw',):
+                        writer.CompressionOff()
+
+                    class vtkTimerCallback:
+                        'vtk.org/Wiki/VTK/Examples/Python/Animation'
+                        def __init__(self):
+                            self.timer_count = 0
+                     
+                        def execute(self,obj,event):
+                            print(self.timer_count)
+                            self.actor.SetPosition(self.timer_count, self.timer_count,0);
+                            iren = obj
+                            iren.GetRenderWindow().Render()
+                            self.timer_count += 1
+ 
+                    cb = vtkTimerCallback()
+                    cb.actor = self._ax._renderer.GetActors()[0]
+
+
+                    self._g.iren.AddObserver('TimerEvent', cb.execute)
+                    self._g.iren.CreateRepeatingTimer(100)
+                    '''
+                    this is not correct, we must add the timer during the _replot() call
+                    in fact, just before fig._g.vtkWidget.Start() in all_show()
+                    '''
+                    self._g.iren.Start() 
+                    writer.Start()
+
+                writer.SetFileName(filename)
+                writer.SetInputConnection(w2if.GetOutputPort())
+
+                'here we should animate the movie'
+                writer.Write()
+
+                if ext.lower() in ('.avi', '.mp4', '.raw'):
+                    writer.End()
             else:
-                w2if.SetInputBufferTypeToRGBA()  # else all items drawn using alpha channel won't appear
-            w2if.ReadFrontBufferOff()  # needed to avoid some desktop overlay on linux
-            w2if.Update()  # or w2if.Modified(), advised in documentation
-            writer = vtk_image_writers[ext.lower()]
-            if ext.lower() in ('.png',):
-                writer.SetCompressionLevel(compression_or_quality)  # 0-9, default 5
-            if ext.lower() in ('.jpg', '.jpeg'):
-                writer.SetQuality((compression_or_quality + 1) * 10)  # default 10*10 = 100
-                writer.SetProgressive(progressive)
-            if ext.lower() in ('.tif', '.tiff'):
-                writer.SetCompressionToDeflate()
-            writer.SetFileName(filename)
-            writer.SetInputConnection(w2if.GetOutputPort())
-            writer.Write()
-        else:
-            msg = 'hardcopy: Extension {} is currently not supported.'.format(ext)
-            print(msg)
-            raise TypeError(msg)
+                msg = 'hardcopy: Extension {} is currently not supported.'.format(ext)
+                print(msg)
+                raise TypeError(msg)
 
-        # restore OffScreenRendering state
-        if not self.getp('show'):
-            self._g.renwin.SetOffScreenRendering(off_ren)
+            # restore OffScreenRendering state
+            if not self.getp('show'):
+                self._g.renwin.SetOffScreenRendering(off_ren)
 
-        # reset fontsize
-        for fig in self._figs.values():
-            for ax in fig.getp('axes').values():
-                ax.setp(fontsize=old_ft.pop())
+            # reset fontsize
+            for fig in self._figs.values():
+                for ax in fig.getp('axes').values():
+                    ax.setp(fontsize=old_ft.pop())
 
     # reimplement color maps and other methods (if necessary) like clf,
     # closefig, and closefigs here.

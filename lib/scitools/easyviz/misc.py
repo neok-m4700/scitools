@@ -22,11 +22,13 @@ def _update_from_config_file(d, section='easyviz'):
 def aslist(obj):
     'ensure a list item'
     try:
-        iter(obj)
-        return obj
+        if isinstance(obj, str):
+            raise
+        else:
+            iter(obj)
+            return obj
     except:
         return [obj]
-
 
 def _toggle_state(state):
     if state == 'off' or not state:
