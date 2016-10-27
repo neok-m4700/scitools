@@ -40,6 +40,7 @@ import os
 import readline  # see bugs.python.org/issue19884
 import sys
 from contextlib import contextmanager
+import numba
 
 import numpy as np
 from enum import Enum
@@ -47,7 +48,6 @@ from scitools.globaldata import DEBUG, OPTIMIZATION, VERBOSE, VTK_BACKEND
 from scitools.misc import check_if_module_exists
 from util.vtkAlgorithm import VTKPythonAlgorithmBase
 from vtk import *
-import numba
 
 from .colormaps import _cmaps
 from .common import *
@@ -75,15 +75,18 @@ if _vtk_options['mesa']:
     del _imaging_fact
 
 
-enable, cache = OPTIMIZATION == 'numba', True
+ENABLE, CACHE = OPTIMIZATION == 'numba', True
+
+def jit(*args, **kwargs):
+    def wrap(func):
+        return numba.jit(func, cache=CACHE, **kwargs) if not __debug__ and ENABLE else func
+    return wrap(*args) if args else wrap
 
 
-def jit(func):
-    return numba.jit(func, cache=cache) if enable else func
-
-
-def njit(func):
-    return numba.njit(func, cache=cache)if enable else func
+def njit(*args, **kwargs):
+    def wrap(func):
+        return numba.jit(func, cache=CACHE, nopython=True, **kwargs) if not __debug__ and ENABLE else func
+    return wrap(*args) if args else wrap
 
 
 VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
@@ -2635,19 +2638,19 @@ class VTKBackend(BaseClass):
 
                     class vtkTimerCallback:
                         'vtk.org/Wiki/VTK/Examples/Python/Animation'
+
                         def __init__(self):
                             self.timer_count = 0
-                     
-                        def execute(self,obj,event):
+
+                        def execute(self, obj, event):
                             print(self.timer_count)
-                            self.actor.SetPosition(self.timer_count, self.timer_count,0);
+                            self.actor.SetPosition(self.timer_count, self.timer_count, 0)
                             iren = obj
                             iren.GetRenderWindow().Render()
                             self.timer_count += 1
- 
+
                     cb = vtkTimerCallback()
                     cb.actor = self._ax._renderer.GetActors()[0]
-
 
                     self._g.iren.AddObserver('TimerEvent', cb.execute)
                     self._g.iren.CreateRepeatingTimer(100)
@@ -2655,7 +2658,7 @@ class VTKBackend(BaseClass):
                     this is not correct, we must add the timer during the _replot() call
                     in fact, just before fig._g.vtkWidget.Start() in all_show()
                     '''
-                    self._g.iren.Start() 
+                    self._g.iren.Start()
                     writer.Start()
 
                 writer.SetFileName(filename)
