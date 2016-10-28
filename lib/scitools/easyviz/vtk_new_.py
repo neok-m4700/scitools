@@ -77,6 +77,7 @@ if _vtk_options['mesa']:
 
 ENABLE, CACHE = OPTIMIZATION == 'numba', True
 
+
 def jit(*args, **kwargs):
     def wrap(func):
         return numba.jit(func, cache=CACHE, **kwargs) if not __debug__ and ENABLE else func
@@ -145,7 +146,7 @@ else:
         from tk import vtkTkRenderWindowInteractor
 
 
-class _VTKFigure:
+class _vtkFigure:
 
     def __init__(self, plt, width, height, title=''):
         self.backend = VTK_BACKEND.lower()
@@ -472,7 +473,7 @@ def _set_norm_3d(x, y, z, u, v, w, scalars):
                 ind += 1
 
 
-class VTKBackend(BaseClass):
+class vtkBackend(BaseClass):
 
     def __init__(self):
         super().__init__()
@@ -2291,7 +2292,7 @@ class VTKBackend(BaseClass):
             if not (width and height):
                 width, height = 800, 600
                 fig.setp(size=[width, height])
-            fig._g = _VTKFigure(self, width, height, title=self.name)
+            fig._g = _vtkFigure(self, width, height, title=self.name)
             self._register_bindings(fig._g.vtkWidget)
 
         self.fig = fig
@@ -2457,24 +2458,19 @@ class VTKBackend(BaseClass):
         'blocking call for showing tk widget'
         _print('<mainloop>')
 
-        # closing empty figures, efficient only if there is any plot object !
+        # loop to see if there are any plot objects else close the figure
+        not_null = False
         for fignum in sorted(list(self._figs.keys()), reverse=True):
             fig = self._figs[fignum]
-            if all(not ax.getp('plotitems') for ax in fig.getp('axes').values()):
+            if any(ax.getp('plotitems') for ax in fig.getp('axes').values()):
+                not_null = True
+            else:
                 _print('figure', fignum, 'is empty')
                 _g = getattr(fig, '_g', None)
                 if _g:
                     _g.exit()
                 else:
                     self.closefig(fignum)
-
-        # re-loop to see if there are plot objects
-        not_null = False
-        for fignum in sorted(list(self._figs.keys()), reverse=True):
-            fig = self._figs[fignum]
-            if any(ax.getp('plotitems') for ax in fig.getp('axes').values()):
-                not_null = True
-                break
 
         if not_null:
             self.setp(**kwargs)
@@ -2811,7 +2807,7 @@ class VTKBackend(BaseClass):
                         m2.__doc__ = ''
                     m2.__doc__ = m1.__doc__ + m2.__doc__
 
-plt = VTKBackend()   # create backend instance
+plt = vtkBackend()   # create backend instance
 use(plt, globals())  # export public namespace of plt to globals()
 backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 
@@ -3018,3 +3014,14 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 # <...>(int idx, int port, int connection, int fieldAssociation, const char *name)
 # threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, 'scalars')
 # threshold.SetInputArrayToProcess(0, 0, 0, vtkDataObject.FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes.SCALARS)
+
+# closing empty figures, efficient only if there is any plot object !
+# for fignum in sorted(list(self._figs.keys()), reverse=True):
+#     fig = self._figs[fignum]
+#     if not any(ax.getp('plotitems') for ax in fig.getp('axes').values()):
+#         _print('figure', fignum, 'is empty')
+#         _g = getattr(fig, '_g', None)
+#         if _g:
+#             _g.exit()
+#         else:
+#             self.closefig(fignum)

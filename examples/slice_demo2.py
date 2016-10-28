@@ -5,6 +5,7 @@
 
 import scitools.globaldata
 scitools.globaldata.backend = 'vtk_new'
+scitools.globaldata.DEBUG = True
 from scitools.easyviz import *
 from time import sleep
 
@@ -60,3 +61,4 @@ shading('interp')
 
 plt.mainloop(show=True, interactive=True)
 # input("Press Return key to quit: ")
+# print(plt._figs[1].getp('axes')[1].getp('plotitems'))

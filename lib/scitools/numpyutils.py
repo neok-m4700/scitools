@@ -77,7 +77,7 @@ import numpy as np
 
 def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
              memoryorder=None):
-    """Now just a call to np.meshgrid (for numpy version >= 1.7)."""
+    'now just a call to np.meshgrid (for numpy version >= 1.7)'
     # In the past, np.meshgrid only worked for 2D problems and this
     # was the generalization that is now incorporated in numpy v1.7.
     args = []

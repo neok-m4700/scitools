@@ -1,3 +1,4 @@
+from ..numpyutils import *
 import numpy as np
 
 
@@ -32,11 +33,11 @@ def peaks(*args):
     if nargs in (0, 1):
         if nargs == 1:
             n = int(args[0])
-        x, y = np.ndgrid(np.linspace(-3, 3, n), np.linspace(-3, 3, n))
+        x, y = ndgrid(np.linspace(-3, 3, n), np.linspace(-3, 3, n))
     elif nargs == 2:
         x, y = args
     else:
-        raise SyntaxError("Invalid number of arguments.")
+        raise SyntaxError('Invalid number of arguments')
     return 3 * (1 - x)**2 * exp(-x**2 - (y + 1)**2) - 10 * (x / 5 - x**3 - y**5) * np.exp(-x**2 - y**2) - 1 / 3 * np.exp(-(x + 1)**2 - y**2)
 
 
@@ -45,16 +46,16 @@ def flow(*args):
     # xx,yy,zz,vv = flow(n)
     # xx,yy,zz,vv = flow(xx,yy,zz)
     if len(args) == 0:
-        xx, yy, zz = np.ndgrid(np.linspace(0.1, 10, 50),
-                               np.linspace(-3, 3, 25),
-                               np.linspace(-3, 3, 25),
-                               sparse=False)
+        xx, yy, zz = ndgrid(np.linspace(0.1, 10, 50),
+                            np.linspace(-3, 3, 25),
+                            np.linspace(-3, 3, 25),
+                            sparse=False)
     elif len(args) == 1:
         n = int(args[0])
-        xx, yy, zz = np.ndgrid(np.linspace(0.1, 10, 2 * n),
-                               np.linspace(-3, 3, n),
-                               np.linspace(-3, 3, n),
-                               sparse=False)
+        xx, yy, zz = ndgrid(np.linspace(0.1, 10, 2 * n),
+                            np.linspace(-3, 3, n),
+                            np.linspace(-3, 3, n),
+                            sparse=False)
     elif len(args) == 3:
         xx, yy, zz = args
     else:
@@ -77,4 +78,3 @@ def flow(*args):
     vv = np.log(np.sqrt(xv**2 + yv**2 + zv**2))
 
     return xx, yy, zz, vv
-

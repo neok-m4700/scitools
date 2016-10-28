@@ -7,7 +7,7 @@ import pprint
 from warnings import warn
 
 from scitools.globaldata import backend
-from scitools.numpyutils import (seq, iseq)
+from scitools.numpyutils import *
 import numpy as np
 
 from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
