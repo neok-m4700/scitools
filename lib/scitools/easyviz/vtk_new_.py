@@ -1161,7 +1161,7 @@ class vtkBackend(BaseClass):
             actor.GetProperty().SetSpecularPower(mat.getp('specularpower'))
 
     def _create_2D_scalar_data(self, item):
-        x, y = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata'))
+        x, y = item.getp('xdata').squeeze(), item.getp('ydata').squeeze()
         z = np.asarray(item.getp('zdata'))  # scalar field
         try:
             c = item.getp('cdata')       # pseudocolor data
@@ -1209,13 +1209,13 @@ class vtkBackend(BaseClass):
 
     def _create_2D_vector_data(self, item):
         # grid coordinates
-        x, y = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata'))
+        x, y = item.getp('xdata').squeeze(), item.getp('ydata').squeeze()
         z = item.getp('zdata')           # scalar field
         # vector components
         u, v = np.asarray(item.getp('udata')), np.asarray(item.getp('vdata'))
         w = item.getp('wdata')
 
-        z = np.zeros(u.shape) if z is None else np.squeeze(z)
+        z = np.zeros(u.shape) if z is None else z.squeeze()
         w = np.zeros(u.shape) if w is None else np.asarray(w)
 
         # print(z, w)
@@ -1252,7 +1252,7 @@ class vtkBackend(BaseClass):
         return self.sgrid
 
     def _create_3D_scalar_data(self, item):
-        x, y, z = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata')), np.squeeze(item.getp('zdata'))
+        x, y, z = item.getp('xdata').squeeze(), item.getp('ydata').squeeze(), item.getp('zdata').squeeze()
         v = np.asarray(item.getp('vdata'))  # scalar data
         c = item.getp('cdata')           # pseudocolor data
 
@@ -1305,7 +1305,7 @@ class vtkBackend(BaseClass):
 
     def _create_3D_vector_data(self, item):
         # grid components
-        x, y, z = np.squeeze(item.getp('xdata')), np.squeeze(item.getp('ydata')), np.squeeze(item.getp('zdata'))
+        x, y, z = item.getp('xdata').squeeze(), item.getp('ydata').squeeze(), item.getp('zdata').squeeze()
         # vector components
         u, v, w = np.asarray(item.getp('udata')), np.asarray(item.getp('vdata')), np.asarray(item.getp('wdata'))
 

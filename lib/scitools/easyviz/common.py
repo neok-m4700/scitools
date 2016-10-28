@@ -352,7 +352,7 @@ class PlotProperties:
         'return limits on the x, y, and z axis: xmin, xmax, ymin, ymax, zmin, zmax'
         return self._prop['xlim'] + self._prop['ylim'] + self._prop['zlim']
 
-    def _set_lim(self, a, name, adj_step=0.03):
+    def _set_lim(self, a, name, adj_step=.03):
         if isinstance(a, np.ndarray):
             amin = a.min()
             amax = a.max()
@@ -698,6 +698,7 @@ class VelocityVectors(PlotProperties):
 
     _local_prop = {
         'arrowscale': 1.,
+        '_as': None,
         'filledarrows': False,
         'cone_resolution': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
@@ -720,6 +721,10 @@ class VelocityVectors(PlotProperties):
             _check_type(kwargs['arrowscale'], 'arrowscale', (int, float))
             self._prop['arrowscale'] = float(kwargs['arrowscale'])
 
+        if '_as' in kwargs:
+            _check_type(kwargs['_as'], '_as', (int, float))
+            self._prop['_as'] = float(kwargs['_as'])
+
         if 'cone_resolution' in kwargs:
             _check_type(kwargs['cone_resolution'], 'cone_resolution', int)
             self._prop['cone_resolution'] = int(kwargs['cone_resolution'])
@@ -740,6 +745,7 @@ class VelocityVectors(PlotProperties):
         func = self._prop['function']
         kwargs = dict(indexing=self._prop['indexing'])
         nargs = len(args)
+
         if nargs == 6 or nargs == 7:  # quiver3(X,Y,Z,U,V,W)
             x, y, z, u, v, w = _check_xyzuvw(*args[:6], **kwargs)
         elif nargs >= 4 and nargs <= 5:  # quiver(X,Y,U,V) or quiver3(Z,U,V,W)
@@ -758,45 +764,87 @@ class VelocityVectors(PlotProperties):
 
         self._set_data(x, y, z, u, v, w)
 
-    def scale_vectors(self):
+    def scale_vectors(self, dim=None, fact=.95):
+        'we use dim for givin an indication on where the columetrix data is sliced'
+        DEBUG = True
         as_ = self._prop['arrowscale']
         if as_:
             u = self._prop['udata']
             v = self._prop['vdata']
             w = self._prop['wdata']
+            if DEBUG:
+                print('u.shape', u.shape)
             dims = self._prop['dims']
             xmin, xmax, ymin, ymax, zmin, zmax = self.get_limits()
-            dx = (xmax - xmin) / dims[0]
-            dy = (ymax - ymin) / dims[1]
-            d = dx**2 + dy**2
-            if w is not None:
-                dz = (zmax - zmin) / dims[2]
-                d += dz**2
-                # dz = (zmax - zmin) / max(dims[0], dims[1])
-                # d += dx**2
-            if d > 0:
-                if w is not None:
-                    length = np.sqrt((u / d)**2 + (v / d)**2 + (w / d)**2)
+            if DEBUG:
+                print('(xmin, xmax, ymin, ymax, zmin, zmax)', (xmin, xmax, ymin, ymax, zmin, zmax))
+                print('dims', dims)
+            if self._prop['_as'] is None:
+                if dim is None:
+                    dx = (xmax - xmin) / dims[0]
+                    dy = (ymax - ymin) / dims[1]
+                    d = dx**2 + dy**2
+                    if DEBUG:
+                        print('(dx, dy)', dx, dy)
+                    if w is not None:
+                        '''
+                        dims[2] does not count since we work with planes, even in a volume
+                        dz = (zmax - zmin) / dims[2]
+                        d += dz**2
+                        '''
+                        dz = (zmax - zmin) / max(dims[0], dims[1])
+                        d += dz**2
+                        if DEBUG:
+                            print('(dz)', dz)
                 else:
-                    length = np.sqrt((u / d)**2 + (v / d)**2)
-                maxlen = max(length.flat)
-            else:
-                maxlen = 0
+                    if dim == 0:
+                        dy = (ymax - ymin) / dims[0]
+                        dz = (zmax - zmin) / dims[1]
+                        if DEBUG:
+                            print('(dy, dz)', dy, dz)
+                        d = dy**2 + dz**2
+                    elif dim == 1:
+                        dx = (xmax - xmin) / dims[0]
+                        dz = (zmax - zmin) / dims[1]
+                        if DEBUG:
+                            print('(dx, dz)', dx, dz)
+                        d = dx**2 + dz**2
+                    elif dim == 2:
+                        dx = (xmax - xmin) / dims[0]
+                        dy = (ymax - ymin) / dims[1]
+                        if DEBUG:
+                            print('(dx, dy)', dx, dy)
+                        d = dx**2 + dy**2
 
-            if maxlen > 0:
-                as_ = as_ * .9 / maxlen
+                maxlen = 0
+                if d > 0:
+                    if w is not None:
+                        length = np.sqrt((u / d)**2 + (v / d)**2 + (w / d)**2)
+                    else:
+                        length = np.sqrt((u / d)**2 + (v / d)**2)
+                    maxlen = length.max()
+
+                as_ *= fact / maxlen if maxlen > 0 else fact
+                if DEBUG:
+                    print('(scaling vectors, maxlen, d)', as_, maxlen, d)
+                self._prop['_as'] = as_  # for reuse and scale with the same factor
+
+            if dim is None:
+                if DEBUG:
+                    print('scaling with as_', self._prop['_as'])
+                self._prop['udata'] = u * self._prop['_as']
+                self._prop['vdata'] = v * self._prop['_as']
+                if w is not None:
+                    self._prop['wdata'] = w * self._prop['_as']
             else:
-                as_ = as_ * .9
-            self._prop['udata'] = u * as_
-            self._prop['vdata'] = v * as_
-            if w is not None:
-                self._prop['wdata'] = w * as_
+                return self._prop['_as']
 
     def _set_data(self, x, y, z, u, v, w):
         self._set_lim(x, 'xlim')
         self._set_lim(y, 'ylim')
         if z is not None:
             self._set_lim(z, 'zlim')
+
         self._prop['xdata'] = x
         self._prop['ydata'] = y
         self._prop['zdata'] = z
@@ -4067,7 +4115,7 @@ class BaseClass:
         # force the dataset to have equal aspect ratio
         # it is better this way, it avoid misleading interpretation on the grid size
         if 'daspect' not in kwargs:
-            kwargs['daspect'] = (1,1,1)
+            kwargs['daspect'] = (1, 1, 1)
 
         with self.tmp_setp(show=False):
             self.suptitle(suptitle)
@@ -4095,20 +4143,40 @@ class BaseClass:
         # print(sx, sy, sz)
 
         if 'daspect' not in kwargs:
-            kwargs['daspect'] = (1,1,1)
+            kwargs['daspect'] = (1, 1, 1)
 
         hold = self.ishold()
 
         with self.tmp_setp(show=False):
+            'force the _as to be common between the quiver plots'
             if not hold:
                 self.hold('on')
 
             # self.slice_(x, y, z, np.zeros_like(u), sx, sy, sz)
+            planes = []
             for dim, sl in enumerate([sx, sy, sz]):
+                print('(dim, sl)', dim, sl)
                 for idx in sl:
                     s = [slice(None)] * 3
-                    s[dim] = idx
-                    self.quiver(x[s], y[s], z[s], u[s], v[s], w[s], **kwargs)
+                    if False:
+                        s[dim] = slice(idx, idx + 1)  # using a slice object allows to keep the sliced array dim the same as the original
+                        # s[dim] = idx
+                        h = self.quiver3(x[s], y[s], z[s], u[s], v[s], w[s], **kwargs)
+                    else:
+                        s[dim] = idx
+                        h = self.quiver(x[s], y[s], z[s], u[s], v[s], w[s], **kwargs)
+                    # if '_as' not in kwargs:
+                    #     kwargs['_as'] = h.scale_vectors(dim)
+                    h.scale_vectors(dim)
+                    planes.append(h)
+
+            # 'set the common scale factor'
+            test = [_._prop['_as'] for _ in planes if _._prop['_as'] is not None]
+            print('test', test)
+            if test:
+                maxi = max(test)
+                for _ in planes:
+                    _._prop['_as'] = maxi
 
             if not hold:
                 self.hold('off')
