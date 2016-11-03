@@ -3440,15 +3440,14 @@ _import_list.append('from utils import *\nfrom movie import movie')
 _t3 = _time.clock(); _import_times += 'utils: %s ' % (_t3 - _t2)
 
 if VERBOSE >= 2:
-    for i in _import_list:
-        print(i)
+    [print(_) for _ in _import_list]
 if VERBOSE >= 3:
     print(_import_times)
 if VERBOSE >= 1:
-    print("scitools.easyviz backend is %s" % backend)
+    print('scitools.easyviz backend is {}'.format(backend))
 
 __doc__ += '\nImport statements in this module:\n' + '\n'.join(_import_list)
 
 
 # add plot doc string to package doc string:
-#__doc__ += plot.__doc__
+# __doc__ += plot.__doc__

@@ -20,8 +20,8 @@ def _update_from_config_file(d, section='easyviz'):
                 raise Exception('%s, trying to set key=%s to % s' % (str(e), key, data[key][0]))
 
 
-def aslist(obj):
-    'ensure a list item'
+def asiterable(obj):
+    'ensure an iterable object (returns a list if not iterable)'
     try:
         if isinstance(obj, str):
             raise
@@ -40,8 +40,8 @@ def _toggle_state(state):
 
 
 def _print(*args, **kwargs):
-    'print with default verbosity 1'
-    lvl = kwargs.pop('lvl', 1)
+    'print with default verbosity 0'
+    lvl = kwargs.pop('lvl', 0)
     dbg = kwargs.pop('dbg', scitools.globaldata.DEBUG)
     kwargs['flush'] = True  # for print calls not ending with '\n'
     if dbg and lvl <= scitools.globaldata.VERBOSE:
@@ -51,7 +51,7 @@ def _print(*args, **kwargs):
 @contextmanager
 def _debug(*args, **kwargs):
     'print only if debug and enough verbosity'
-    kw = dict(end=' ', lvl=kwargs.pop('lvl', 1), dbg=kwargs.pop('dbg', scitools.globaldata.DEBUG))
+    kw = dict(end=' ', lvl=kwargs.pop('lvl', 0), dbg=kwargs.pop('dbg', scitools.globaldata.DEBUG))
     _print('[ ', ' '.join(map(str, args)), sep='', **kw)
     yield
     _print(']', **kw)

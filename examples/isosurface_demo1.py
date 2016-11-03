@@ -4,7 +4,7 @@
 # mathworks.com/access/helpdesk/help/techdoc/ref/isosurface.html and
 # mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3653.html
 import scitools.globaldata
-scitools.globaldata.DEBUG = False
+scitools.globaldata.DEBUG = True
 scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 
@@ -12,9 +12,9 @@ setp(show=False)
 
 x, y, z, v = flow()
 
-print(x.shape, y.shape, z.shape, v.shape)
+print('shapes', x.shape, y.shape, z.shape, v.shape)
 
-h = isosurface(x, y, z, v, -3, islice='infinite')
+h = isosurface(x, y, z, v, -3, iwidget='infinite')
 # setp(h, 'FaceColor', 'red', 'EdgeColor', 'none')
 # h.setp(opacity=.5)
 shading('flat')
@@ -28,7 +28,7 @@ axis('tight')
 # savefig('tmp_isosurf1a_lq.eps', vector_file=False)
 # savefig('tmp_isosurf1a.png')
 figure()
-h = isosurface(x, y, z, v, 0, islice='image')
+h = isosurface(x, y, z, v, 0, iwidget='image')
 # setp(hpatch,'FaceColor','red','EdgeColor','none')
 shading('interp')
 daspect([1, 4, 4])
@@ -39,7 +39,6 @@ plt.mainloop(show=True)
 # setp(gcf,'Renderer','zbuffer');
 # lighting('phong')
 # show()
-
 
 # savefig('tmp_isosurf1b.eps')
 # savefig('tmp_isosurf1b_lq.eps', vector_file=False)

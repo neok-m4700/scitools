@@ -12,7 +12,7 @@ import numpy as np
 
 from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
                    _check_xyzuvw, _check_xyzv, _toggle_state,
-                   _update_from_config_file, aslist, _print)
+                   _update_from_config_file, asiterable, _print)
 
 from contextlib import contextmanager
 
@@ -162,7 +162,7 @@ class PlotProperties:
         'memoryorder': 'yxz',  # FIXME: this is deprecated and will be removed
         'indexing': 'ij',  # 'xy' is Cartesian indexing, 'ij' matrix indexing
         'default_lines': 'with_markers',  # 'plain',
-        'islice': False
+        'iwidget': False,
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
@@ -259,6 +259,10 @@ class PlotProperties:
                 self._prop['indexing'] = kwargs['indexing']
             else:
                 raise ValueError('indexing must be xy or ij, not {}'.format(kwargs['indexing']))
+
+        if 'iwidget' in kwargs:
+            _check_type(kwargs['iwidget'], 'iwidget', (bool, str))
+            self._prop['iwidget'] = kwargs['iwidget']
 
         if 'islice' in kwargs:
             _check_type(kwargs['islice'], 'islice', (bool, str))
@@ -4130,7 +4134,7 @@ class BaseClass:
         kwargs['description'] = 'quiverslice: 2D slice quiver plot of 3D data'
         x, y, z, u, v, w, sx, sy, sz = args
 
-        sx, sy, sz = aslist(sx), aslist(sy), aslist(sz)
+        sx, sy, sz = asiterable(sx), asiterable(sy), asiterable(sz)
         # print(sx, sy, sz)
 
         if 'daspect' not in kwargs:

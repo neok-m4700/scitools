@@ -50,7 +50,7 @@ from vtk import *
 
 from .colormaps import _cmaps
 from .common import *
-from .misc import _update_from_config_file, _print, _debug, _msg
+from .misc import (_update_from_config_file, _print, _debug, _msg, asiterable)
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
@@ -89,7 +89,15 @@ def njit(*args, **kwargs):
     return wrap(*args) if args else wrap
 
 
-VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
+VTK_COORD_SYS = {
+    0: 'VTK_DISPLAY',
+    1: 'VTK_NORMALIZED_DISPLAY',
+    2: 'VTK_VIEWPORT',
+    3: 'VTK_NORMALIZED_VIEWPORT',
+    4: 'VTK_VIEW',
+    5: 'VTK_WORLD',
+    6: 'VTK_USERDEFINED'
+}
 
 
 if 'qt' in VTK_BACKEND.lower():
@@ -298,17 +306,17 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
         return self.GetOutputDataObject(port)
 
 
-def vtkInteractiveWidget(islice, **kwargs):
+def vtkInteractiveWidget(parent, **kwargs):
     '''
-    a wraper for a widget
+    a wrapper for a widget
     '''
-    if 'box' in islice or 'cube' in islice:
+    if isinstance(parent, bool) or 'box' in parent or 'cube' in parent:
         klass, plane = vtkBoxWidget, vtkPlanes
-    elif 'image' in islice:
+    elif 'image' in parent:
         klass, plane = vtkImagePlaneWidget, vtkPlane
-    elif 'implicit' in islice or 'infinite' in islice:
+    elif 'implicit' in parent or 'infinite' in parent:
         klass, plane = vtkImplicitPlaneWidget, vtkPlane
-    elif 'plane' in islice:
+    elif 'plane' in parent:
         klass, plane = vtkPlaneWidget, vtkPlane
 
     def _set_opacity(obj, val):
@@ -333,13 +341,13 @@ def vtkInteractiveWidget(islice, **kwargs):
         def _disable(obj, event):
             _print('off')
             obj._on = False
-            obj._SaveWidget()
+            obj._saveWidget()
 
         @staticmethod
         def _interaction(obj, event):
             # see www.python.org/dev/peps/pep-3104 for nonlocal kw
             # _print('£', end=' '):
-            obj._GetPlane()
+            obj._getPlane()
 
         @staticmethod
         def _start_interaction(obj, event):
@@ -354,33 +362,50 @@ def vtkInteractiveWidget(islice, **kwargs):
                 obj.OutlineCursorWiresOff()
                 obj.GetHandleProperty().SetOpacity(.2)
             _set_opacity(obj, 0)
-            obj._SaveWidget()
+            obj._saveWidget()
 
         def __init__(self, plane, **kwargs):
             super().__init__()
-            self.ax = kwargs.get('ax')
-            self.fig = kwargs.get('fig')
+            self.ax = kwargs['ax']
+            self.fig = kwargs['fig']
+            self._sync = kwargs['sync']
             self._p = plane()
             self._obs = []
-            old = getattr(self.ax, '_iw', None)
-            self._hs = getattr(old, '_hs', self.GetHandleSize() / 3)
+            # only fetch the previous values if we allow synchronization
+            old = getattr(self.ax, '_iw', None) if self._sync else None
             self._on = getattr(old, '_on', False)
+            self._hs = getattr(old, '_hs', self.GetHandleSize() / 3)
+            _print(klass, 'handlesize', self._hs)
             if isinstance(self, vtkBoxWidget):
                 self._t = vtkTransform()
                 if isinstance(old, vtkBoxWidget):
                     old.GetTransform(self._t)
             elif isinstance(self, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)):
                 self._b = getattr(old, '_b', (-1, 1, -1, 1, -1, 1))
+
             if len(getattr(old, '_obs', [])) > 0:
-                old._RemoveObservers()
+                old._removeObservers()
 
             self.SetInteractor(self.fig._g.iren)
             # self.SetCurrentRenderer(self.ax._renderer)
             self.SetDefaultRenderer(self.ax._renderer)
-            self.SetHandleSize(self._hs)
             self.SetPlaceFactor(1.01)
+            self.SetHandleSize(self._hs)
             self.SetInputConnection(kwargs.get('ic'))
-            self.PlaceWidget()
+
+            origin, normal = kwargs.get('origin'), kwargs.get('normal')
+            if origin and normal and isinstance(self._p, vtkPlane):
+                # rotate the plane around the center of the plane
+                # aligning the plane normal with the specified normal
+                # OK with vtkPlanWidget, NOK with vtkImplicitPlaneWidget
+                # _print('set o/n', origin, normal)
+                func = 'SetCenter' if hasattr(self, 'SetCenter') else 'SetOrigin'
+                getattr(self, func)(origin)
+                self.SetNormal(normal)
+                self.UpdatePlacement()  # necessary ?
+            else:
+                self.PlaceWidget()
+            
             if isinstance(self, vtkBoxWidget):
                 self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
                 self.SetTransform(self._t)
@@ -395,24 +420,21 @@ def vtkInteractiveWidget(islice, **kwargs):
 
             [getattr(self, _)().SetColor(self.ax.getp('axiscolor')) for _ in funcs]
 
-        def _GetPlane(self):
-            func = None
-            if isinstance(self, vtkBoxWidget):
-                func = 'GetPlanes'
-            elif isinstance(self, (vtkImplicitPlaneWidget, vtkPlaneWidget)):
-                func = 'GetPlane'
+        def _getPlane(self):
+            'GetPlane is copying widget normal/origin to plane normal/origin'
+            func = 'GetPlanes' if isinstance(self, vtkBoxWidget) else 'GetPlane' if isinstance(self, (vtkImplicitPlaneWidget, vtkPlaneWidget)) else None
             # vtkImagePlaneWidget does not have a method to get the plane
             if func:
                 getattr(self, func)(self._p)
             return self._p
 
-        def _RemoveObservers(self):
+        def _removeObservers(self):
             try:
                 [self.RemoveObserver(_) for _ in self._obs]
             except:
                 pass
 
-        def _AddObservers(self):
+        def _addObservers(self):
             for e, c in [('InteractionEvent', self._interaction),
                          ('StartInteractionEvent', self._start_interaction),
                          ('EndInteractionEvent', self._end_interaction),
@@ -420,7 +442,8 @@ def vtkInteractiveWidget(islice, **kwargs):
                          ('DisableEvent', self._disable)]:
                 self._obs.append(self.AddObserver(e, c))
 
-        def _SaveWidget(self):
+        def _saveWidget(self):
+            # with _debug('_saveWidget'):
             if isinstance(self, vtkBoxWidget):
                 self.GetTransform(self._t)
             elif isinstance(self, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)):
@@ -429,23 +452,27 @@ def vtkInteractiveWidget(islice, **kwargs):
                 if pts:
                     self._b = pts.GetBounds()
 
-            # set other widgets bounds/transform
-            for ax in list(self.fig.getp('axes').values()):
-                if ax == self.ax:
-                    continue
-                if getattr(ax, '_iw', None) is not None:
-                    if all(isinstance(_, vtkBoxWidget) for _ in (self, ax._iw)):
-                        ax._iw._t = self._t
-                        ax._iw.SetTransform(self._t)
-                        ax._iw.InvokeEvent('InteractionEvent')
-                    elif all(isinstance(_, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)) for _ in (self, ax._iw)):
-                        ax._iw._pd = self._pd
-                        ax._iw._b = self._b
-                        ax._iw.PlaceWidget(ax._iw._b)
-                        ax._iw.InvokeEvent('InteractionEvent')
+            if self._sync:
+                # set other widgets bounds/transform (for sync'ed subplots)
+                for ax in list(self.fig.getp('axes').values()):
+                    if ax == self.ax:
+                        continue
+                    if getattr(ax, '_iw', None) is not None:
+                        if all(isinstance(_, vtkBoxWidget) for _ in (self, ax._iw)):
+                            ax._iw._t = self._t
+                            ax._iw.SetTransform(self._t)
+                            ax._iw.InvokeEvent('InteractionEvent')
+                        elif all(isinstance(_, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)) for _ in (self, ax._iw)):
+                            ax._iw._pd = self._pd
+                            ax._iw._b = self._b
+                            ax._iw.PlaceWidget(ax._iw._b)
+                            ax._iw.InvokeEvent('InteractionEvent')
 
-        def __str__(self):
-            return '\n'.join(['{}:{}'.format(k, v) for (k, v) in self.__dict__.items()])
+        def _fullRepr(self):
+            return '\n'.join(['{}:{}'.format(k, v) for (k, v) in self.__dict__.items() if k not in ('fig', 'ax')])
+
+        def __repr__(self):
+            return '{} at {}'.format(klass, id(self))
 
     return _vtkInteractiveWidget(plane, **kwargs)
 
@@ -944,10 +971,10 @@ class vtkBackend(BaseClass):
         def print_cam(camera, msg):
             names = ('pos', 'viewup', 'proj_dir', 'focalpoint', 'viewangle', 'plane_norm', 'wincenter', 'viewshear', 'orientation', 'orientationWXYZ', 'roll')
             props = [getattr(camera, _)() for _ in ('GetPosition', 'GetViewUp', 'GetDirectionOfProjection', 'GetFocalPoint', 'GetViewAngle', 'GetViewPlaneNormal', 'GetWindowCenter', 'GetViewShear', 'GetOrientation', 'GetOrientationWXYZ', 'GetRoll')]
-            print(' '.join([str(hex(id(camera))), msg, '.' * 25]))
+            _print(' '.join([str(hex(id(camera))), msg, '.' * 25]))
             for name, prop in zip(names, props):
-                print(name, prop, end=' ')
-            print()
+                _print(name, prop, end=' ')
+            _print()
 
         # unit axes
         if ax.getp('unit'):
@@ -1074,7 +1101,7 @@ class vtkBackend(BaseClass):
         NOTE: slicing should be made before the call to scitools
         (when performance issue with glyphs and multiple subplots for example)
         '''
-        islice = item.getp('islice')
+        iwidget = item.getp('iwidget')
 
         # data boundaries clipper
         box = vtkBox()
@@ -1086,13 +1113,14 @@ class vtkBackend(BaseClass):
         clipper.SetValue(0)
         clipper.InsideOutOn()
 
-        if islice:
+        if iwidget:
             # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
             self._ax._iw = vtkInteractiveWidget(
-                islice,
+                iwidget,
                 ax=self._ax,
                 fig=self.fig,
-                ic=data.GetOutputPort()
+                ic=data.GetOutputPort(),
+                sync=True
             )
 
             iclipper = vtkClipPolyData()
@@ -1114,12 +1142,13 @@ class vtkBackend(BaseClass):
                 _print('cut off')
                 obj._on = False
                 clipper.SetInputConnection(data.GetOutputPort())
-                obj._SaveWidget()
+                obj._saveWidget()
 
-            for _ in (_enable, _disable):
-                setattr(self._ax._iw, _.__name__, _)
+            self._ax._iw._enable = _enable
+            self._ax._iw._disable = _disable
+            # [setattr(self._ax._iw, _.__name__, _) for _ in (_enable, _disable)]
 
-            self._ax._iw._AddObservers()
+            self._ax._iw._addObservers()
 
             self._ax._iw._interaction(self._ax._iw, None)  # in order to avoid 'Please define points and/or normals!' errors
 
@@ -1757,6 +1786,7 @@ class vtkBackend(BaseClass):
 
         sgrid = self._create_3D_scalar_data(item)
         islice = item.getp('islice')
+
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
             # sx, sy, and sz defines a surface
@@ -1788,7 +1818,8 @@ class vtkBackend(BaseClass):
             self._ax._apd.AddInputConnection(data.GetOutputPort())
         else:
             # sx, sy, and sz is either numbers or vectors with numbers
-            origins, normals, widgets = ([] for _ in range(3))
+            origins, normals = ([] for _ in range(2))
+
             sgrid.Update(); sgrido = sgrid.GetOutput()
             # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
@@ -1809,14 +1840,19 @@ class vtkBackend(BaseClass):
                         islice,
                         ax=self._ax,
                         fig=self.fig,
-                        ic=sgrid.GetOutputPort()
-                    )
-                    plane = w._GetPlane()
-                    widgets.append(w)
+                        ic=sgrid.GetOutputPort(),
+                        sync=False,
+                        origin=origins[_],
+                        normal=normals[_])
+                    # w.DebugOn()
+                    w._addObservers()
+                    w._interaction(w, None)
+                    plane = w._getPlane()
+                    self._ax._is.add(w)
                 else:
                     plane = vtkPlane()
-                plane.SetOrigin(origins[_])
-                plane.SetNormal(normals[_])
+                    plane.SetOrigin(origins[_])
+                    plane.SetNormal(normals[_])
                 cut = vtkCutter()
                 cut.SetInputConnection(sgrid.GetOutputPort())
                 cut.SetCutFunction(plane)
@@ -1849,7 +1885,8 @@ class vtkBackend(BaseClass):
                 ###############
                 # INTERACTIVE #
                 ###############
-                [_.On() for _ in widgets]
+                if islice:
+                    [_.On() for _ in self._ax._is]
 
     def _add_contourslice(self, item):
         _print('<contour slice planes +>')
@@ -2217,7 +2254,7 @@ class vtkBackend(BaseClass):
                 kpevent, eargs, ekwargs = 'keyPressEvent', (e,), dict(filtered=True)
 
             key = e.keysym.lower()
-            print(key, end=' ')
+            _print(key, end=' ')
 
             if ctrl or shift:
                 for ax in axs:
@@ -2368,7 +2405,27 @@ class vtkBackend(BaseClass):
 
                 self.figure(max(self._figs) if len(self._figs) > 0 else None)  # raise another figure
 
-    def _setup_axis(self, ax):
+    @staticmethod
+    def _fix_widget_replot(fig, ax, before):
+        for _ in ('_iw', '_is'):
+            widgets = getattr(ax, _, None)
+            _print('widgets', asiterable(widgets))
+            for w in asiterable(widgets):
+                if w is not None and w:
+                    if w._on:  # else iwidget crashes without any information
+                        if before:
+                            w.Off()
+                        else:
+                            if not w.GetEnabled():
+                                _print('enabling widget')
+                                w.On()
+                            w.SetInteractor(fig._g.iren)
+                            w.SetCurrentRenderer(ax._renderer)
+                            w._removeObservers()
+                            w._addObservers()
+                            w.InvokeEvent('EnableEvent')
+
+    def _setup_axis(self, fig, ax):
         with _debug('axis'):
             self._set_limits(ax)
             self._set_daspect(ax)
@@ -2389,9 +2446,15 @@ class vtkBackend(BaseClass):
             # ax._renderer.SetPixelAspect(axshape[1], axshape[0])
 
             ax._apd = vtkAppendPolyData()
-            if getattr(ax, '_iw', None) is not None:
-                if ax._iw._on:  # else iwidget crashes without any information
-                    ax._iw.Off()
+
+            self._fix_widget_replot(fig, ax, True)
+
+            # un-identified crash
+            # if hasattr(self._ax, '_is'):
+            #     for _ in self._ax._is:
+            #         _.Off()
+            #         del _
+            self._ax._is = set()
 
     def _fix_latex(self, legend):
         'Remove latex syntax a la $, \, {, } etc'
@@ -2428,7 +2491,7 @@ class vtkBackend(BaseClass):
                 continue
             if axs and ax not in axs:  # then replot only for specified axes
                 continue
-            # print('--> replot for ax', hex(id(ax)))
+            # _print('--> replot for ax', hex(id(ax)))
             self._ax = ax  # link for faster access
             if nrows != 1 or ncols != 1:
                 # create axes in tiled position  this is subplot(nrows,ncols,axnr)
@@ -2438,8 +2501,9 @@ class vtkBackend(BaseClass):
                 ax.setp(viewport=[xmin, ymin, xmax, ymax])
                 # _print('viewport (xmin, ymin, xmax, ymax)', (xmin, ymin, xmax, ymax))
 
-            self._setup_axis(ax)
-            # from now on, ax._renderer and ax._apd are created
+            self._setup_axis(fig, ax)
+            # from now on, ax._renderer, ax._apd, ax._is are created
+
             plotitems = ax.getp('plotitems')
             plotitems.sort(key=self._cmpPlotProperties)
             for item in plotitems:
@@ -2474,22 +2538,7 @@ class vtkBackend(BaseClass):
 
             self._set_axis_props(ax)
 
-            if getattr(ax, '_iw', None) is not None:
-                # print('after reset', ax._iw)
-                if ax._iw._on:
-                    print('enabling widget')
-                    # fig._g.iren.SetKeyCode('i')
-                    if not ax._iw.GetEnabled():
-                        ax._iw.On()
-                    ax._iw.SetInteractor(fig._g.iren)
-                    ax._iw.SetCurrentRenderer(ax._renderer)
-                    # fig._g.iren.CharEvent()
-                    # fig._g.iren.KeyPressEvent()
-                    # ax._iw.OnChar()
-                    # ax._iw.On()
-                    ax._iw._RemoveObservers()
-                    ax._iw._AddObservers()
-                    ax._iw.InvokeEvent('EnableEvent')
+            self._fix_widget_replot(fig, ax, False)
 
         if self.getp('show'):
             # display plot on the screen
@@ -2684,7 +2733,7 @@ class vtkBackend(BaseClass):
                             self.timer_count = 0
 
                         def execute(self, obj, event):
-                            print(self.timer_count)
+                            _print(self.timer_count)
                             self.actor.SetPosition(self.timer_count, self.timer_count, 0)
                             iren = obj
                             iren.GetRenderWindow().Render()
@@ -2712,7 +2761,7 @@ class vtkBackend(BaseClass):
                     writer.End()
             else:
                 msg = 'hardcopy: Extension {} is currently not supported.'.format(ext)
-                print(msg)
+                _print(msg)
                 raise TypeError(msg)
 
             # restore OffScreenRendering state
@@ -3070,3 +3119,9 @@ backend = os.path.splitext(os.path.basename(__file__))[0][:-1]
 #             _g.exit()
 #         else:
 #             self.closefig(fignum)
+
+# fig._g.iren.CharEvent()
+# fig._g.iren.KeyPressEvent()
+# ax._iw.OnChar()
+# ax._iw.On()
+# fig._g.iren.SetKeyCode('i')

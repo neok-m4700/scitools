@@ -7,6 +7,7 @@ scitools.globaldata.DEBUG = False
 scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from scipy import io
+import numpy as np
 
 setp(interactive=False)
 
@@ -17,9 +18,9 @@ u, v, w = wind['u'], wind['v'], wind['w']
 
 sx, sy, sz = ndgrid([80] * 36, seq(20, 55, 1), [5] * 36, sparse=True)
 
-wind_speed = sqrt(u**2 + v**2 + w**2)
+wind_speed = np.sqrt(u**2 + v**2 + w**2)
 
-hiso = isosurface(x, y, z, wind_speed, 40, indexing='xy', islice=True)
+hiso = isosurface(x, y, z, wind_speed, 40, indexing='xy', iwidget=True)
 # isonormals(x,y,z,wind_speed,hiso)
 # set(hiso,'FaceColor','red','EdgeColor','none');
 hold('on')
@@ -37,7 +38,7 @@ except:
 # Create First Set of Cones:
 daspect([1, 1, 1])
 # [f verts] = reducepatch(isosurface(x,y,z,wind_speed,30),0.07);
-isosurface(x, y, z, wind_speed, 30, indexing='xy', islice=True)
+isosurface(x, y, z, wind_speed, 30, indexing='xy', iwidget=True)
 # h1 = coneplot(x,y,z,u,v,w,verts(:,1),verts(:,2),verts(:,3),3);
 # set(h1,'FaceColor','blue','EdgeColor','none');
 
