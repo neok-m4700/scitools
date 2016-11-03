@@ -699,6 +699,7 @@ class VelocityVectors(PlotProperties):
     _local_prop = {
         'arrowscale': 1.,
         '_as': None,
+        'is_scaled': False,
         'filledarrows': False,
         'cone_resolution': None,
         'xdata': None, 'ydata': None, 'zdata': None,  # grid components
@@ -829,13 +830,14 @@ class VelocityVectors(PlotProperties):
                     print('(scaling vectors, maxlen, d)', as_, maxlen, d)
                 self._prop['_as'] = as_  # for reuse and scale with the same factor
 
-            if dim is None:
+            if dim is None and not self._prop['is_scaled']:
                 if DEBUG:
                     print('scaling with as_', self._prop['_as'])
                 self._prop['udata'] = u * self._prop['_as']
                 self._prop['vdata'] = v * self._prop['_as']
                 if w is not None:
                     self._prop['wdata'] = w * self._prop['_as']
+                self._prop['is_scaled'] = True
             else:
                 return self._prop['_as']
 
