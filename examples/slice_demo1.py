@@ -17,7 +17,7 @@ v = x * np.exp(-x**2 - y**2 - z**2)
 xslice = [-1.2, .8, 2 - BUG]
 yslice = 2
 zslice = [-2 + BUG, 0]
-slice_(x, y, z, v, xslice, yslice, zslice, grid='on')
+slice_(x, y, z, v, xslice, yslice, zslice, grid='on', islice='infinite')
 
 plt.mainloop()
 

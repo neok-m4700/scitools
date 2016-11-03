@@ -58,8 +58,7 @@ Functionality of this module that extends Numerical Python
 """
 
 
-if __name__.find('numpyutils') != -1:
-    from numpy import *
+import numpy as np
 
 # else if name is some other module name:
 # this file is included in numpytools.py (through a preprocessing step)
@@ -67,12 +66,10 @@ if __name__.find('numpyutils') != -1:
 # modules (Numeric, numpy, numarray)
 
 import operator
-from .FloatComparison import float_eq, float_ne, float_lt, float_le, \
-    float_gt, float_ge
+from .FloatComparison import float_eq, float_ne, float_lt, float_le, float_gt, float_ge
 import collections
 from functools import reduce
 from .Heaviside import *
-import numpy as np
 
 
 def meshgrid(x=None, y=None, z=None, sparse=False, indexing='xy',
@@ -1281,7 +1278,7 @@ def seq(min=0.0, max=None, inc=1.0, type=float,
     if max is None:  # allow sequence(3) to be 0., 1., 2., 3.
         # take 1st arg as max, min as 0, and inc=1
         max = min; min = 0.0; inc = 1.0
-    r = arange(min, max + inc / 2.0, inc, type)
+    r = np.arange(min, max + inc / 2.0, inc, type)
     if return_type == 'NumPyArray' or return_type == ndarray:
         return r
     elif return_type == 'list':

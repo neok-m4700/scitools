@@ -39,7 +39,6 @@ from __future__ import print_function
 import os
 import readline  # see bugs.python.org/issue19884
 import sys
-from contextlib import contextmanager
 import numba
 
 import numpy as np
@@ -51,7 +50,7 @@ from vtk import *
 
 from .colormaps import _cmaps
 from .common import *
-from .misc import _update_from_config_file, _print
+from .misc import _update_from_config_file, _print, _debug, _msg
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
@@ -92,12 +91,6 @@ def njit(*args, **kwargs):
 
 VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
 
-
-@contextmanager
-def _debug(*args):
-    _print('[ ', ' '.join(map(str, args)), end=' ', sep='')
-    yield
-    _print(']', end=' ')
 
 if 'qt' in VTK_BACKEND.lower():
     from PyQt4 import QtCore, QtGui
@@ -305,21 +298,69 @@ class vtkAlgorithmSource(VTKPythonAlgorithmBase):
         return self.GetOutputDataObject(port)
 
 
-def vtkInteractiveWidget(parent, **kwargs):
-    if 'boxwidget' in parent.lower():
-        klass, plane = vtkBoxWidget, vtkPlanes()
-    elif 'implicitplanewidget' in parent.lower():
-        klass, plane = vtkImplicitPlaneWidget, vtkPlane()
-    else:
-        raise NotImplementedError('wrong type of parent: {}'.format(parent))
+def vtkInteractiveWidget(islice, **kwargs):
+    '''
+    a wraper for a widget
+    '''
+    if 'box' in islice or 'cube' in islice:
+        klass, plane = vtkBoxWidget, vtkPlanes
+    elif 'image' in islice:
+        klass, plane = vtkImagePlaneWidget, vtkPlane
+    elif 'implicit' in islice or 'infinite' in islice:
+        klass, plane = vtkImplicitPlaneWidget, vtkPlane
+    elif 'plane' in islice:
+        klass, plane = vtkPlaneWidget, vtkPlane
+
+    def _set_opacity(obj, val):
+        if isinstance(obj, vtkBoxWidget):
+            funcs = ('GetOutlineProperty', 'GetFaceProperty')
+        elif isinstance(obj, (vtkPlaneWidget, vtkImagePlaneWidget)):
+            funcs = ('GetPlaneProperty',)
+        elif isinstance(obj, vtkImplicitPlaneWidget):
+            funcs = ('GetPlaneProperty', 'GetOutlineProperty')
+        [getattr(obj, _)().SetOpacity(val) for _ in funcs]
 
     class _vtkInteractiveWidget(klass):
+
+        @staticmethod
+        def _enable(obj, event):
+            _print('on')
+            obj._on = True
+            obj._interaction(obj, event)
+            obj._end_interaction(obj, event)
+
+        @staticmethod
+        def _disable(obj, event):
+            _print('off')
+            obj._on = False
+            obj._SaveWidget()
+
+        @staticmethod
+        def _interaction(obj, event):
+            # see www.python.org/dev/peps/pep-3104 for nonlocal kw
+            # _print('£', end=' '):
+            obj._GetPlane()
+
+        @staticmethod
+        def _start_interaction(obj, event):
+            if isinstance(obj, vtkBoxWidget):
+                obj.OutlineCursorWiresOn()
+                obj.GetHandleProperty().SetOpacity(.5)
+            _set_opacity(obj, .5)
+
+        @staticmethod
+        def _end_interaction(obj, event):
+            if isinstance(obj, vtkBoxWidget):
+                obj.OutlineCursorWiresOff()
+                obj.GetHandleProperty().SetOpacity(.2)
+            _set_opacity(obj, 0)
+            obj._SaveWidget()
 
         def __init__(self, plane, **kwargs):
             super().__init__()
             self.ax = kwargs.get('ax')
             self.fig = kwargs.get('fig')
-            self._p = plane
+            self._p = plane()
             self._obs = []
             old = getattr(self.ax, '_iw', None)
             self._hs = getattr(old, '_hs', self.GetHandleSize() / 3)
@@ -328,7 +369,7 @@ def vtkInteractiveWidget(parent, **kwargs):
                 self._t = vtkTransform()
                 if isinstance(old, vtkBoxWidget):
                     old.GetTransform(self._t)
-            elif isinstance(self, vtkImplicitPlaneWidget):
+            elif isinstance(self, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)):
                 self._b = getattr(old, '_b', (-1, 1, -1, 1, -1, 1))
             if len(getattr(old, '_obs', [])) > 0:
                 old._RemoveObservers()
@@ -341,18 +382,29 @@ def vtkInteractiveWidget(parent, **kwargs):
             self.SetInputConnection(kwargs.get('ic'))
             self.PlaceWidget()
             if isinstance(self, vtkBoxWidget):
-                self.GetOutlineProperty().SetColor(self.ax.getp('axiscolor'))
                 self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
                 self.SetTransform(self._t)
+                funcs = ('GetOutlineProperty',)
             elif isinstance(self, vtkImplicitPlaneWidget):
-                [_.SetColor(self.ax.getp('axiscolor')) for _ in (self.GetOutlineProperty(), self.GetEdgesProperty())]
+                funcs = ('GetOutlineProperty', 'GetEdgesProperty')
+                self.DrawPlaneOff()
+                self._pd = vtkPolyData()
+            elif isinstance(self, (vtkPlaneWidget, vtkImagePlaneWidget)):
+                funcs = ('GetPlaneProperty',)
                 self._pd = vtkPolyData()
 
+            [getattr(self, _)().SetColor(self.ax.getp('axiscolor')) for _ in funcs]
+
         def _GetPlane(self):
+            func = None
             if isinstance(self, vtkBoxWidget):
-                self.GetPlanes(self._p)
-            elif isinstance(self, vtkImplicitPlaneWidget):
-                self.GetPlane(self._p)
+                func = 'GetPlanes'
+            elif isinstance(self, (vtkImplicitPlaneWidget, vtkPlaneWidget)):
+                func = 'GetPlane'
+            # vtkImagePlaneWidget does not have a method to get the plane
+            if func:
+                getattr(self, func)(self._p)
+            return self._p
 
         def _RemoveObservers(self):
             try:
@@ -361,17 +413,17 @@ def vtkInteractiveWidget(parent, **kwargs):
                 pass
 
         def _AddObservers(self):
-            for e, c in [('InteractionEvent', self.pw_interaction),
-                         ('StartInteractionEvent', self.pw_start_interaction),
-                         ('EndInteractionEvent', self.pw_end_interaction),
-                         ('EnableEvent', self.pw_enable),
-                         ('DisableEvent', self.pw_disable)]:
+            for e, c in [('InteractionEvent', self._interaction),
+                         ('StartInteractionEvent', self._start_interaction),
+                         ('EndInteractionEvent', self._end_interaction),
+                         ('EnableEvent', self._enable),
+                         ('DisableEvent', self._disable)]:
                 self._obs.append(self.AddObserver(e, c))
 
         def _SaveWidget(self):
             if isinstance(self, vtkBoxWidget):
                 self.GetTransform(self._t)
-            elif isinstance(self, vtkImplicitPlaneWidget):
+            elif isinstance(self, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)):
                 self.GetPolyData(self._pd)
                 pts = self._pd.GetPoints()
                 if pts:
@@ -386,7 +438,7 @@ def vtkInteractiveWidget(parent, **kwargs):
                         ax._iw._t = self._t
                         ax._iw.SetTransform(self._t)
                         ax._iw.InvokeEvent('InteractionEvent')
-                    elif all(isinstance(_, vtkImplicitPlaneWidget) for _ in (self, ax._iw)):
+                    elif all(isinstance(_, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)) for _ in (self, ax._iw)):
                         ax._iw._pd = self._pd
                         ax._iw._b = self._b
                         ax._iw.PlaceWidget(ax._iw._b)
@@ -1037,7 +1089,7 @@ class vtkBackend(BaseClass):
         if islice:
             # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
             self._ax._iw = vtkInteractiveWidget(
-                'boxwidget' if islice == 'cube' else 'implicitplanewidget',
+                islice,
                 ax=self._ax,
                 fig=self.fig,
                 ic=data.GetOutputPort()
@@ -1049,44 +1101,27 @@ class vtkBackend(BaseClass):
             iclipper.SetValue(0)
             iclipper.InsideOutOn()
 
-            def pw_interaction(obj, event):
-                # see www.python.org/dev/peps/pep-3104 for nonlocal kw
-                obj._GetPlane()
-
-            def pw_start_interaction(obj, event):
-                if isinstance(obj, vtkBoxWidget):
-                    obj.OutlineCursorWiresOn()
-                    obj.GetHandleProperty().SetOpacity(.5)
-                obj.GetOutlineProperty().SetOpacity(.5)
-
-            def pw_end_interaction(obj, event):
-                if isinstance(obj, vtkBoxWidget):
-                    obj.OutlineCursorWiresOff()
-                    obj.GetHandleProperty().SetOpacity(.2)
-                obj.GetOutlineProperty().SetOpacity(0)
-                obj._SaveWidget()
-
-            def pw_enable(obj, event):
+            def _enable(obj, event):
                 nonlocal iclipper, clipper
+                _print('cut on')
                 clipper.SetInputConnection(iclipper.GetOutputPort())
                 obj._on = True
-                print('on')
-                pw_interaction(obj, event)
-                pw_end_interaction(obj, event)
+                obj._interaction(obj, event)
+                obj._end_interaction(obj, event)
 
-            def pw_disable(obj, event):
+            def _disable(obj, event):
                 nonlocal data, clipper
+                _print('cut off')
                 obj._on = False
-                print('off')
                 clipper.SetInputConnection(data.GetOutputPort())
                 obj._SaveWidget()
 
-            for _ in (pw_interaction, pw_start_interaction, pw_end_interaction, pw_enable, pw_disable):
+            for _ in (_enable, _disable):
                 setattr(self._ax._iw, _.__name__, _)
 
             self._ax._iw._AddObservers()
 
-            pw_interaction(self._ax._iw, None)  # in order to avoid 'Please define points and/or normals!' errors
+            self._ax._iw._interaction(self._ax._iw, None)  # in order to avoid 'Please define points and/or normals!' errors
 
         return clipper
 
@@ -1721,7 +1756,7 @@ class vtkBackend(BaseClass):
         _print('<slice vol +>')
 
         sgrid = self._create_3D_scalar_data(item)
-
+        islice = item.getp('islice')
         sx, sy, sz = item.getp('slices')
         if sz.ndim == 2:
             # sx, sy, and sz defines a surface
@@ -1753,7 +1788,7 @@ class vtkBackend(BaseClass):
             self._ax._apd.AddInputConnection(data.GetOutputPort())
         else:
             # sx, sy, and sz is either numbers or vectors with numbers
-            origins, normals = [], []
+            origins, normals, widgets = ([] for _ in range(3))
             sgrid.Update(); sgrido = sgrid.GetOutput()
             # print('sgrido', sgrido.GetNumberOfCells(), sgrido.GetNumberOfPoints())
             center = sgrido.GetCenter()
@@ -1769,7 +1804,17 @@ class vtkBackend(BaseClass):
                 normals.append([0, 0, 1])
                 origins.append([center[0], center[1], sz[_]])
             for _ in range(len(normals)):
-                plane = vtkPlane()
+                if islice:
+                    w = vtkInteractiveWidget(
+                        islice,
+                        ax=self._ax,
+                        fig=self.fig,
+                        ic=sgrid.GetOutputPort()
+                    )
+                    plane = w._GetPlane()
+                    widgets.append(w)
+                else:
+                    plane = vtkPlane()
                 plane.SetOrigin(origins[_])
                 plane.SetNormal(normals[_])
                 cut = vtkCutter()
@@ -1800,6 +1845,11 @@ class vtkBackend(BaseClass):
                 self._set_actor_properties(item, actor)
                 self._ax._renderer.AddActor(actor)
                 self._ax._apd.AddInputConnection(cut.GetOutputPort())
+
+                ###############
+                # INTERACTIVE #
+                ###############
+                [_.On() for _ in widgets]
 
     def _add_contourslice(self, item):
         _print('<contour slice planes +>')

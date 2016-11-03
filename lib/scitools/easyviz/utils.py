@@ -63,12 +63,12 @@ def flow(*args):
 
     # convert to spherical coordinates:
     theta = np.arctan2(zz, yy)
-    phi = np.arctan2(xx, sqrt(yy**2 + zz**2))
+    phi = np.arctan2(xx, np.sqrt(yy**2 + zz**2))
     r = np.sqrt(xx**2 + yy**2 + zz**2)
 
     rv = 2 / r * (3 / (2 - np.cos(phi))**2 - 1)
     phiv = -2 * np.sin(phi) / (2 - np.cos(phi)) / r
-    thetav = np.zeros(shape(r))
+    thetav = np.zeros(r.shape)
 
     # convert back to cartesian coordinates:
     xv = rv * np.cos(phiv) * np.cos(thetav)
