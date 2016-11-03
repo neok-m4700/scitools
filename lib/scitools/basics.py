@@ -138,9 +138,9 @@ _import_list.append("from StringFunction import StringFunction")
 _import_list.append("from glob import glob")
 
 # nice to have symbols (for math/numpy/scipy equivalence/vectorization):
-asin = arcsin
-acos = arccos
-atan = arctan
+asin = np.arcsin
+acos = np.arccos
+atan = np.arctan
 
 from . import debug
 debug.DEBUG = DEBUG
