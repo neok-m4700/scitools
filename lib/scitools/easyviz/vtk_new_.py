@@ -51,7 +51,7 @@ from vtk import *
 
 from .colormaps import _cmaps
 from .common import *
-from .misc import _update_from_config_file
+from .misc import _update_from_config_file, _print
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
@@ -91,11 +91,6 @@ def njit(*args, **kwargs):
 
 
 VTK_COORD_SYS = {0: 'VTK_DISPLAY', 1: 'VTK_NORMALIZED_DISPLAY', 2: 'VTK_VIEWPORT', 3: 'VTK_NORMALIZED_VIEWPORT', 4: 'VTK_VIEW', 5: 'VTK_WORLD', 6: 'VTK_USERDEFINED'}
-
-
-def _print(*args, **kwargs):
-    if DEBUG:
-        print(*args, **kwargs)
 
 
 @contextmanager

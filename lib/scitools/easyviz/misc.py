@@ -30,11 +30,18 @@ def aslist(obj):
     except:
         return [obj]
 
+
 def _toggle_state(state):
     if state == 'off' or not state:
         return False
     else:
         return True
+
+
+def _print(*args, **kwargs):
+    level = kwargs.pop('level', 0)
+    if scitools.globaldata.DEBUG and level <= scitools.globaldata.VERBOSE:
+        print(*args, **kwargs)
 
 
 def _check_type(var, name, type):

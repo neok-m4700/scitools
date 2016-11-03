@@ -12,7 +12,7 @@ import numpy as np
 
 from .misc import (_check_size, _check_type, _check_xyuv, _check_xyz,
                    _check_xyzuvw, _check_xyzv, _toggle_state,
-                   _update_from_config_file, aslist)
+                   _update_from_config_file, aslist, _print)
 
 from contextlib import contextmanager
 
@@ -338,15 +338,13 @@ class PlotProperties:
                 elif linetype == '':
                     self._prop['linetype'] = linetype  # Since marker is known
                 else:
-                    print('Illegal line style choice, %s is not known' %
-                          linetype)
+                    print('Illegal line style choice, %s is not known' % linetype)
                 if marker in self._markers:
                     self._prop['linemarker'] = marker
                 elif marker == '':
                     self._prop['linemarker'] = marker  # Since linetype is known
                 else:
-                    print('Illegal line marker choice, %s is not known' %
-                          marker)
+                    print('Illegal line marker choice, %s is not known' % marker)
 
     def get_limits(self):
         'return limits on the x, y, and z axis: xmin, xmax, ymin, ymax, zmin, zmax'
@@ -767,26 +765,23 @@ class VelocityVectors(PlotProperties):
 
     def scale_vectors(self, dim=None, fact=.95):
         'we use dim for givin an indication on where the columetrix data is sliced'
-        DEBUG = True
+        kw = dict(level=1)
         as_ = self._prop['arrowscale']
-        if as_:
+        if as_ and not self._prop['is_scaled']:
             u = self._prop['udata']
             v = self._prop['vdata']
             w = self._prop['wdata']
-            if DEBUG:
-                print('u.shape', u.shape)
+            _print('u.shape', u.shape, **kw)
             dims = self._prop['dims']
             xmin, xmax, ymin, ymax, zmin, zmax = self.get_limits()
-            if DEBUG:
-                print('(xmin, xmax, ymin, ymax, zmin, zmax)', (xmin, xmax, ymin, ymax, zmin, zmax))
-                print('dims', dims)
+            _print('(xmin, xmax, ymin, ymax, zmin, zmax)', (xmin, xmax, ymin, ymax, zmin, zmax), **kw)
+            _print('dims', dims, **kw)
             if self._prop['_as'] is None:
                 if dim is None:
                     dx = (xmax - xmin) / dims[0]
                     dy = (ymax - ymin) / dims[1]
                     d = dx**2 + dy**2
-                    if DEBUG:
-                        print('(dx, dy)', dx, dy)
+                    _print('(dx, dy)', dx, dy, **kw)
                     if w is not None:
                         '''
                         dims[2] does not count since we work with planes, even in a volume
@@ -795,26 +790,22 @@ class VelocityVectors(PlotProperties):
                         '''
                         dz = (zmax - zmin) / max(dims[0], dims[1])
                         d += dz**2
-                        if DEBUG:
-                            print('(dz)', dz)
+                        _print('(dz)', dz, **kw)
                 else:
                     if dim == 0:
                         dy = (ymax - ymin) / dims[0]
                         dz = (zmax - zmin) / dims[1]
-                        if DEBUG:
-                            print('(dy, dz)', dy, dz)
+                        _print('(dy, dz)', dy, dz, **kw)
                         d = dy**2 + dz**2
                     elif dim == 1:
                         dx = (xmax - xmin) / dims[0]
                         dz = (zmax - zmin) / dims[1]
-                        if DEBUG:
-                            print('(dx, dz)', dx, dz)
+                        _print('(dx, dz)', dx, dz, **kw)
                         d = dx**2 + dz**2
                     elif dim == 2:
                         dx = (xmax - xmin) / dims[0]
                         dy = (ymax - ymin) / dims[1]
-                        if DEBUG:
-                            print('(dx, dy)', dx, dy)
+                        _print('(dx, dy)', dx, dy, **kw)
                         d = dx**2 + dy**2
 
                 maxlen = 0
@@ -826,20 +817,18 @@ class VelocityVectors(PlotProperties):
                     maxlen = length.max()
 
                 as_ *= fact / maxlen if maxlen > 0 else fact
-                if DEBUG:
-                    print('(scaling vectors, maxlen, d)', as_, maxlen, d)
+                _print('(scaling vectors, maxlen, d)', as_, maxlen, d, **kw)
                 self._prop['_as'] = as_  # for reuse and scale with the same factor
 
-            if dim is None and not self._prop['is_scaled']:
-                if DEBUG:
-                    print('scaling with as_', self._prop['_as'])
+            if dim is None:
+                _print('scaling with as_', self._prop['_as'], **kw)
                 self._prop['udata'] = u * self._prop['_as']
                 self._prop['vdata'] = v * self._prop['_as']
                 if w is not None:
                     self._prop['wdata'] = w * self._prop['_as']
                 self._prop['is_scaled'] = True
-            else:
-                return self._prop['_as']
+
+        return self._prop['_as']
 
     def _set_data(self, x, y, z, u, v, w):
         self._set_lim(x, 'xlim')
