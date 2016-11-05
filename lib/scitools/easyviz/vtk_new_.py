@@ -51,6 +51,7 @@ from vtk import *
 from .colormaps import _cmaps
 from .common import *
 from .misc import (_update_from_config_file, _print, _debug, _msg, asiterable)
+import traceback
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
@@ -319,14 +320,19 @@ def vtkInteractiveWidget(parent, **kwargs):
     elif 'plane' in parent:
         klass, plane = vtkPlaneWidget, vtkPlane
 
-    def _set_opacity(obj, val):
-        if isinstance(obj, vtkBoxWidget):
-            funcs = ('GetOutlineProperty', 'GetFaceProperty')
-        elif isinstance(obj, (vtkPlaneWidget, vtkImagePlaneWidget)):
-            funcs = ('GetPlaneProperty',)
-        elif isinstance(obj, vtkImplicitPlaneWidget):
-            funcs = ('GetPlaneProperty', 'GetOutlineProperty')
-        [getattr(obj, _)().SetOpacity(val) for _ in funcs]
+    def _set_widget_props(obj, val, toggle):
+        try:
+            props = (
+                'GetMarginProperty', 'GetOutlineProperty', 'GetFaceProperty',
+                'GetHandleProperty', 'GetPlaneProperty', 'GetSelectedHandleProperty'
+            )
+            if isinstance(obj, vtkBoxWidget):
+                getattr(obj, 'OutlineCursorWires' + toggle)()
+
+            [getattr(obj, _)().SetOpacity(val) for _ in props if hasattr(obj, _)]
+        except:
+            print(type(obj))
+            traceback.print_exc()
 
     class _vtkInteractiveWidget(klass):
 
@@ -351,17 +357,11 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         @staticmethod
         def _start_interaction(obj, event):
-            if isinstance(obj, vtkBoxWidget):
-                obj.OutlineCursorWiresOn()
-                obj.GetHandleProperty().SetOpacity(.5)
-            _set_opacity(obj, .5)
+            _set_widget_props(obj, .5, 'On')
 
         @staticmethod
         def _end_interaction(obj, event):
-            if isinstance(obj, vtkBoxWidget):
-                obj.OutlineCursorWiresOff()
-                obj.GetHandleProperty().SetOpacity(.2)
-            _set_opacity(obj, 0)
+            _set_widget_props(obj, .2, 'Off')
             obj._saveWidget()
 
         def __init__(self, plane, **kwargs):
@@ -382,6 +382,12 @@ def vtkInteractiveWidget(parent, **kwargs):
                     old.GetTransform(self._t)
             elif isinstance(self, (vtkImplicitPlaneWidget, vtkImagePlaneWidget, vtkPlaneWidget)):
                 self._b = getattr(old, '_b', (-1, 1, -1, 1, -1, 1))
+
+            if isinstance(self, vtkPlaneWidget):
+                self.SetRepresentationToOff()
+                # vtkPlaneWidget is forcing its own representation of the handles
+                self._hs = self._hs / 3
+            print('handleSize is', self._hs)
 
             if len(getattr(old, '_obs', [])) > 0:
                 old._removeObservers()
@@ -405,7 +411,7 @@ def vtkInteractiveWidget(parent, **kwargs):
                 self.UpdatePlacement()  # necessary ?
             else:
                 self.PlaceWidget()
-            
+
             if isinstance(self, vtkBoxWidget):
                 self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
                 self.SetTransform(self._t)
