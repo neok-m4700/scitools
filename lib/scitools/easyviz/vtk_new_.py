@@ -387,7 +387,7 @@ def vtkInteractiveWidget(parent, **kwargs):
                 self.SetRepresentationToOff()
                 # vtkPlaneWidget is forcing its own representation of the handles
                 self._hs = self._hs / 3
-            print('handleSize is', self._hs)
+            # print('handleSize is', self._hs)
 
             if len(getattr(old, '_obs', [])) > 0:
                 old._removeObservers()
@@ -418,6 +418,7 @@ def vtkInteractiveWidget(parent, **kwargs):
                 funcs = ('GetOutlineProperty',)
             elif isinstance(self, vtkImplicitPlaneWidget):
                 funcs = ('GetOutlineProperty', 'GetEdgesProperty')
+                self.TubingOff()
                 self.DrawPlaneOff()
                 self._pd = vtkPolyData()
             elif isinstance(self, (vtkPlaneWidget, vtkImagePlaneWidget)):
