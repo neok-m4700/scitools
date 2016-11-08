@@ -387,7 +387,7 @@ def vtkInteractiveWidget(parent, **kwargs):
                 self.SetRepresentationToOff()
                 # vtkPlaneWidget is forcing its own representation of the handles
                 self._hs = self._hs / 3
-            print('handleSize is', self._hs)
+            # print('handleSize is', self._hs)
 
             if len(getattr(old, '_obs', [])) > 0:
                 old._removeObservers()

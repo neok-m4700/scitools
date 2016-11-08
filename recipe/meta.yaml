@@ -38,7 +38,7 @@ test:
     - conda inspect linkages $PKG_NAME
 
 about:
-  home: pyamg.org
+  home: hplgit.github.io/scitools/doc/web/index.html
   license: new BSD license
   summary:
     - SciTools is a Python package containing many useful tools for scientific computing in Python
