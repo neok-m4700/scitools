@@ -320,16 +320,28 @@ def vtkInteractiveWidget(parent, **kwargs):
     elif 'plane' in parent:
         klass, plane = vtkPlaneWidget, vtkPlane
 
-    def _set_widget_props(obj, val, toggle):
+    def _set_widget_props(obj, opacity=None, color=None, toggle=None):
         try:
             props = (
-                'GetMarginProperty', 'GetOutlineProperty', 'GetFaceProperty',
-                'GetHandleProperty', 'GetPlaneProperty', 'GetSelectedHandleProperty'
+                'GetOutlineProperty', 'GetSelectedOutlineProperty',
+                'GetPlaneProperty', 'GetSelectedPlaneProperty',
+                'GetHandleProperty', 'GetSelectedHandleProperty',
+                'GetNormalProperty', 'GetSelectedNormalProperty',
+                'GetEdgesProperty', 'GetMarginProperty', 'GetFaceProperty'
             )
-            if isinstance(obj, vtkBoxWidget):
+            if isinstance(obj, vtkBoxWidget) and toggle is not None:
                 getattr(obj, 'OutlineCursorWires' + toggle)()
+            if isinstance(obj, vtkPlaneWidget) and hasattr(obj, 'SetHandleSizeFactor'):
+                obj.SetHandleSizeFactor(.5)
 
-            [getattr(obj, _)().SetOpacity(val) for _ in props if hasattr(obj, _)]
+            for _ in props:
+                if hasattr(obj, _):
+                    prop = getattr(obj, _)()
+                    if opacity is not None:
+                        prop.SetOpacity(opacity)
+                    if color is not None:
+                        prop.SetColor(color)
+                        prop.SetAmbientColor(color)
         except:
             print(type(obj))
             traceback.print_exc()
@@ -357,11 +369,11 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         @staticmethod
         def _start_interaction(obj, event):
-            _set_widget_props(obj, .5, 'On')
+            _set_widget_props(obj, opacity=.5, toggle='On')
 
         @staticmethod
         def _end_interaction(obj, event):
-            _set_widget_props(obj, .2, 'Off')
+            _set_widget_props(obj, opacity=.2, toggle='Off')
             obj._saveWidget()
 
         def __init__(self, plane, **kwargs):
@@ -385,8 +397,13 @@ def vtkInteractiveWidget(parent, **kwargs):
 
             if isinstance(self, vtkPlaneWidget):
                 self.SetRepresentationToOff()
-                # vtkPlaneWidget is forcing its own representation of the handles
-                self._hs = self._hs / 3
+                # id vtkPlaneWidget forcing its own representation of the handles ?
+                # self._hs = self._hs / 3
+                # self.SetResolution(2)
+                # using the patch, hasattr for non patches versions of vtk
+                # if hasattr(self, 'SetHandleSizeFactor'):
+                #     self.SetHandleSizeFactor(self.GetHandleSizeFactor() * 5)
+                #     print(self.GetHandleSizeFactor())
             # print('handleSize is', self._hs)
 
             if len(getattr(old, '_obs', [])) > 0:
@@ -415,17 +432,14 @@ def vtkInteractiveWidget(parent, **kwargs):
             if isinstance(self, vtkBoxWidget):
                 self.RotationEnabledOff()  # we want a bow aligned with the ax, so no rotation allowed
                 self.SetTransform(self._t)
-                funcs = ('GetOutlineProperty',)
             elif isinstance(self, vtkImplicitPlaneWidget):
-                funcs = ('GetOutlineProperty', 'GetEdgesProperty')
                 self.TubingOff()
                 self.DrawPlaneOff()
                 self._pd = vtkPolyData()
             elif isinstance(self, (vtkPlaneWidget, vtkImagePlaneWidget)):
-                funcs = ('GetPlaneProperty',)
                 self._pd = vtkPolyData()
 
-            [getattr(self, _)().SetColor(self.ax.getp('axiscolor')) for _ in funcs]
+            _set_widget_props(self, color=self.ax.getp('axiscolor'))
 
         def _getPlane(self):
             'GetPlane is copying widget normal/origin to plane normal/origin'
@@ -2591,7 +2605,7 @@ class vtkBackend(BaseClass):
                         fig._g.vtkWidget.update()
                     else:
                         pass
-                self.show()
+                self._replot()  # is it really necessary to replot ?
 
     def hardcopy(self, filename, **kwargs):
         '''

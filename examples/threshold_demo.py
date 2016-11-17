@@ -14,7 +14,7 @@ reader.Update()
 data = reader.GetOutput()
 shape = data.GetDimensions()
 
-x = zeros(data.GetNumberOfPoints())
+x = np.zeros(data.GetNumberOfPoints())
 y, z = x.copy(), x.copy()
 
 for _ in range(data.GetNumberOfPoints()):

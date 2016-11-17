@@ -2010,8 +2010,6 @@ class BaseClass:
             if key in self._attrs:  # legal key?
                 if self._attrs_type[key](value):  # legal type?
                     self._attrs[key] = value
-                    if 'key' == 'show':
-                        input('here')
                 else:
                     raise TypeError('BaseClass.setp: keyword {} {} is illegal'.format(key, type(key)))
 

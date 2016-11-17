@@ -1,8 +1,0 @@
-
-:mod:`scitools.BoxGrid`
-=======================
-
-.. automodule:: scitools.BoxGrid
-   :members:
-   :undoc-members:
-   :show-inheritance:
