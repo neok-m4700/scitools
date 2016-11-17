@@ -1,9 +1,8 @@
-import os
-from contextlib import contextmanager
-
 from scitools.numpyutils import seq, meshgrid
-import numpy as np
+from contextlib import contextmanager
 import scitools.globaldata
+import numpy as np
+import os
 
 from functools import cmp_to_key
 

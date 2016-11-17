@@ -3,7 +3,7 @@ import numpy as np
 
 
 def available_backends():
-    '''Return a list of the available backends'''
+    'Return a list of the available backends'
     import os
     from scitools.misc import check_if_module_exists
     files = os.listdir(os.path.dirname(__file__))

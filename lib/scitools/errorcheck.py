@@ -46,10 +46,13 @@ Here is the output (each call triggers the exception)::
 """
 
 
-import types, re, inspect
+import types
+import re
+import inspect
 
 __all__ = ['right_length', 'right_size1', 'right_size2',
            'get_type', 'right_type', 'wrong_type']
+
 
 def get_argname_in_call(call_name, arg_no):
     """
@@ -72,7 +75,7 @@ def get_argname_in_call(call_name, arg_no):
 
     stack = inspect.stack()
     #import pprint; pprint.pprint(stack)
-    #print 'frameinfo:\n', inspect.getframeinfo(stack[3][0])
+    # print 'frameinfo:\n', inspect.getframeinfo(stack[3][0])
 
     # call from some function:
     filename, line_number, func_name, func_call = stack[2][1:5]
@@ -91,10 +94,10 @@ def get_argname_in_call(call_name, arg_no):
         # assume comma is separator (will not work if one of the args
         # is a tuple, dict or list explicitly listed with its value
         # in the call...)
-        argname = args.split(',')[arg_no-1].strip()
+        argname = args.split(',')[arg_no - 1].strip()
         return argname, where
     else:
-        raise ValueError('pattern="%s" does not match "%s"' % \
+        raise ValueError('pattern="%s" does not match "%s"' %
                          (pattern, func_call))
 
 
@@ -110,10 +113,11 @@ def right_length(a, length):
     if len(a) != length:
         a_name, where = get_argname_in_call('right_length', 1)
         raise ValueError(
-            '%s\n%s has length %s, which is not compatible with '\
+            '%s\n%s has length %s, which is not compatible with '
             'assumed length %s' % (where, a_name, len(a), length))
     else:
         return True
+
 
 def right_size1(a, shape):
     """
@@ -125,17 +129,18 @@ def right_size1(a, shape):
     =========  ======================================================
     """
     if not hasattr(a, 'shape'):
-        raise TypeError('%s is %s and not a NumPy array' % \
+        raise TypeError('%s is %s and not a NumPy array' %
                         (a_name, type(a)))
     if isinstance(shape, int):
         shape = (shape,)  # wrap in tuple
     if a.shape != shape:
         a_name, where = get_argname_in_call('right_size1', 1)
         raise ValueError(
-            '%s\n%s has size %s, which is not compatible with assumed size %s' \
+            '%s\n%s has size %s, which is not compatible with assumed size %s'
             % (where, a_name, a.shape, shape))
     else:
         return True
+
 
 def right_size2(a1, a2):
     """
@@ -143,15 +148,15 @@ def right_size2(a1, a2):
     a1 and a2 are NumPy arrays.
     """
     if hasattr(a1, 'shape') and hasattr(a2, 'shape'):
-        pass # ok, a1 and a2 are NumPy arrays
+        pass  # ok, a1 and a2 are NumPy arrays
     else:
-        raise TypeError('%s is %s and %s is %s - both must be NumPy arrays' \
+        raise TypeError('%s is %s and %s is %s - both must be NumPy arrays'
                         % (a1_name, type(a1), a2_name, type(a2)))
     if a1.shape != a2.shape:
         a1_name, where = get_argname_in_call('right_size2', 1)
         a2_name, where = get_argname_in_call('right_size2', 2)
         raise ValueError(
-            '%s\n%s has size %s, which is not compatible with size %s of %s' \
+            '%s\n%s has size %s, which is not compatible with size %s of %s'
             % (where, a1_name, a1.shape, a2.shape, a2_name))
     else:
         return True
@@ -227,6 +232,7 @@ def get_type(a):
 global message
 message = ''
 
+
 def right_type(a, expected_types, raise_exception=True):
     """
     Check that variable a is of the type(s) specified by expected_types,
@@ -238,7 +244,7 @@ def right_type(a, expected_types, raise_exception=True):
     return False and place a message string explaining what is wrong
     in the module variable errorcheck.message.
     """
-    if not isinstance(expected_types, (list,tuple)):
+    if not isinstance(expected_types, (list, tuple)):
         expected_types = [expected_types]  # wrap in list if just single type
     t = get_type(a)
     if 'a class object' in t:
@@ -255,7 +261,7 @@ def right_type(a, expected_types, raise_exception=True):
                 break
         if a_is_class_def:
             # a is a class object
-            #print 'a is class definition'
+            # print 'a is class definition'
             if type(a) == type:
                 try:
                     if issubclass(a, tp):
@@ -265,7 +271,7 @@ def right_type(a, expected_types, raise_exception=True):
                     pass
         else:
             try:
-                #print 'testing isinstance(a, %s)' % str(tp)
+                # print 'testing isinstance(a, %s)' % str(tp)
                 if isinstance(a, tp):
                     match = True
                     break
@@ -312,12 +318,13 @@ if not _SAFECODE:
         efficient_version = 'def %s(*args): return True' % func
         exec(efficient_version)
 
+
 def _test():
     def myfunc(a, b, c):
         return a + b + c
 
     A = 1.1
-    B = [1,2,3]
+    B = [1, 2, 3]
     class myclass:
         pass
 

@@ -1,9 +1,9 @@
-"""
-Run all tests in the current directory.
-"""
+'Run all tests in the current directory'
 
-import os, sys
+import os
+import sys
 import unittest
+
 
 def test_suite(level=1):
     suite = unittest.TestSuite()
@@ -18,6 +18,7 @@ def test_suite(level=1):
         if hasattr(m, 'test_suite'):
             suite.addTest(m.test_suite())
     return suite
+
 
 def test(level=10):
     all_tests = test_suite()

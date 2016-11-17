@@ -52,8 +52,8 @@ class test_contour_levels(EasyvizTestCase):
 
     def check_contour_specify_levels_kwarg(self):
         x, y, xv, yv, values = self.get_2D_data()
-        contour(xv, yv, values, cvector=linspace(-10, 10, 10))
-        title("contour(xv,yv,values,cvector=linspace(-10,10,10))")
+        contour(xv, yv, values, cvector=np.linspace(-10, 10, 10))
+        title("contour(xv,yv,values,cvector=np.linspace(-10,10,10))")
         n()
 
 
@@ -66,18 +66,18 @@ class test_contour_indexing_xy(EasyvizTestCase):
         n()
 
     def check_contour_indexing_xy_rectangular_grid(self):
-        x = linspace(-3, 3, 21)
-        y = linspace(-2, 2, 13)
-        xv, yv = meshgrid(x, y, indexing='xy')
+        x = np.linspace(-3, 3, 21)
+        y = np.linspace(-2, 2, 13)
+        xv, yv = np.meshgrid(x, y, indexing='xy')
         values = peaks(xv, yv)
         contour(xv, yv, values, indexing='xy')
         title("contour(xv,yv,values,indexing='xy') (rectangular grid)")
         n()
 
     def check_contour_indexing_xy_rectangular_grid2(self):
-        x = linspace(-5, 5, 21)
-        y = linspace(-2, 2, 31)
-        xv, yv = meshgrid(x, y, indexing='xy')
+        x = np.linspace(-5, 5, 21)
+        y = np.linspace(-2, 2, 31)
+        xv, yv = np.meshgrid(x, y, indexing='xy')
         values = peaks(xv, yv)
         contour(xv, yv, values, indexing='xy')
         title("contour(xv,yv,values,indexing='xy') (rectangular grid)")

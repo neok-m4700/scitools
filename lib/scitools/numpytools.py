@@ -1068,7 +1068,7 @@ def null(A, tol=1e-10, row_wise_storage=True):
 
 
 class Heaviside:
-    """Standard and smoothed Heaviside function."""
+    'Standard and smoothed Heaviside function'
 
     def __init__(self, eps=0):
         self.eps = eps          # smoothing parameter
@@ -1490,7 +1490,7 @@ except:
 
 
 class WrapNo2Callable:
-    """Turn a number (constant) into a callable function."""
+    'Turn a number (constant) into a callable function'
 
     def __init__(self, constant):
         self.constant = constant
@@ -1556,7 +1556,7 @@ class WrapNo2Callable:
 
 
 class WrapNo2Callable:
-    """Turn a number (constant) into a callable function."""
+    'Turn a number (constant) into a callable function'
 
     def __init__(self, constant):
         self.constant = constant
@@ -2282,7 +2282,7 @@ if __name__ == '__main__':
     from numpy import *
     _test()
 
-#---- build doc string from _numpyload/util doc strings ----
+# ---- build doc string from _numpyload/util doc strings ----
 
 from . import _numpyload as _load
 _load.__doc__ += """
@@ -2321,7 +2321,7 @@ if basic_NumPy != 'numpy':
     if 'numpy' in sys.modules:
         del sys.modules['numpy']
 del _load, _utils
-#---------
+# ---------
 
 if __name__ == '__main__':
 
@@ -2356,10 +2356,10 @@ if __name__ == '__main__':
         reload(N)
         verify(N)
 
-    #_test1()
+    # _test1()
 
     # test_ArrayGen()
-    #_doctest()  # does not work properly with wrap2callable
+    # _doctest()  # does not work properly with wrap2callable
 
     # Test meshgrid function
     import unittest
@@ -2403,7 +2403,7 @@ if __name__ == '__main__':
             import numpy
             x = numpy.arange(10)
             X, Y, Z = N.meshgrid(x, y, z, sparse=False)
-            #assert N.ndim(X) == 3
+            # assert N.ndim(X) == 3
             if not N.ndim(X) == 3:
                 raise AssertionError(
                     "Meshgrid failed with arraytype mix of numpy and %s"
@@ -2428,8 +2428,8 @@ if __name__ == '__main__':
             self.assertEqual(shape(xx), (size(y), size(x)))
             self.assertEqual(shape(yy), (size(y), size(x)))
 
-            #from IPython.Shell import IPythonShellEmbed as magic
-            #magic()('from unittest')
+            # from IPython.Shell import IPythonShellEmbed as magic
+            # magic()('from unittest')
 
     sys.argv.append('')  # extra argument for the test below
     for arg in ['--Numeric', '--numarray', '--numpy']:

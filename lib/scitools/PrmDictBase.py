@@ -3,9 +3,12 @@
 Module for managing parameters.
 """
 
-import re, os, sys
+import re
+import os
+import sys
 import collections
 import numbers
+
 
 def message(m):
     if os.environ.get('DEBUG', '0') == '1':
@@ -135,7 +138,7 @@ Here is an example::
 
     def _prm_dict_names(self):
         """Return the name of all self.*_prm dictionaries."""
-        return [attr for attr in self.__dict__ if \
+        return [attr for attr in self.__dict__ if
                 re.search(r'^[^_].*_prm$', attr)]
 
     def usage(self):
@@ -146,7 +149,7 @@ Here is an example::
             d = self.__dict__[name]
             if isinstance(d, dict):
                 k = list(d.keys())
-                k.sort(lambda a,b: cmp(a.lower(),b.lower()))
+                k.sort(lambda a, b: cmp(a.lower(), b.lower()))
                 prm_names += k
         print('registered parameters:\n')
         for i in prm_names:
@@ -162,7 +165,7 @@ Here is an example::
         """Dump all parameters and their values."""
         for d in self._prm_list:
             keys = list(d.keys())
-            keys.sort(lambda a,b: cmp(a.lower(),b.lower()))
+            keys.sort(lambda a, b: cmp(a.lower(), b.lower()))
             for prm in keys:
                 print('%s = %s' % (prm, d[prm]))
 
@@ -184,14 +187,14 @@ Here is an example::
                         break
                 except TypeError as msg:
                     print(msg)
-                    #break
+                    # break
                     sys.exit(1)  # type error is fatal
 
             if not _set:   # maybe set prm as meta data?
                 if isinstance(self.user_prm, dict):
                     # not a registered parameter:
                     self.user_prm[prm] = kwargs[prm]
-                    message('%s=%s assigned in self.user_prm' % \
+                    message('%s=%s assigned in self.user_prm' %
                             (prm, kwargs[prm]))
                 else:
                     raise NameError('parameter "%s" not registered' % prm)
@@ -207,7 +210,7 @@ Here is an example::
         if prm in d:
             if prm in self._type_check:
                 # prm should be type-checked
-                if isinstance(self._type_check[prm], (int,float)):
+                if isinstance(self._type_check[prm], (int, float)):
                     # (bool is subclass of int)
                     if self._type_check[prm]:
                         # type check against prev. value or None:
@@ -215,24 +218,24 @@ Here is an example::
                             can_set = True
                         # allow mixing int, float, complex:
                         elif isinstance(value, numbers.Number) and\
-                                 isinstance(d[prm], numbers.Number):
+                                isinstance(d[prm], numbers.Number):
                             can_set = True
-                elif isinstance(self._type_check[prm], (tuple,list,type)):
+                elif isinstance(self._type_check[prm], (tuple, list, type)):
                     # self._type_check[prm] holds either the type or
                     # a tuple/list of types; test against them
-                    #print 'testing %s=%s against type %s' % (prm,value,self._type_check[prm])
+                    # print 'testing %s=%s against type %s' % (prm,value,self._type_check[prm])
                     if isinstance(value, self._type_check[prm]):
                         can_set = True
                     else:
-                        raise TypeError('\n\n%s=%s: %s has type %s, not %s' % \
+                        raise TypeError('\n\n%s=%s: %s has type %s, not %s' %
                                         (prm, value, prm, self._type_check[prm],
                                          type(value)))
 
                 elif isinstance(self._type_check[prm], collections.Callable):
                     can_set = self._type_check[prm](value)
                 else:
-                    raise TypeError('self._type_check["%s"] has an '\
-                                    'illegal value %s' % \
+                    raise TypeError('self._type_check["%s"] has an '
+                                    'illegal value %s' %
                                     (prm, self._type_check[prm]))
             else:
                 can_set = True
@@ -244,21 +247,20 @@ Here is an example::
             return True
         return False
 
-
     def _update(self):
         """Check data consistency and make updates."""
         # to be implemented in subclasses
         pass
 
     def get(self, **kwargs):
-        return [self._solver_prm[prm] \
+        return [self._solver_prm[prm]
                 for prm in kwargs if prm in self._solver_prm]
 
     def properties(self, global_namespace):
         """Make properties out of local dictionaries."""
         for ds in self._prm_dict_names():
             d = eval('self.' + ds)
-            for prm in d: # or for prm in self.__dict__[ds]
+            for prm in d:  # or for prm in self.__dict__[ds]
                 # properties cannot have whitespace:
                 prm = prm.replace(' ', '_')
                 cmd = '%s.%s = property(fget='\
@@ -278,7 +280,7 @@ Here is an example::
         # can be tuned in subclasses
 
         # allow dicts to be a single dictionary:
-        if not isinstance(dicts, (list,tuple)):
+        if not isinstance(dicts, (list, tuple)):
             dicts = [dicts]
 
         for d in dicts:
@@ -296,12 +298,12 @@ Here is an example::
         # can be tuned in subclasses
 
         # allow dicts to be a single dictionary:
-        if not isinstance(dicts, (list,tuple)):
+        if not isinstance(dicts, (list, tuple)):
             dicts = [dicts]
 
         for d in dicts:
             for key in d:
-                exec('%s=%s' % (key,repr(d[key])), globals(), namespace)
+                exec('%s=%s' % (key, repr(d[key])), globals(), namespace)
 
     def namespace2dicts(self, namespace, dicts):
         """
@@ -311,7 +313,7 @@ Here is an example::
         namespace is a dictionary, dicts is a list of dictionaries.
         """
         # allow dicts to be a single dictionary:
-        if not isinstance(dicts, (list,tuple)):
+        if not isinstance(dicts, (list, tuple)):
             dicts = [dicts]
 
         keys = []    # all keys in namespace that are keys in dicts
@@ -336,7 +338,7 @@ Here is an example::
         changing their values will not be reflected in the dictionaries!).
         """
         # allow dicts to be a single dictionary:
-        if not isinstance(dicts, (list,tuple)):
+        if not isinstance(dicts, (list, tuple)):
             dicts = [dicts]
 
         s = ''

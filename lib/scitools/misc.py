@@ -1,7 +1,7 @@
-"""
+'''
 A collection of Python utilities originally developed for the
 "Python for Computational Science" book.
-"""
+'''
 
 
 import time
@@ -46,11 +46,11 @@ def import_module(package, module=None):
 
 def check_if_module_exists(modulename, msg='',
                            raise_exception=False, abort=True):
-    """
+    '''
     Test if modulename can be imported, and if not, write
     an error message and (optionally) raise an exception, continue or
     abort with sys.exit(1).
-    """
+    '''
     try:
         __import__(modulename)
         return True
@@ -82,17 +82,17 @@ def check_if_module_exists(modulename, msg='',
 
 
 def func_to_method(func, class_, method_name=None):
-    """
+    '''
     Add a function to a class class_ as method_name.
     If method_name is not given, func.__name__ becomes
     the name of the method.
     Borrowed from recipe 5.12 in the Python Cookbook.
-    """
+    '''
     setattr(class_, method_name or func.__name__, func)
 
 
 def system(command, verbose=True, failure_handling='exit', fake=False):
-    """
+    '''
     User-friendly wrapping of the os.system/os.popen commands.
     Actually, the commands.getstatusoutput function is used on Unix
     systems, and the output from the system command is fetched.
@@ -109,7 +109,7 @@ def system(command, verbose=True, failure_handling='exit', fake=False):
                       failure variable and the output from the command as a
                       string object
     ================  ========================================================
-    """
+    '''
     if verbose:
         print('Running operating system command\n   %s' % command)
     if fake:
@@ -143,7 +143,7 @@ def system(command, verbose=True, failure_handling='exit', fake=False):
 
 
 def read_cml(option, default=None, argv=sys.argv):
-    """
+    '''
     Search for option (e.g. '-p', '--plotfile') among the command-line
     arguments and return the associated value (the proceeding argument).
     If the option is not found, the default argument is returned
@@ -169,7 +169,7 @@ def read_cml(option, default=None, argv=sys.argv):
     See the read_cml_func function for reading function expressions
     or function/instance names on the command line and returning
     callable objects.
-    """
+    '''
     try:
         index = argv.index(option)
         return argv[index + 1]
@@ -181,7 +181,7 @@ def read_cml(option, default=None, argv=sys.argv):
 
 
 def str2bool(s):
-    """
+    '''
     Turn a string s, holding some boolean value
     ('on', 'off', 'True', 'False', 'yes', 'no' - case insensitive)
     into boolean variable. s can also be a boolean. Example:
@@ -190,7 +190,7 @@ def str2bool(s):
     False
     >>> str2bool('yes')
     True
-    """
+    '''
     if isinstance(s, str):
         true_values = ('on', 'true', 'yes')
         false_values = ('off', 'false', 'no')
@@ -208,7 +208,7 @@ def str2bool(s):
 
 
 def str2obj(s, globals_=None, locals_=None, debug=False):
-    """
+    '''
     Turn string s into the corresponding object. str2obj is mainly
     used to take a string from a GUI or the command line and
     create a Python object. For example:
@@ -294,7 +294,7 @@ def str2obj(s, globals_=None, locals_=None, debug=False):
     class (type), that class will be returned. For example,
     >>> str2obj('list')  # returns class list
     <type 'list'>
-    """
+    '''
     if globals_ is None:
         globals_ = globals()
     if locals_ is None:
@@ -310,17 +310,17 @@ def str2obj(s, globals_=None, locals_=None, debug=False):
             return b
         except Exception as e:
             if debug:
-                print("""
+                print('''
 scitools.misc.str2obj:
 Tried to do eval(s) with s="%s", and it resulted in an exception:
     %s
-""" % (s, e))
+''' % (s, e))
             # eval(s) did not work, s is probably a string:
             return s
 
 
 def str2type(value):
-    """
+    '''
     Return a function that can take a string and convert it to
     a Python object of the same type as value.
 
@@ -365,7 +365,7 @@ def str2type(value):
     (Note that we could return eval if value is not a string or a boolean,
     but eval is never returned from this function to avoid conversion
     to an unintended type.)
-    """
+    '''
     if isinstance(value, bool):
         return str2bool
     elif isinstance(value, (basestr, int, float, complex, list, tuple, dict)):
@@ -376,11 +376,11 @@ def str2type(value):
 
 
 def str2type_name(str2type_function):
-    """
+    '''
     Return the function name of the function returned from
     str2type, or any function obtained by the type() operation.
     Useful when reporting conversion str-to-value errors.
-    """
+    '''
     import inspect
     s2t = str2type_function
     if "<type '" in str(s2t):
@@ -396,7 +396,7 @@ def str2type_name(str2type_function):
 
 def interpret_as_callable_or_StringFunction(
         s, iv, globals_, **named_parameters):
-    """
+    '''
     Return a callable object if ``s`` is the name of such an
     object, otherwise turn ``s`` to a ``StringFunction`` object with
     ``iv`` as the name of the independent variable.
@@ -404,7 +404,7 @@ def interpret_as_callable_or_StringFunction(
     string expressions.
     Used by the ``read_cml`` function.
 
-    """
+    '''
     if isinstance(globals_, dict):
         # First assume s is a user defined function or instance creation
         if isinstance(s, str):
@@ -444,7 +444,7 @@ def interpret_as_callable_or_StringFunction(
 
 def read_cml_func(option, default_func, iv='t', globals_=None,
                   **named_parameters):
-    """
+    '''
     Locate ``--option`` on the command line (``sys.argv``) and find
     the corresponding value (next ``sys.argv`` element).
     This value is supposed to specify a Python function, an
@@ -527,7 +527,7 @@ def read_cml_func(option, default_func, iv='t', globals_=None,
     '0'
     >>> f(1)
     0
-    """
+    '''
     if option in sys.argv:
         i = sys.argv.index(option)
         try:
@@ -550,7 +550,7 @@ def read_cml_func(option, default_func, iv='t', globals_=None,
 
 
 def function_UI(functions, argv, verbose=True):
-    """
+    '''
     User interface for calling a collection of functions from the
     command line by writing the function name and its arguments.
     functions is a list of possible functions to be called. argv is
@@ -596,7 +596,7 @@ def function_UI(functions, argv, verbose=True):
 
       programname functionname arg1=value1 arg2=value2 arg3=value3 ...
 
-    """
+    '''
     usage, doc = _function_args_doc(functions)
 
     def all_usage():
@@ -627,19 +627,19 @@ def function_UI(functions, argv, verbose=True):
 
     cmd = '%s(%s)' % (argv[1], ', '.join(argv[2:]))
     # if len(argv[2:]) == len(usage[fname]):
-        # Correct no arguments (eh, can leave out keyword args...)
+    # Correct no arguments (eh, can leave out keyword args...)
     if verbose:
         print('Calling', cmd)
     return cmd
 
 
 def _function_args_doc(functions):
-    """
+    '''
     Create documentation of a list of functions.
     Return: usage dict (usage[funcname] = list of arguments, incl.
     default values), doc dict (doc[funcname] = docstring (or None)).
     Called by function_UI.
-    """
+    '''
     import inspect
     usage = {}
     doc = {}
@@ -658,24 +658,21 @@ def _function_args_doc(functions):
 
 
 def before(string, character):
-    """Return part of string before character."""
+    'Return part of string before character'
     for i in range(len(string)):
         if c == character:
             return string[:i - 1]
 
 
 def after(string, character):
-    """Return part of string after character."""
+    'Return part of string after character'
     for i in range(len(string)):
         if c == character:
             return string[i + 1:]
 
 
 def remove_multiple_items(somelist):
-    """
-    Given some list somelist, return a list where identical items
-    are removed.
-    """
+    'Given some list somelist, return a list where identical items are removed'
     right_type(somelist, list)
     new = []
     helphash = {}
@@ -687,10 +684,10 @@ def remove_multiple_items(somelist):
 
 
 def find(func, rootdir, arg=None):
-    """
+    '''
     Traverse the directory tree rootdir and call func for each file.
     arg is a user-provided argument transferred to func(filename,arg).
-    """
+    '''
     files = os.listdir(rootdir)  # get all files in rootdir
     files.sort(lambda a, b: cmp(a.lower(), b.lower()))
     for file in files:
@@ -706,10 +703,10 @@ def find(func, rootdir, arg=None):
 
 
 def sorted_os_path_walk(root, func, arg):
-    """
+    '''
     Like os.path.walk, but directories and files are visited and
     listed in alphabetic order.
-    """
+    '''
     try:
         files = os.listdir(root)  # get all files in rootdir
     except os.error:
@@ -724,7 +721,7 @@ def sorted_os_path_walk(root, func, arg):
 
 def subst(patterns, replacements, filenames,
           pattern_matching_modifiers=0):
-    """
+    '''
     Replace a set of patterns by a set of replacement strings (regular
     expressions) in a series of files.
     The function essentially performs::
@@ -744,7 +741,7 @@ def subst(patterns, replacements, filenames,
     pattern_matching_modifiers  re.DOTALL, re.MULTILINE, etc., same
                                 syntax as for re.compile
     ==========================  ======================================
-    """
+    '''
     # if some arguments are strings, convert them to lists:
     if isinstance(patterns, str):
         patterns = [patterns]
@@ -792,7 +789,7 @@ def subst(patterns, replacements, filenames,
 
 class Command:
 
-    """
+    '''
     Alternative to lambda functions.
 
     This class should with Python version 2.5 and later be replaced
@@ -810,7 +807,7 @@ class Command:
 
     This Command class is kept for backward compatibility. New usage
     should employ functools.partial instead.
-    """
+    '''
 
     def __init__(self, func, *args, **kwargs):
         self.func = func
@@ -824,12 +821,12 @@ class Command:
 
 
 def timer(func, args=[], kwargs={}, repetitions=10, comment=''):
-    """
+    '''
     Run a function func, with arguments given by the tuple
     args and keyword arguments given by the dictionary kwargs,
     a specified number of times (repetitions) and
     write out the elapsed time and the CPU time together.
-    """
+    '''
     t0 = time.time(); c0 = time.clock()
     for i in range(repetitions):
         func(*args, **kwargs)
@@ -848,14 +845,14 @@ def timer(func, args=[], kwargs={}, repetitions=10, comment=''):
 
 
 def timer_system(command, comment=''):
-    """
+    '''
     Run an os.system(command) statement and measure the CPU time.
     With os.system, the CPU time is registered as the user and
     system time of child processes.
 
     Note: there might be some overhead in the timing compared to
     running time in the OS instead.
-    """
+    '''
     t0 = os.times()
     failure = os.system(command)
     t1 = os.times()
@@ -869,7 +866,7 @@ def timer_system(command, comment=''):
 
 
 def findprograms(programs, searchlibs=[], write_message=False):
-    """
+    '''
     Given a list of programs (programs), find the full path
     of each program and return a dictionary with the program
     name as key and the full path as value. The value is None
@@ -908,7 +905,7 @@ def findprograms(programs, searchlibs=[], write_message=False):
       if not findprograms(programs, write_message=True):
           print 'the mentioned programs need to be installed'
           sys.exit(1)
-    """
+    '''
     def program_exists(fullpath):
         if sys.platform.startswith('win'):
             # add .exe or .bat to program filename:
@@ -979,14 +976,14 @@ def findprograms(programs, searchlibs=[], write_message=False):
 
 
 def pathsearch(programs=[], modules=[], where=0):
-    """
+    '''
     Given a list of programs (programs) and modules (modules),
     search for these programs and modules in the directories
     in the PATH and PYTHONPATH environment variables, respectively.
     Check that each directory has read and write access too.
     The function is useful for checking that PATH and PYTHONPATH
     are appropriately set in CGI scripts.
-    """
+    '''
 
     path = os.environ['PATH']  # /usr/bin:/usr/local/bin:/usr/X11/bin
     paths = re.split(os.pathsep, path)
@@ -1031,7 +1028,7 @@ def pathsearch(programs=[], modules=[], where=0):
 
 
 def preprocess_all_files(rootdir, options=''):
-    """
+    '''
     Run preprocess on all files of the form basename.p.ext
     in the directory with root rootdir. The output of each
     preprocess run is directed to basename.ext.
@@ -1041,18 +1038,18 @@ def preprocess_all_files(rootdir, options=''):
     @return: nested list of ((dir, basename.p.ext, basename.p), success))
     tuples. success is boolean and indicates if the preprocess command
     was a success (or not).
-    """
+    '''
     # first check that the user has the preprocess script:
     if not findprograms('preprocess'):
         raise SystemError('The preprocess program could not be found')
 
     def treat_a_dir(fileinfo, d, files):
-        warning = """\
+        warning = '''\
 #############################################################################
 # WARNING: This is an autogenerated file!! Do not edit this file!!
 # Edit the original file %s (on which preprocess.py will be run)
 #############################################################################
-"""
+'''
 
         for f in files:
             path = os.path.join(d, f)
@@ -1082,10 +1079,10 @@ def preprocess_all_files(rootdir, options=''):
 
 
 def pow_eff(a, b, powfunc=math.pow):
-    """
+    '''
     Returns a^b. Smart function that happened to be slower
     than a straight math.pow.
-    """
+    '''
     if b == 2:
         return a * a
     elif b == 3:
@@ -1115,10 +1112,10 @@ def pow_eff(a, b, powfunc=math.pow):
 
 
 def lines2paragraphs(lines):
-    """
+    '''
     Return a list of paragraphs from a list of lines
     (normally holding the lines in a file).
-    """
+    '''
     p = []             # list of paragraphs to be returned
     firstline = 0      # first line in a paragraph
     currentline = 0    # current line in the file
@@ -1138,10 +1135,10 @@ def lines2paragraphs(lines):
 
 
 def oneline(infile, outfile):
-    """
+    '''
     Transform all paragraphs in infile (filename) to one-line strings
     and write the result to outfile (filename).
-    """
+    '''
     fi = open(infile, 'r')
     pp = lines2paragraphs(fi.readlines())
     fo = open(outfile, 'w')
@@ -1153,10 +1150,10 @@ def oneline(infile, outfile):
 
 
 def wrap(infile, outfile, linewidth=70):
-    """
+    '''
     Read infile (filename) and format the text such that each line is
     not longer than linewidth. Write result to outfile (filename).
-    """
+    '''
     fi = open(infile, 'r')
     fo = open(outfile, 'w')
     # the use of textwrap must be done paragraph by paragraph:
@@ -1174,7 +1171,7 @@ def wrap(infile, outfile, linewidth=70):
 
 
 def fontscheme1(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('Helvetica', 13, 'normal')
     pulldown_font = ('Helvetica', 13, 'italic bold')
     scale_font = ('Helvetica', 13, 'normal')
@@ -1185,7 +1182,7 @@ def fontscheme1(root):
 
 
 def fontscheme2(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('Helvetica', 10, 'normal')
     pulldown_font = ('Helvetica', 10, 'italic bold')
     scale_font = ('Helvetica', 10, 'normal')
@@ -1196,43 +1193,43 @@ def fontscheme2(root):
 
 
 def fontscheme3(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('Fixed', 12, 'normal')
     root.option_add('*Font', default_font)
 
 
 def fontscheme4(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('Fixed', 14, 'normal')
     root.option_add('*Font', default_font)
 
 
 def fontscheme5(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('comic sans ms', 12, 'normal')
     root.option_add('*Font', default_font)
 
 
 def fontscheme6(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('trebuchet ms', 12, 'normal bold')
     root.option_add('*Font', default_font)
 
 
 def fontscheme7(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('verdana', 12, 'normal bold')
     root.option_add('*Font', default_font)
 
 
 def fontscheme8(root):
-    """Alternative font scheme for Tkinter-based widgets."""
+    'Alternative font scheme for Tkinter-based widgets'
     default_font = ('verdana', 14, 'normal')
     root.option_add('*Font', default_font)
 
 
 def movefiles(files, destdir, confirm=True, verbose=True, copy=True):
-    """
+    '''
     Move a set of files to a a destination directory tree,
     but let the original complete path be reflected in the
     destination tree.
@@ -1247,7 +1244,7 @@ def movefiles(files, destdir, confirm=True, verbose=True, copy=True):
     files; the files are easily restored in their original
     locations since the original complete path is maintained in
     the destination directory tree.
-    """
+    '''
     if not os.path.isdir(destdir):
         os.mkdir(destdir)
     for file in files:
@@ -1281,7 +1278,7 @@ from .debug import debugregex, dump
 
 class BackgroundCommand(threading.Thread):
 
-    """
+    '''
     Run a function call with assignment in the background.
     Useful for putting time-consuming calculations/graphics
     in the background in an interactive Python shell.
@@ -1293,7 +1290,7 @@ class BackgroundCommand(threading.Thread):
     >>> b.finished
     True
     >>> b.f  # result of function call
-    """
+    '''
 
     def __init__(self, result='result', func=None, args=[], kwargs={}):
         self.result = result
@@ -1329,7 +1326,7 @@ class Download(threading.Thread):
 
 
 def hardware_info():
-    """
+    '''
     Return a dictionary of various types of hardware info from
     various modules.
 
@@ -1338,12 +1335,12 @@ def hardware_info():
       from scitools.misc import hardware_info
       import pprint; pprint.pprint(hardware_info())
 
-    """
+    '''
     result = {}
 
     # read cpuinfo file on Linux machines
     # (numpy.distutils.cpuinfo already does this)
-    """
+    '''
     infofile = '/proc/cpuinfo'
     cpuinfo = {}
     if os.path.isfile(infofile):
@@ -1366,7 +1363,7 @@ def hardware_info():
                 cpuinfo['vendor ID'] = value
         f.close()
     result['file: /proc/cpuinfo'] = cpuinfo
-    """
+    '''
     import numpy.distutils.cpuinfo
     import copy
     info = copy.deepcopy(numpy.distutils.cpuinfo.cpu.info)
@@ -1400,10 +1397,10 @@ def hardware_info():
 
 
 def memusage(_proc_pid_stat='/proc/%s/stat' % (os.getpid())):
-    """
+    '''
     Return virtual memory size in bytes of the running python.
     Copied from the SciPy package (scipy_test.testing.py).
-    """
+    '''
     try:
         f = open(_proc_pid_stat, 'r')
         l = f.readline().split(' ')
@@ -1414,12 +1411,12 @@ def memusage(_proc_pid_stat='/proc/%s/stat' % (os.getpid())):
 
 
 def _test_memusage(narrays=100, m=1000):
-    """
+    '''
     Test the memusage function for monitoring the memory usage.
     Generate narrays arrays of size (m,m). Keep the array
     with probability 0.5, otherwise delete a previously
     allocated array.
-    """
+    '''
     import random
     import Numeric
     random.seed(12)
@@ -1435,7 +1432,7 @@ def _test_memusage(narrays=100, m=1000):
 
 
 def isiterable(data):
-    """Returns true of data is iterable, else False."""
+    '''Returns true of data is iterable, else False.'''
     try:
         iter(data)
     except TypeError:
@@ -1444,7 +1441,7 @@ def isiterable(data):
 
 
 def flatten(nested_data):
-    """
+    '''
     Return a flattened iterator over nested_data.
 
     >>> nested_list = [[1,2],3,[4,5,6,[7,[8,9]]]]
@@ -1454,7 +1451,7 @@ def flatten(nested_data):
 
     (Minor adjustment of code by Goncalo Rodrigues, see
     http://aspn.activestate.com/ASPN/Mail/Message/python-tutor/2302348)
-    """
+    '''
     it = iter(nested_data)
     for e in it:
         # note: strings are bad because, when iterated they return
@@ -1468,10 +1465,10 @@ def flatten(nested_data):
 
 
 def primes(n):
-    """
+    '''
     Return the prime numbers <= n.
     Standard optimized sieve algorithm.
-    """
+    '''
     if n < 2:
         return [1]
     if n == 2:
@@ -1495,7 +1492,7 @@ def primes(n):
 
 
 def cmldict(argv, cmlargs=None, validity=0):
-    """
+    '''
     The cmldict function takes a dictionary cmlargs with default
     values for the command-line options and returns a modified form of
     this dictionary after the options given in the list argv are
@@ -1513,7 +1510,7 @@ def cmldict(argv, cmlargs=None, validity=0):
     p = cmldict(argv, cmlargs)
 
     p equals {'p' : 2, 'file' : out, 'q' : 0}
-    """
+    '''
 
     if not cmlargs:
         cmlargs = {}
@@ -1587,7 +1584,7 @@ def f(a, b, max=1.2, min=2.2):  # some function
 
 class DoNothing(object):
 
-    """
+    '''
     Handy class for making other objects inactive.
     (DoNothing is a generic dispatcher, accepting anyting and
     doing nothing.)
@@ -1618,7 +1615,7 @@ class DoNothing(object):
     >>> viz = plot(u, wireframe=True, title='My plot')
     >>> viz.update(T)
     >>> q = viz.properties()
-    """
+    '''
 
     def __init__(self, *args, **kwargs):
         self.silent = kwargs.get('silent', False)
@@ -1646,7 +1643,7 @@ class DoNothing(object):
 
 class Recorder:
 
-    """
+    '''
     This class is a wrapper of a module or instance which will
     record all actions done with the module/instance.
 
@@ -1694,7 +1691,7 @@ class Recorder:
     plot(<Gnuplot.PlotItems._FIFOFileItem instance at 0x174d998>,)
     replot(<Gnuplot.PlotItems._FIFOFileItem instance at 0x174db90>,)
 
-    """
+    '''
 
     def __init__(self, obj):
         self.obj = obj
@@ -1728,12 +1725,12 @@ class _RecordHelper:
 
 
 def which(program):
-    """
+    '''
     Mimic the Unix which command and return the full path of
     a program whose name is in the `program` argument.
     Return None if the program is not found in any of the
     directories in the user's ``PATH`` variable.
-    """
+    '''
     pathdirs = os.environ['PATH'].split(os.pathsep)
     program_path = None
     for d in pathdirs:
@@ -1745,7 +1742,7 @@ def which(program):
 
 
 def fix_latex_command_regex(pattern, application='match'):
-    """
+    '''
     Given a pattern for a regular expression match or substitution,
     the function checks for problematic patterns commonly
     encountered when working with LaTeX texts, namely commands
@@ -1795,7 +1792,7 @@ def fix_latex_command_regex(pattern, application='match'):
     '\\\\mbox\\{(\\\\d+)\\}'
     >>> re.sub(pattern, replacement, r'\mbox{987}')
     '\\mbox{987}'  # no substitution, no match
-    """
+    '''
     import string
     problematic_letters = string.ascii_letters if application == 'match' \
         else 'abfgnrtv'
@@ -1809,7 +1806,7 @@ def fix_latex_command_regex(pattern, application='match'):
                 continue
 
         ok_pattern = '\\\\' + letter
-        if problematic_pattern in pattern and not ok_pattern in pattern:
+        if problematic_pattern in pattern and ok_pattern not in pattern:
             pattern = pattern.replace(problematic_pattern, ok_pattern)
     return pattern
 

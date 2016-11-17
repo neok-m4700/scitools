@@ -4,21 +4,21 @@
 #  Lists, dicts, and tuples containing real numbers will be printed
 #  in a prettier way with pprint2.
 
-#>>> data = [1./3, 1./49*49, 84.6/423]
-#>>> data
-#[0.3333333333333333, 0.9999999999999999, 0.19999999999999998]
-#>>> import pprint
-#>>> pprint.pprint(data)
-#[0.3333333333333333, 0.9999999999999999, 0.19999999999999998]
-#>>> import scitools.pprint2 as pprint2
-#>>> pprint2.pprint(data)
-#[0.333333, 1, 0.2]
-#>>> pprint2.float_format = '%.12E'
-#>>> pprint2.pprint(data)
-#[3.333333333333E-01, 1.000000000000E+00, 2.000000000000E-01]
+# >>> data = [1./3, 1./49*49, 84.6/423]
+# >>> data
+# [0.3333333333333333, 0.9999999999999999, 0.19999999999999998]
+# >>> import pprint
+# >>> pprint.pprint(data)
+# [0.3333333333333333, 0.9999999999999999, 0.19999999999999998]
+# >>> import scitools.pprint2 as pprint2
+# >>> pprint2.pprint(data)
+# [0.333333, 1, 0.2]
+# >>> pprint2.float_format = '%.12E'
+# >>> pprint2.pprint(data)
+# [3.333333333333E-01, 1.000000000000E+00, 2.000000000000E-01]
 
-#  Modifications by Hans Petter Langtangen, hpl@simula.no
-#------------------------------------------------------------------------
+#   Modifications by Hans Petter Langtangen, hpl@simula.no
+# ------------------------------------------------------------------------
 
 #  Author:      Fred L. Drake, Jr.
 #               fdrake@acm.org

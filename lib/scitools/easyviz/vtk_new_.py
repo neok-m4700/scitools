@@ -979,7 +979,7 @@ class vtkBackend(BaseClass):
 
         cmap = ax.getp('colormap')
         # cmap is plotting package dependent
-        if cmap is None:
+        if cmap is None or cmap == 'default':
             cmap = self.vtk_lut_from_mpl('viridis')  # use default colormap
         elif not isinstance(cmap, vtkLookupTable):
             cmap = self.vtk_lut_from_mpl(cmap)  # construct lut from the given cmap (could be matplotlib, ...)
@@ -1617,7 +1617,7 @@ class vtkBackend(BaseClass):
 
         if item.getp('udata').ndim == 3:
             sgrid = self._create_3D_vector_data(item)
-        else:
+        elif item.getp('udata').ndim == 2:
             sgrid = self._create_2D_vector_data(item)
 
         # get line specifiactions (marker='.' means no marker):

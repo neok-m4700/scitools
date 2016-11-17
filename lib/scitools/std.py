@@ -24,5 +24,4 @@ See also the documentation of scitools.easyviz and scitools.basics.
 # import easyviz first to make sure the scipy or numpy import
 # in basics overwrites whatever easyviz imports of the same names:
 from scitools.easyviz import *
-from scitools.basics  import *
-
+from scitools.basics import *
