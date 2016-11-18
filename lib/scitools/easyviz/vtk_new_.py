@@ -378,6 +378,7 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         def __init__(self, plane, **kwargs):
             super().__init__()
+            self.__name__ = 'vtkInteractiveWidget'
             self.ax = kwargs['ax']
             self.fig = kwargs['fig']
             self._sync = kwargs['sync']
@@ -406,8 +407,10 @@ def vtkInteractiveWidget(parent, **kwargs):
                 #     print(self.GetHandleSizeFactor())
             # print('handleSize is', self._hs)
 
-            if len(getattr(old, '_obs', [])) > 0:
-                old._removeObservers()
+            # we wan to keep the old interactions
+            # one iwidget per axis !
+            # if len(getattr(old, '_obs', [])) > 0:
+            #     old._removeObservers()
 
             self.SetInteractor(self.fig._g.iren)
             # self.SetCurrentRenderer(self.ax._renderer)
@@ -454,6 +457,9 @@ def vtkInteractiveWidget(parent, **kwargs):
                 [self.RemoveObserver(_) for _ in self._obs]
             except:
                 pass
+
+        def _addObserver(self, e, c):
+            self._obs.append(self.AddObserver(e, c))
 
         def _addObservers(self):
             for e, c in [('InteractionEvent', self._interaction),
@@ -1135,14 +1141,18 @@ class vtkBackend(BaseClass):
         clipper.InsideOutOn()
 
         if iwidget:
+            iw = False
             # see github.com/vmtk/vmtk/blob/master/vmtkScripts/vmtkmeshclipper.pys
-            self._ax._iw = vtkInteractiveWidget(
-                iwidget,
-                ax=self._ax,
-                fig=self.fig,
-                ic=data.GetOutputPort(),
-                sync=True
-            )
+            if (not hasattr(self._ax, '_iw') or
+                    not isinstance(self._ax._iw, (vtkBoxWidget, vtkImagePlaneWidget, vtkImplicitPlaneWidget, vtkPlaneWidget))):
+                self._ax._iw = vtkInteractiveWidget(
+                    iwidget,
+                    ax=self._ax,
+                    fig=self.fig,
+                    ic=data.GetOutputPort(),
+                    sync=True
+                )
+                iw = self._ax._iw
 
             iclipper = vtkClipPolyData()
             iclipper.SetInputConnection(data.GetOutputPort())
@@ -1165,13 +1175,16 @@ class vtkBackend(BaseClass):
                 clipper.SetInputConnection(data.GetOutputPort())
                 obj._saveWidget()
 
-            self._ax._iw._enable = _enable
-            self._ax._iw._disable = _disable
-            # [setattr(self._ax._iw, _.__name__, _) for _ in (_enable, _disable)]
+            if iw:
+                iw._enable = _enable
+                iw._disable = _disable
+                # [setattr(self._ax._iw, _.__name__, _) for _ in (_enable, _disable)]
 
-            self._ax._iw._addObservers()
-
-            self._ax._iw._interaction(self._ax._iw, None)  # in order to avoid 'Please define points and/or normals!' errors
+                iw._addObservers()
+                iw._interaction(iw, None)  # in order to avoid 'Please define points and/or normals!' errors
+            else:
+                self._ax._iw._addObserver('EnableEvent', _enable)
+                self._ax._iw._addObserver('DisableEvent', _disable)
 
         return clipper
 

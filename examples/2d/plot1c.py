@@ -2,9 +2,9 @@ from scitools.std import *   # for curve plotting
 
 
 def f(t):
-    return t**2 * exp(-t**2)
+    return t**2 * np.exp(-t**2)
 
-t = linspace(0, 3, 51)    # 51 points between 0 and 3
+t = np.linspace(0, 3, 51)    # 51 points between 0 and 3
 y = f(t)
 plot(t, y, 'r-',
      xlabel='t',

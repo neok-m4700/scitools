@@ -1,4 +1,4 @@
-from scitools.numpyutils import seq, meshgrid
+from scitools.numpyutils import seq
 from contextlib import contextmanager
 import scitools.globaldata
 import numpy as np
@@ -100,9 +100,9 @@ def _check_xyzv(*args, **kwargs):
     if x is None and y is None and z is None:
         if indexing == 'ij':
             ny, nx = nx, nz  # swap
-        x, y, z = meshgrid(list(range(ny)),
-                           list(range(nx)),
-                           list(range(nz)), indexing=indexing)
+        x, y, z = np.meshgrid(list(range(ny)),
+                              list(range(nx)),
+                              list(range(nz)), indexing=indexing)
     else:
         if indexing == 'ij':
             assert (
@@ -160,7 +160,7 @@ def _check_xyz(*args, **kwargs):
     if x is None and y is None:
         if indexing == 'ij':
             nx, ny = ny, nx  # swap
-        x, y = meshgrid(list(range(ny)), list(range(nx)), indexing=indexing)
+        x, y = np.meshgrid(list(range(ny)), list(range(nx)), indexing=indexing)
     else:
         if indexing == 'ij':
             assert (
@@ -286,7 +286,7 @@ def _check_xyzuvw(*args, **kwargs):
         if x is None and y is None:
             if indexing == 'ij':
                 nx, ny = ny, nx  # swap
-            x, y, junk = meshgrid(seq(ny - 1), seq(nx - 1), seq(nz - 1))
+            x, y, junk = np.meshgrid(seq(ny - 1), seq(nx - 1), seq(nz - 1))
         else:
             if indexing == 'ij':
                 assert (

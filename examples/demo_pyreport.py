@@ -40,7 +40,7 @@ scitools pyreport -l -e -t html -o report_evz -a '0.05 9 easyviz' demo_pyreport.
 
 
 def f(t, u):
-    return u*(1-u)  # logistic equation
+    return u * (1 - u)  # logistic equation
 
 try:
     alpha = float(sys.argv[1])
@@ -74,11 +74,11 @@ solver.set_initial_value(alpha, 0)
 #! tolerances of the solution.
 
 dt = 0.2         # time step
-u = [];  t = []  # store solution and times
+u = []; t = []  # store solution and times
 while solver.successful() and solver.t < T:
     solver.integrate(solver.t + dt)
     # current time is in solver.t, current solution in solver.y
-    u.append(solver.y);  t.append(solver.t)
+    u.append(solver.y); t.append(solver.t)
 
 # Demonstrate plotting with matplotlib or scitools.easyviz
 
@@ -99,5 +99,3 @@ plt.xlabel('t')
 plt.ylabel('u')
 plt.axis([t[0], t[-1], 0, 1.1])
 plt.show()
-
-

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Example taken from:
-# http://www.mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3371.html
+# mathworks.com/access/helpdesk/help/techdoc/visualize/f5-3371.html
 import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from scipy import io
@@ -10,7 +10,7 @@ setp(interactive=False, show=False)
 
 mri = io.loadmat('mri_matlab_v6.mat')
 D = mri['D']
-D = squeeze(D)
+D = np.squeeze(D)
 
 # print(D.nonzero())
 
@@ -30,7 +30,8 @@ show()
 
 
 print('..... before save')
-setp(interactive=True, show=True); plt.mainloop(); exit(0)
+setp(interactive=True, show=True); plt.mainloop()
+# exit(0)
 # buggy script !!, exit for now ...
 # problem with vtkOpenGLTexture
 # vtkOpenGLTexture

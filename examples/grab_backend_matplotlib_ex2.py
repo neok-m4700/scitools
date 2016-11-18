@@ -13,7 +13,8 @@ __author__ = 'Rolv Erlend Bredesen <rolv@simula.no>'
 from scitools.easyviz.matplotlib_ import *
 import numpy as np
 
-def _pyplot_thick_frame(lines=10,  width=5, size=8, labelsize=20):
+
+def _pyplot_thick_frame(lines=10, width=5, size=8, labelsize=20):
     """Prepare matplotlib backend with parameters for a nice thick frame
     lines: width of plot lines
     width: width of frame line (and tick marks)
@@ -27,23 +28,24 @@ def _pyplot_thick_frame(lines=10,  width=5, size=8, labelsize=20):
      The markeredgewidth applies to the black line surrounding a marker,
      making it appear circular and black if it's set to high. """
     pyplot.rcParams.update({
-        'lines.linewidth': lines ,         # Plotline width
+        'lines.linewidth': lines,         # Plotline width
         'ytick.labelsize': labelsize,
         'ytick.major.pad': size,
         'ytick.minor.pad': size,
-        'ytick.major.size': size*1.8,      # Tickmark length
+        'ytick.major.size': size * 1.8,      # Tickmark length
         'ytick.minor.size': size,
         'xtick.labelsize': labelsize,
         'xtick.major.pad': size,
         'xtick.minor.pad': size,
-        'xtick.major.size': size*1.8,        
+        'xtick.major.size': size * 1.8,
         'xtick.minor.size': size,
-        'lines.markeredgewidth': size/3,   # Tickmark border width 
+        'lines.markeredgewidth': size / 3,   # Tickmark border width
         'axes.linewidth': width,           # Frame width
-        })
-    
+    })
+
+
 def _pyplot_major_minor(axis='y',
-                       major_tick_interval=1, minor_tick_interval=.2):
+                        major_tick_interval=1, minor_tick_interval=.2):
     """Use both major and minor ticks on given axis.
     Must be applied as a postprocess after the easyviz plot"""
     # Use both major and minor ticks
@@ -61,11 +63,12 @@ def _pyplot_major_minor(axis='y',
     # update backend
     pyplot.draw()
 
+
 def main():
     x = np.linspace(0, 5, 101)
-    y = np.sin(2*np.pi*x)
+    y = np.sin(2 * np.pi * x)
     plot(y, '-o', x=x, log='x', xmin=.04, xmax=1, ymin=-1.1, ymax=1.1)
-    
+
 if __name__ == '__main__':
     main()
     savefig('tmp_normal_frame.png')
@@ -75,7 +78,7 @@ if __name__ == '__main__':
     else:
         pyplot = get_backend()
 
-        # Setup parameters for thicker frame and tickmarks 
+        # Setup parameters for thicker frame and tickmarks
         _pyplot_thick_frame()
 
         # Normal easyviz plotting
@@ -84,22 +87,21 @@ if __name__ == '__main__':
         # Major and minor ticks for the y axis
         _pyplot_major_minor(axis='y')
 
-        # Title using latex and specific fontsize 
-        pyplot.title(r'y=sin(2\pi x)', fontsize=20) 
+        # Title using latex and specific fontsize
+        pyplot.title(r'y=sin(2\pi x)', fontsize=20)
 
         # Place text at given location in plot (position by data coordinates)
         pyplot.text(.05, -.8, 'Check out the nice thick frame',
-                   {'size':20}, horizontalalignment='left',)
-        
+                    {'size': 20}, horizontalalignment='left',)
+
         # Use backend savefig since normal savefig would reset text and title
-        pyplot.savefig('tmp_thick_frame.png')  
+        pyplot.savefig('tmp_thick_frame.png')
 
         # Load a font set from matplotlib (check matplotlib's fonts_demo)
         from matplotlib.font_manager import fontManager, FontProperties
         pyplot.text(1, 1, 'Added some text using x-small font',
-                   fontproperties=FontProperties(size='x-small'),
-                   horizontalalignment='right',
-                   transform=pyplot.gca().transAxes)  # figure coordinates
-            
+                    fontproperties=FontProperties(size='x-small'),
+                    horizontalalignment='right',
+                    transform=pyplot.gca().transAxes)  # figure coordinates
+
     input('Press Return key to quit: ')
-    

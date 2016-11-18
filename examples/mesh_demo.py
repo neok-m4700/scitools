@@ -15,10 +15,10 @@ savefig('mesh1a.eps', color=True)
 savefig('mesh1a.png', color=True)
 
 figure()
-x = linspace(-8, 8, 51)
+x = np.linspace(-8, 8, 51)
 xv, yv = ndgrid(x, x)
-r = sqrt(xv**2 + yv**2) + eps
-values = sin(r) / r
+r = np.sqrt(xv**2 + yv**2) + eps
+values = np.sin(r) / r
 mesh(xv, yv, values, xlabel='x', ylabel='y', zlabel='z',
      title='f(x,y)=sqrt(x**2+y**2)/(x**2+y**2)')
 
@@ -26,9 +26,9 @@ savefig('mesh1b.eps', color=True)
 savefig('mesh1b.png', color=True)
 
 figure()
-x = y = linspace(0, pi, 32)
+x = y = np.linspace(0, pi, 32)
 xv, yv = ndgrid(x, y)
-values = sin(yv**2 + xv) - cos(yv - xv**2)
+values = np.sin(yv**2 + xv) - np.cos(yv - xv**2)
 setp(interactive=False)
 subplot(221); mesh(values)
 subplot(222); mesh(x, y, values, hidden='off')

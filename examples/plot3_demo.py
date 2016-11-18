@@ -7,15 +7,15 @@ from numpy import pi
 
 setp(interactive=False)
 
-t = linspace(0, 10 * pi, 201)
-plot3(sin(t), cos(t), t, title='A Helix')
+t = np.linspace(0, 10 * pi, 201)
+plot3(np.sin(t), np.cos(t), t, title='A Helix')
 savefig('tmp1.eps')
 savefig('tmp1.png')
 show()
 
 figure()
-t = linspace(-5, 5, 501)
-x, y, z = (2 + t**2) * sin(10 * t), (2 + t**2) * cos(10 * t), t
+t = np.linspace(-5, 5, 501)
+x, y, z = (2 + t**2) * np.sin(10 * t), (2 + t**2) * np.cos(10 * t), t
 
 plot3(x, y, z)
 grid('on')
@@ -28,8 +28,8 @@ savefig('tmp2.png')
 show()
 
 figure()
-t = linspace(0, 15 * pi, 301)
-x, y, z = exp(-t / 10) * cos(t),  exp(-t / 10) * sin(t), t
+t = np.linspace(0, 15 * pi, 301)
+x, y, z = np.exp(-t / 10) * np.cos(t),  np.exp(-t / 10) * np.sin(t), t
 
 subplot(221); plot3(x, y, z)
 subplot(222); plot3(x, y, z, view=2)

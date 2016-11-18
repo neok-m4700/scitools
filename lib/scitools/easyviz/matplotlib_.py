@@ -27,7 +27,6 @@ Matplotlib
 
 
 from .common import *
-from scitools.numpyutils import floor, linspace, array
 from scitools.globaldata import DEBUG, VERBOSE
 from scitools.misc import check_if_module_exists
 from .misc import _update_from_config_file
@@ -602,13 +601,13 @@ class MatplotlibBackend(BaseClass):
 
         step = item.getp('barstepsize') / 10
 
-        center = floor(ny / 2)
+        center = np.floor(ny / 2)
         start = -step * center
         stop = step * center
         if not ny % 2:
             start += step / 2
             stop -= step / 2
-        a = linspace(start, stop, ny)
+        a = np.linspace(start, stop, ny)
 
         barwidth = item.getp('barwidth') / 10
 
@@ -618,7 +617,7 @@ class MatplotlibBackend(BaseClass):
             list(matplotlib.colors.cnames.values())
         for j in range(ny):
             y_ = y[:, j]
-            x_ = array(list(range(nx))) + a[j] - barwidth / 2
+            x_ = np.array(list(range(nx))) + a[j] - barwidth / 2
             if not facecolor:
                 c = colors[j]
             else:

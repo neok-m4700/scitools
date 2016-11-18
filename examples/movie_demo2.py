@@ -17,10 +17,10 @@ def f(x, t):
     return exp(-(x - 3 * t)**2) * sin(3 * pi * (x - t))
 
 xmax = 6
-x = linspace(-xmax, xmax, 1001)
+x = np.linspace(-xmax, xmax, 1001)
 
 
-t_values = linspace(-1, 1, 61)
+t_values = np.linspace(-1, 1, 61)
 counter = 1
 for t in t_values:
     y = f(x, t)

@@ -2,7 +2,7 @@ from scitools.std import *   # for curve plotting
 
 
 def f1(t):
-    return t**2 * exp(-t**2)
+    return t**2 * np.exp(-t**2)
 
 
 def f2(t):

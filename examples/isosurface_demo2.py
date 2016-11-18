@@ -14,7 +14,7 @@ setp(interactive=False)
 # Displaying an Isosurface:
 mri = io.loadmat('mri_matlab_v6.mat')
 D = mri['D']
-D = squeeze(D)
+D = np.squeeze(D)
 print(D.shape)
 
 # Ds = smooth3(D);

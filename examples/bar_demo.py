@@ -21,14 +21,14 @@ bar(data,
 
 # example with a vector:
 figure()
-x = linspace(-3, 3, 15)
-y = exp(-x**2)
+x = np.linspace(-3, 3, 15)
+y = np.exp(-x**2)
 if backend in ['gnuplot', 'matplotlib']:
     w = 7   # increase width of bars
 else:
     w = 0.8  # default
 bar(y, width=w)
-title('Bars at 15 points for the exp(-x**2) functions')
+title('Bars at 15 points for the np.exp(-x**2) functions')
 
 # draw a bar graph from a dicitonary:
 figure()

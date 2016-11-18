@@ -4,9 +4,9 @@
 
 from scitools.std import *
 
-x = linspace(0, 1, 51)
-y1 = sin(2 * pi * x)
-y2 = cos(4 * pi * x)
+x = np.linspace(0, 1, 51)
+y1 = np.sin(2 * pi * x)
+y2 = np.cos(4 * pi * x)
 
 plot(x, y1, 'rd-', xlabel='x-axis', ylabel='y-axis', legend='test')
 

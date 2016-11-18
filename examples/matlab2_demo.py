@@ -10,7 +10,7 @@ import subprocess as sp
 setp(interactive=True)
 setp(show=True)
 
-x = linspace(-2, 2, 5)
+x = np.linspace(-2, 2, 5)
 plot(x, x**2, 'b-s', title='Simple plot')
 print(get_script())
 
@@ -36,10 +36,10 @@ sp.check_call(['octave', '--jit-compiler', 'mytest.m'])
 # Now we create a contour plot in combination with a quiver plot:
 
 reset()  # remove the previous Matlab commands
-xx, yy = ndgrid(linspace(-3, 3, 51), linspace(-3, 3, 51), sparse=False)
+xx, yy = ndgrid(np.linspace(-3, 3, 51), np.linspace(-3, 3, 51), sparse=False)
 zz = peaks(xx, yy)
 contour(xx, yy, zz, 12, hold='on')
-uu, vv = gradient(zz)
+uu, vv = np.gradient(zz)
 quiver(xx, yy, uu, vv, hold='off')
 savefig('tmp0.ps', color=True)
 save_m('mytest2.m')

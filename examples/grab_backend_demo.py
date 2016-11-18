@@ -8,12 +8,12 @@ legend_demo.py file from Matplotlib.
 
 from scitools.std import *
 
-a = linspace(0, 3, 150)
-b = linspace(0, 3, 150)
-c = exp(a)
+a = np.linspace(0, 3, 150)
+b = np.linspace(0, 3, 150)
+c = np.exp(a)
 d = c.tolist()
 d.reverse()
-d = array(d)
+d = np.array(d)
 
 setp(interactive=False)
 plot(a, c, 'k--', a, d, 'k:', a, c + d, 'k')

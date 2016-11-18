@@ -6,10 +6,10 @@ try:
 except Exception as e:
     print(e.__class__.__name__, e)
 try:
-    right_size1(q1, (2,2))
+    right_size1(q1, (2, 2))
 except Exception as e:
     print(e.__class__.__name__, e)
-try:    
+try:
     q2 = linspace(0, 1, 6)
 except Exception as e:
     print(e.__class__.__name__, e)

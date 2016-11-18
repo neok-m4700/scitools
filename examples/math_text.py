@@ -11,12 +11,13 @@ from scitools.std import *
 
 setp(show=False)
 
+
 def do_plot(latex='no'):
-    tau_1 = linspace(0, 3, 151)
-    tau_2 = linspace(0, 3, 11)
+    tau_1 = np.linspace(0, 3, 151)
+    tau_2 = np.linspace(0, 3, 11)
     alpha = 1
-    theta_1 = tau_1 * exp(-alpha * tau_1**2)
-    theta_2 = sqrt(tau_2) * exp(-alpha * tau_2**2)
+    theta_1 = tau_1 * np.exp(-alpha * tau_1**2)
+    theta_2 = sqrt(tau_2) * np.exp(-alpha * tau_2**2)
     if latex == 'with $':
         # standard latex text in legends, labels, and title
         plot(tau_1, theta_1, 'r-',
@@ -44,8 +45,8 @@ def do_plot(latex='no'):
         # No latex math, just plain words
         plot(tau_1, theta_1, 'r-',
              tau_2, theta_2, 'bo',
-             legend=(r'theta_1 = tau exp(-alpha*tau^2)',
-                     r'theta_2 = sqrt(tau)*exp(-\alpha*tau^2)'),
+             legend=(r'theta_1 = tau np.exp(-alpha*tau^2)',
+                     r'theta_2 = sqrt(tau)*np.exp(-\alpha*tau^2)'),
              title='Plot of theta_1 and theta_2, alpha = sum_i phi_i' + ' (%s) ' % latex.replace('$', 'dollar'),
              xlabel=r'tau',
              ylabel=r'theta',
