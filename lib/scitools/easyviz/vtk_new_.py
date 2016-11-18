@@ -383,7 +383,7 @@ def vtkInteractiveWidget(parent, **kwargs):
             self.fig = kwargs['fig']
             self._sync = kwargs['sync']
             self._p = plane()
-            self._obs = []
+            self._obs, self._cbs = [], []
             # only fetch the previous values if we allow synchronization
             old = getattr(self.ax, '_iw', None) if self._sync else None
             self._on = getattr(old, '_on', False)
@@ -407,10 +407,8 @@ def vtkInteractiveWidget(parent, **kwargs):
                 #     print(self.GetHandleSizeFactor())
             # print('handleSize is', self._hs)
 
-            # we wan to keep the old interactions
-            # one iwidget per axis !
-            # if len(getattr(old, '_obs', [])) > 0:
-            #     old._removeObservers()
+            if len(getattr(old, '_obs', [])) > 0:
+                old._removeObservers()
 
             self.SetInteractor(self.fig._g.iren)
             # self.SetCurrentRenderer(self.ax._renderer)
@@ -460,13 +458,14 @@ def vtkInteractiveWidget(parent, **kwargs):
 
         def _addObserver(self, e, c):
             self._obs.append(self.AddObserver(e, c))
+            self._cbs.append((e, c))
 
         def _addObservers(self):
             for e, c in [('InteractionEvent', self._interaction),
                          ('StartInteractionEvent', self._start_interaction),
                          ('EndInteractionEvent', self._end_interaction),
                          ('EnableEvent', self._enable),
-                         ('DisableEvent', self._disable)]:
+                         ('DisableEvent', self._disable)] + self._cbs:
                 self._obs.append(self.AddObserver(e, c))
 
         def _saveWidget(self):
@@ -2378,7 +2377,10 @@ class vtkBackend(BaseClass):
                         # ax._iw.SetInteractor(fig._g.((iren)
                         # ax._iw.SetCurrentRenderer(ax._renderer)
                         ax._iw.OnChar()
-                        # ax._iw.InvokeEvent('EnableEvent') if not ax._iw._on else ax._iw.InvokeEvent('DisableEvent')
+                        # if not ax._iw._on:
+                        #     ax._iw.InvokeEvent('EnableEvent')
+                        # else:
+                        #     ax._iw.InvokeEvent('DisableEvent')
                     # self._g.iren.CharEvent()
                     # self._g.iren.SetKeySym('i')
                     # self._g.iren.KeyPressEvent()
@@ -2447,8 +2449,10 @@ class vtkBackend(BaseClass):
             for w in asiterable(widgets):
                 if w is not None and w:
                     if w._on:  # else iwidget crashes without any information
+                        w._cbs = []
                         if before:
                             w.Off()
+                            _print('disabling widget')
                         else:
                             if not w.GetEnabled():
                                 _print('enabling widget')

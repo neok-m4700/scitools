@@ -769,7 +769,7 @@ class VelocityVectors(PlotProperties):
 
     def scale_vectors(self, dim=None, fact=.95):
         'we use dim for givin an indication on where the columetrix data is sliced'
-        kw = dict(lvl=1)
+        kw = dict(lvl=2)
         as_ = self._prop['arrowscale']
         if as_ and not self._prop['is_scaled']:
             u = self._prop['udata']
