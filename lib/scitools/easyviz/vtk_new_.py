@@ -2262,6 +2262,21 @@ class vtkBackend(BaseClass):
             # don't set view in the following command because cammode will fail because of the _set_default_view call
             cam.setp(**kwargs, cammode='manual', camtarget=(0, 0, 0))
 
+        def _input(prompt, prefill=''):
+            # def hook():
+            #     print('hello from hook')
+            #     readline.insert_text(prefill)
+            #     readline.redisplay()
+            # readline.set_pre_input_hook(hook)
+            # readline.set_startup_hook(hook)
+            result = input(prompt + ' [{}] '.format(prefill))
+            if not result:
+                result = prefill
+            # readline.set_pre_input_hook()
+            # readline.set_startup_hook()
+            return result
+
+
         def callback(e, ctrl, shift, **kwargs):
             '''
             stackoverflow.com/a/16082411/5584077
@@ -2314,8 +2329,6 @@ class vtkBackend(BaseClass):
                                 ax.setp(**{_: newcol})
                             except Exception as e:
                                 pass
-                    elif key == 'g':
-                        _toggle_state(ax, 'grid')
                     elif key == 'b':
                         _toggle_state(ax, 'box')
                     elif key == 'a':
@@ -2325,15 +2338,17 @@ class vtkBackend(BaseClass):
                         _toggle_state(cbar, 'visible')
                     elif key == 'e':
                         [_toggle_state(_, 'edgevisibility') for _ in ax.getp('plotitems')]
+                    elif key == 'g':
+                        _toggle_state(ax, 'grid')
+                    elif key == 's':
+                        if False:
+                            self.hardcopy('fig.eps', replot=False)
+                        else:
+                            self.hardcopy('fig.png', replot=False, quality=9)  # pretty good quality withe these setting !
+                        return
                     elif key == 't':
                         cbar = ax.getp('colorbar')
                         _toggle_state(cbar, 'visible')
-                    elif key == 's':
-                        if False:
-                            self.hardcopy('fig.eps', replot=False, magnification=1)
-                        else:
-                            self.hardcopy('fig.png', replot=False, magnification=4, quality=9)  # pretty good quality withe these setting !
-                        return
                     elif key == 'v':
                         self.hardcopy('movie.mp4')
                     # got camtarget value from paraview default
@@ -2361,6 +2376,20 @@ class vtkBackend(BaseClass):
                         return
                     elif key in ('kp_3', 'kp_next'):
                         self.view(3)
+                        return
+                    elif key == 'z':
+                        'simple prompt to dynamically set the properties of object'
+                        klass = _input('klass ?', 'fig')
+                        prop_name = _input('property name ?', 'magnification')
+                        prop_val = _input('property value ?', '2')
+                        print('setting', prop_name, 'to', prop_val, 'on', klass)
+                        d = {prop_name: prop_val}
+                        if not klass or klass in 'figure':
+                            fig.setp(**d)
+                        elif klass in 'axis':
+                            ax.setp(**d)
+                        elif klass in 'vtk':
+                            fig._g.setp(**d)
                         return
                     else:
                         # when a binding is not known, return without replotting, and forward the event

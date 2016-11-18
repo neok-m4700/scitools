@@ -1865,6 +1865,11 @@ class Figure:
             # _check_type(curax, 'curax', int)
             self._set_current_axis(curax)
 
+        if 'magnification' in kwargs:
+            mag = kwargs['magnification']
+            _check_type(mag, 'magnification', (str, int))
+            self._prop['magnification'] = mag
+
         if 'size' in kwargs:
             size = kwargs['size']
             # size should be a list/tuple with two elements [width, height]
