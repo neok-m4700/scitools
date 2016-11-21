@@ -2710,7 +2710,7 @@ class vtkBackend(BaseClass):
             landscape = int(True if kwargs.get('orientation', 'portrait').lower() == 'landscape' else False)
             raster3d = int(kwargs.get('raster3d', False))
             compression = int(kwargs.get('compression', True))
-            magnification = int(kwargs.get('magnification', 2))
+            magnification = int(kwargs.get('magnification', self.fig.getp('magnification')))
 
             # scale the fontsize  for text rendering according to magnification
             old_ft = []

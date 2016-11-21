@@ -1790,12 +1790,13 @@ class Figure:
     'hold figure attributtes like axes, size, ....'
 
     _local_prop = {
-        'axes': None,     # dictionary of axis instances
-        'curax': 1,       # current axis
-        'axshape': (1, 1),  # shape of axes
-        'size': [None] * 2,  # size of figure ([width, height])
-        'number': 1,      # this figures number
-        'suptitle': '',
+        'axes': None,               # dictionary of axis instances
+        'curax': 1,                 # current axis
+        'axshape': (1, 1),          # shape of axes
+        'size': [None] * 2,         # size of figure ([width, height])
+        'number': 1,                # this figures number
+        'magnification': 1,         # magnification is now a property of thye current figure
+        'suptitle': '',             # figure suptitle (appears in the top bar)
     }
     _update_from_config_file(_local_prop)  # get defaults from scitools.cfg
     __doc__ += docadd('Keywords for the setp method', list(_local_prop.keys()))
