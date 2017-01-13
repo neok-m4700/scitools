@@ -32,8 +32,8 @@ requirements:
     - numba
 
 test:
-  commands:
-    - conda inspect linkages $PKG_NAME
+  files:
+    - tester.py
 
 about:
   home: hplgit.github.io/scitools/doc/web/index.html
