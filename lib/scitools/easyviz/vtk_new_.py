@@ -45,8 +45,8 @@ import numpy as np
 from enum import Enum
 from scitools.globaldata import DEBUG, OPTIMIZATION, VERBOSE, VTK_BACKEND
 from scitools.misc import check_if_module_exists
-from util.vtkAlgorithm import VTKPythonAlgorithmBase
 from vtk import *
+from util.vtkAlgorithm import VTKPythonAlgorithmBase
 
 from .colormaps import _cmaps
 from .common import *
@@ -55,7 +55,7 @@ import traceback
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
-inc_dirs = [os.path.expandvars('$CONDA_PREFIX/include/vtk-7.0')]
+inc_dirs = [os.path.expandvars('$CONDA_PREFIX/include/vtk-{}'.format('.'.join(VTK_VERSION.split('.')[:-1])))]
 lib_dirs = [os.path.expandvars('$CONDA_PREFIX/lib/python{}/site-packages'.format(major_minor)), '/usr/lib']
 
 sys.path.extend(lib_dirs)

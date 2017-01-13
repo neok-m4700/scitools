@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-
-'Demonstration of the quiver command'
-
 import scitools.globaldata
 scitools.globaldata.DEBUG = 1
 scitools.globaldata.backend = 'vtk_new'
@@ -38,4 +34,4 @@ quiver(xv, yv, dx, dy, axis='equal', xmin=-2, xmax=2, ymin=-1, ymax=1,
 # savefig('quiver1c.eps', color=True)
 savefig('quiver1c.png', color=True)
 
-showfigs(interactive=True, show=True)
+# showfigs(interactive=True, show=True)

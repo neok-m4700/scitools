@@ -1,5 +1,5 @@
 {% set gcc = environ.get('GCC_R') %}
-{% set gcc_version = environ.get('GCC_V') %}
+{% set gcc_v = environ.get('GCC_V') %}
 
 {% set version = '1.0' %}
 
@@ -8,32 +8,31 @@ package:
   version: {{version}}
 
 source:
-  git_url: https://github.com/neok-m4700/scitools.git
+  git_url: git://github.com/neok-m4700/scitools.git
   git_tag: master
 
 build:
   number: 99
-  script: 
-    - $PYTHON setup.py install
+  script: $PYTHON setup.py install
 
 requirements:
   build:
-    - {{gcc}} {{gcc_version}}
+    - {{gcc}} {{gcc_v}}
     - python
     - numpy
     - scipy
     - matplotlib
+    - vtk
 
   run:
-    - lib{{gcc}} {{gcc_version}}
+    - lib{{gcc}} {{gcc_v}}
     - python
     - numpy
     - scipy
     - matplotlib
+    - vtk
 
 test:
-  imports:
-    - scitools
   commands:
     - conda inspect linkages $PKG_NAME
 

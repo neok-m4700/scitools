@@ -35,6 +35,7 @@ daspect([1, 4, 4])
 view([-65, 20])
 axis('tight')
 plt.mainloop(show=True)
+
 # camlight('left')
 # setp(gcf,'Renderer','zbuffer');
 # lighting('phong')
