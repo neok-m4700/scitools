@@ -46,7 +46,7 @@ from enum import Enum
 from scitools.globaldata import DEBUG, OPTIMIZATION, VERBOSE, VTK_BACKEND
 from scitools.misc import check_if_module_exists
 from vtk import *
-from util.vtkAlgorithm import VTKPythonAlgorithmBase
+from vtk.util.vtkAlgorithm import VTKPythonAlgorithmBase
 
 from .colormaps import _cmaps
 from .common import *

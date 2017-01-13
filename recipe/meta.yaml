@@ -20,17 +20,15 @@ requirements:
     - {{gcc}} {{gcc_v}}
     - python
     - numpy
-    - scipy
-    - matplotlib
-    - vtk
-
   run:
     - lib{{gcc}} {{gcc_v}}
     - python
     - numpy
+    # runtime
     - scipy
     - matplotlib
     - vtk
+    - numba
 
 test:
   commands:
