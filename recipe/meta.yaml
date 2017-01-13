@@ -25,6 +25,7 @@ requirements:
     - python
     - numpy
     # runtime
+    - tk
     - scipy
     - matplotlib
     - vtk

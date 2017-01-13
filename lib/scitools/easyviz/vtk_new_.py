@@ -55,7 +55,7 @@ import traceback
 
 # change these to suit your needs.
 major_minor = '.'.join(map(str, (sys.version_info.major, sys.version_info.minor)))
-inc_dirs = [os.path.expandvars('$CONDA_PREFIX/include/vtk-{}'.format('.'.join(VTK_VERSION.split('.')[:-1])))]
+inc_dirs = [os.path.expandvars('$CONDA_PREFIX/include/vtk-{}'.format('.'.join(VTK_VERSION.split('.')[:-1]))), '/usr/include']
 lib_dirs = [os.path.expandvars('$CONDA_PREFIX/lib/python{}/site-packages'.format(major_minor)), '/usr/lib']
 
 sys.path.extend(lib_dirs)
@@ -132,15 +132,15 @@ if 'qt' in VTK_BACKEND.lower():
 
 else:
     try:
-        import tkinter
+        import tkinter  # py3k
     except:
         import Tkinter as tkinter
     try:
+        from vtk.tk import vtkTkRenderWidget  # py3k
+        from vtk.tk import vtkTkRenderWindowInteractor
+    except:
         import vtkTkRenderWidget
         import vtkTkRenderWindowInteractor
-    except:
-        from tk import vtkTkRenderWidget
-        from tk import vtkTkRenderWindowInteractor
 
 
 class _vtkFigure:
@@ -2275,7 +2275,6 @@ class vtkBackend(BaseClass):
             # readline.set_pre_input_hook()
             # readline.set_startup_hook()
             return result
-
 
         def callback(e, ctrl, shift, **kwargs):
             '''
