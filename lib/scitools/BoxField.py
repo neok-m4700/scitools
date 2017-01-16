@@ -5,7 +5,7 @@ Class for a scalar (or vector) field over a BoxGrid or UniformBoxGrid grid.
 from __future__ import print_function
 
 from scitools.BoxGrid import BoxGrid, UniformBoxGrid, X, Y, Z
-from numpy import zeros, array, transpose
+import numpy as np
 
 import dolfin
 
@@ -20,6 +20,7 @@ class Field(object):
     independent variables and a string with a description of the
     field.
     """
+
     def __init__(self, grid, name,
                  independent_variables=None,
                  description=None,
@@ -33,7 +34,7 @@ class Field(object):
             self.independent_variables = self.grid.dirnames
 
         # metainformation:
-        self.meta = {'description': description,}
+        self.meta = {'description': description, }
         self.meta.update(kwargs)  # user can add more meta information
 
 
@@ -49,6 +50,7 @@ class BoxField(Field):
     =============      =============================================
 
     """
+
     def __init__(self, grid, name, vector=0, **kwargs):
         """
         Initialize scalar or vector field over a BoxGrid/UniformBoxGrid.
@@ -101,7 +103,7 @@ class BoxField(Field):
             self.set_values(values)
         else:
             # create array of scalar field grid point values:
-            self.values = zeros(self.required_shape)
+            self.values = np.zeros(self.required_shape)
 
         # doesn't  work: self.__getitem__ = self.values.__getitem__
         #self.__setitem__ = self.values.__setitem__
@@ -120,19 +122,20 @@ class BoxField(Field):
                 self.values = values
             except ValueError:
                 raise ValueError(
-                    'values array are incompatible with grid size; '\
-                    'shape is %s while required shape is %s' % \
+                    'values array are incompatible with grid size; '
+                    'shape is %s while required shape is %s' %
                     (values.shape, self.required_shape))
 
     def update(self):
         """Update the self.values array (if grid has been changed)."""
         if self.grid.shape != self.values.shape:
-            self.values = zeros(self.grid.shape)
+            self.values = np.zeros(self.grid.shape)
 
     # these are slower than u_ = u.values; u_[i] since an additional
     # function call is required compared to NumPy array indexing:
-    def __getitem__(self, i):  return self.values[i]
-    def __setitem__(self, i, v):  self.values[i] = v
+    def __getitem__(self, i): return self.values[i]
+
+    def __setitem__(self, i, v): self.values[i] = v
 
     def __str__(self):
         if len(self.values.shape) > self.grid.nsd:
@@ -180,14 +183,14 @@ class BoxField(Field):
             raise NotImplementedError('Use snap=True, no interpolation impl.')
 
         slice_index, snapped = \
-             self.grid.gridline_slice(start_coor, direction, end_coor)
-        fixed_coor = [self.grid[s][i] for s,i in enumerate(slice_index) \
+            self.grid.gridline_slice(start_coor, direction, end_coor)
+        fixed_coor = [self.grid[s][i] for s, i in enumerate(slice_index)
                       if not isinstance(i, slice)]
         if len(fixed_coor) == 1:
             fixed_coor = fixed_coor[0]  # avoid returning list of length 1
-        return self.grid.coor[direction][slice_index[direction].start:\
+        return self.grid.coor[direction][slice_index[direction].start:
                                          slice_index[direction].stop], \
-               self.values[slice_index], fixed_coor, snapped
+            self.values[slice_index], fixed_coor, snapped
 
     def gridplane(self, value, constant_coor=0, snap=True):
         """
@@ -215,6 +218,7 @@ class BoxField(Field):
         fixed_coor = self.grid.coor[constant_coor][slice_index[constant_coor]]
         return x, y, self.values[slice_index], fixed_coor, snapped
 
+
 def _rank12rankd_mesh(a, shape):
     """
     Given rank 1 array a with values in a mesh with the no of points
@@ -226,9 +230,8 @@ def _rank12rankd_mesh(a, shape):
     if len(a.shape) == 1:
         return a.reshape(shape).transpose()
     else:
-        raise ValueError('array a cannot be multi-dimensional (not %s), ' \
-                         'break it up into one-dimensional components' \
-                         % a.shape)
+        raise ValueError('array a cannot be multi-dimensional (not %s), break it up into one-dimensional components' % a.shape)
+
 
 def dolfin_mesh2UniformBoxGrid(dolfin_mesh, division=None):
     """
@@ -239,19 +242,20 @@ def dolfin_mesh2UniformBoxGrid(dolfin_mesh, division=None):
     """
     if hasattr(dolfin_mesh, 'structured_data'):
         coor = dolfin_mesh.structured_data
-        min_coor = [c[0]  for c in coor]
+        min_coor = [c[0] for c in coor]
         max_coor = [c[-1] for c in coor]
-        division = [len(c)-1 for c in coor]
+        division = [len(c) - 1 for c in coor]
     else:
         if division is None:
             raise ValueError('division must be given when dolfin_mesh does not have a strutured_data attribute')
         else:
-            coor = dolfin_mesh.coordinates() # numpy array
+            coor = dolfin_mesh.coordinates()  # numpy array
             min_coor = coor[0]
             max_coor = coor[-1]
 
     return UniformBoxGrid(min=min_coor, max=max_coor,
                           division=division)
+
 
 def dolfin_mesh2BoxGrid(dolfin_mesh, division=None):
     """
@@ -267,10 +271,10 @@ def dolfin_mesh2BoxGrid(dolfin_mesh, division=None):
         if division is None:
             raise ValueError('division must be given when dolfin_mesh does not have a strutured_data attribute')
         else:
-            c = dolfin_mesh.coordinates() # numpy array
-            shape = [n+1 for n in division]  # shape for points in each dir.
+            c = dolfin_mesh.coordinates()  # numpy array
+            shape = [n + 1 for n in division]  # shape for points in each dir.
 
-            c2 = [c[:,i] for i in range(c.shape[1])]  # split x,y,z components
+            c2 = [c[:, i] for i in range(c.shape[1])]  # split x,y,z components
             for i in range(c.shape[1]):
                 c2[i] = _rank12rankd_mesh(c2[i], shape)
             # extract coordinates in the different directions
@@ -278,9 +282,9 @@ def dolfin_mesh2BoxGrid(dolfin_mesh, division=None):
             if len(c2) == 1:
                 coor = [c2[0][:]]
             elif len(c2) == 2:
-                coor = [c2[0][:,0], c2[1][0,:]]
+                coor = [c2[0][:, 0], c2[1][0, :]]
             elif len(c2) == 3:
-                coor = [c2[0][:,0,0], c2[1][0,:,0], c2[2][0,0,:]]
+                coor = [c2[0][:, 0, 0], c2[1][0, :, 0], c2[2][0, 0, :]]
             return BoxGrid(coor)
 
 
@@ -326,15 +330,15 @@ u2 = interpolate(u, V2)
 
     if nodal_values.size > grid.npoints:
         # vector field, treat each component separately
-        ncomponents = int(nodal_values.size/grid.npoints)
+        ncomponents = int(nodal_values.size / grid.npoints)
         try:
             nodal_values.shape = (ncomponents, grid.npoints)
         except ValueError as e:
             raise ValueError('Vector field (nodal_values) has length %d, there are %d grid points, and this does not match with %d components' % (nodal_values.size, grid.npoints, ncomponents))
-        vector_field = [_rank12rankd_mesh(nodal_values[i,:].copy(),
-                                          grid.shape) \
+        vector_field = [_rank12rankd_mesh(nodal_values[i, :].copy(),
+                                          grid.shape)
                         for i in range(ncomponents)]
-        nodal_values = array(vector_field)
+        nodal_values = np.array(vector_field)
         bf = BoxField(grid, name=dolfin_function.name(),
                       vector=ncomponents, values=nodal_values)
     else:
@@ -346,6 +350,7 @@ u2 = interpolate(u, V2)
                       vector=0, values=nodal_values)
     return bf
 
+
 def update_from_dolfin_array(dolfin_array, box_field):
     """
     Update the values in a BoxField object box_field with a new
@@ -355,14 +360,15 @@ def update_from_dolfin_array(dolfin_array, box_field):
     """
     nodal_values = dolfin_array.copy()
     if len(nodal_values.shape) > 1:
-        raise NotImplementedError # no support for vector valued functions yet
-                                  # the problem is in _rank12rankd_mesh
+        raise NotImplementedError  # no support for vector valued functions yet
+        # the problem is in _rank12rankd_mesh
     try:
         nodal_values = _rank12rankd_mesh(nodal_values, box_field.grid.shape)
     except ValueError as e:
-        raise ValueError('DOLFIN function has vector of size %s while the provided mesh demands %s' % (nodal_values.size, grid.shape))
+        raise ValueError('DOLFIN function has vector of size %s while the provided mesh demands %s' % (nodal_values.size, box_field.grid.shape))
     box_field.set_values(nodal_values)
     return box_field
+
 
 def _test(g):
     print('grid: %s' % g)
@@ -379,20 +385,20 @@ def _test(g):
 
     u.values = u.grid.vectorized_eval(f)  # fill field values
 
-    if   g.nsd == 1:
-        v[:,X] = u.values + 1  # 1st component
+    if g.nsd == 1:
+        v[:, X] = u.values + 1  # 1st component
     elif g.nsd == 2:
-        v[:,:,X] = u.values + 1  # 1st component
-        v[:,:,Y] = u.values + 2  # 2nd component
+        v[:, :, X] = u.values + 1  # 1st component
+        v[:, :, Y] = u.values + 2  # 2nd component
     elif g.nsd == 3:
-        v[:,:,:,X] = u.values + 1  # 1st component
-        v[:,:,:,Y] = u.values + 2  # 2nd component
-        v[:,:,:,Z] = u.values + 3  # 3rd component
+        v[:, :, :, X] = u.values + 1  # 1st component
+        v[:, :, :, Y] = u.values + 2  # 2nd component
+        v[:, :, :, Z] = u.values + 3  # 3rd component
 
     # write out field values at the mid point of the grid
     # (convert g.shape to NumPy array and divide by 2 to find
     # approximately the mid point)
-    midptindex = tuple(array(g.shape,int)/2)
+    midptindex = tuple(np.array(g.shape, int) / 2)
     ptcoor = g[midptindex]
     # tuples with just one item does not work as indices
     print('mid point %s has indices %s' % (ptcoor, midptindex))
@@ -403,36 +409,41 @@ def _test(g):
 
     # test extraction of lines:
     if u.grid.nsd >= 2:
-        direction = u.grid.nsd-1
+        direction = u.grid.nsd - 1
         coor, u_coor, fixed_coor, snapped = \
-              u.gridline(u.grid.min_coor, direction)
-        if snapped: print('Error: snapped line')
-        print('line in x[%d]-direction, starting at %s' % \
+            u.gridline(u.grid.min_coor, direction)
+        if snapped:
+            print('Error: snapped line')
+        print('line in x[%d]-direction, starting at %s' %
               (direction, u.grid.min_coor))
         print(coor)
         print(u_coor)
 
         direction = 0
         point = u.grid.min_coor.copy()
-        point[direction+1] = u.grid.max_coor[direction+1]
+        point[direction + 1] = u.grid.max_coor[direction + 1]
         coor, u_coor, fixed_coor, snapped = \
-              u.gridline(u.grid.min_coor, direction)
-        if snapped: print('Error: snapped line')
-        print('line in x[%d]-direction, starting at %s' % \
+            u.gridline(u.grid.min_coor, direction)
+        if snapped:
+            print('Error: snapped line')
+        print('line in x[%d]-direction, starting at %s' %
               (direction, point))
         print(coor)
         print(u_coor)
 
     if u.grid.nsd == 3:
-        y_center = (u.grid.max_coor[1] + u.grid.min_coor[1])/2.0
+        y_center = (u.grid.max_coor[1] + u.grid.min_coor[1]) / 2.0
         xc, yc, uc, fixed_coor, snapped = \
             u.gridplane(value=y_center, constant_coor=1)
         print('Plane y=%g:' % fixed_coor, end=' ')
-        if snapped: print(' (snapped from y=%g)' % y_center)
-        else: print()
+        if snapped:
+            print(' (snapped from y=%g)' % y_center)
+        else:
+            print()
         print(xc)
         print(yc)
         print(uc)
+
 
 def _test2():
     g1 = UniformBoxGrid(min=0, max=1, division=4)
@@ -440,7 +451,7 @@ def _test2():
     spec = '[0,1]x[-1,2] with indices [0:4]x[0:3]'
     g2 = UniformBoxGrid.init_fromstring(spec)
     _test(g2)
-    g3 = UniformBoxGrid(min=(0,0,-1), max=(1,1,1), division=(4,3,2))
+    g3 = UniformBoxGrid(min=(0, 0, -1), max=(1, 1, 1), division=(4, 3, 2))
     _test(g3)
 
 if __name__ == '__main__':

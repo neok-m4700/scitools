@@ -5,8 +5,8 @@ Class for uniform and non-uniform grid on an interval, rectangle, or box.
 
 
 from scitools.errorcheck import right_type, wrong_type
-from scitools.numpyutils import ndgrid, ndarray, wrap2callable, array, \
-    zeros, linspace
+from scitools.numpyutils import ndgrid, wrap2callable
+import numpy as np
 
 # constants for indexing the space directions:
 X = X1 = 0
@@ -79,20 +79,20 @@ class UniformBoxGrid(object):
                     'Incompatible lengths of arguments to constructor'
                     ' (%d != %d)' % (len(a), self.nsd))
 
-        self.min_coor = array(min, float)
-        self.max_coor = array(max, float)
+        self.min_coor = np.array(min, float)
+        self.max_coor = np.array(max, float)
         self.dirnames = dirnames
         self.division = division
         self.coor = [None] * self.nsd
         self.shape = [0] * self.nsd
-        self.delta = zeros(self.nsd)
+        self.delta = np.zeros(self.nsd)
 
         for i in range(self.nsd):
             self.delta[i] = \
                 (self.max_coor[i] - self.min_coor[i]) / float(self.division[i])
             self.shape[i] = self.division[i] + 1  # no of grid points
             self.coor[i] = \
-                linspace(self.min_coor[i], self.max_coor[i], self.shape[i])
+                np.linspace(self.min_coor[i], self.max_coor[i], self.shape[i])
         self._more_init()
 
     def _more_init(self):
@@ -177,7 +177,7 @@ class UniformBoxGrid(object):
                 raise ValueError('syntax error in "%s"' % s)
 
             # old syntax (nx, xmin, xmax, ny, ymin, etc.):
-            #kwargs[dirnames[dir]] = (float(d[dir][0]), float(d[dir][1]))
+            # kwargs[dirnames[dir]] = (float(d[dir][0]), float(d[dir][1]))
             # kwargs['n'+dirnames[dir]] = int(i[dir][1]) - int(i[dir][0]) # no of cells!
             kwargs['min'] = [float(d[dir][0]) for dir in range(nsd)]
             kwargs['max'] = [float(d[dir][1]) for dir in range(nsd)]
@@ -351,7 +351,7 @@ class UniformBoxGrid(object):
         Check that data_array is a NumPy array with dimensions
         compatible with the grid.
         """
-        if not isinstance(data_array, ndarray):
+        if not isinstance(data_array, np.ndarray):
             raise TypeError('data %s is %s, not NumPy array' %
                             (name_of_data_array, type(data_array)))
         else:
@@ -546,9 +546,9 @@ class UniformBoxGrid(object):
         if nsd != self.nsd:
             raise ValueError('point=%s has wrong dimension (this is a %dD grid!)' %
                              (point, self.nsd))
-        #index = zeros(nsd, int)
+        # index = np.zeros(nsd, int)
         index = [0] * nsd
-        distance = zeros(nsd)
+        distance = np.zeros(nsd)
         grid_point = [False] * nsd
         nearest_point = [0] * nsd
         for i, coor in enumerate(point):
@@ -633,7 +633,7 @@ class UniformBoxGrid(object):
             slice(start_snapped[direction], end_snapped[direction] + 1, 1)
         # note that if all start_match are true, then the plane
         # was not snapped
-        return tuple(line_slice), not array(start_match).all()
+        return tuple(line_slice), not np.array(start_match).all()
 
     def gridplane_slice(self, value, constant_coor=0):
         """
@@ -694,17 +694,16 @@ def _test(g, points=None):
     print('g=%s' % str(g))
     # dump all the contents of a grid object:
     import scitools.misc; scitools.misc.dump(g, hide_nonpublic=False)
-    from numpy import zeros
 
     def fv(*args):
         # vectorized evaluation function
-        return zeros(g.shape) + 2
+        return np.zeros(g.shape) + 2
 
     def fs(*args):
         # scalar version
         return 2
     fv_arr = g.vectorized_eval(fv)
-    fs_arr = zeros(g.shape)
+    fs_arr = np.zeros(g.shape)
 
     coor = [0.0] * g.nsd
     itparts = ['all', 'interior', 'all_boundary', 'interior_boundary',
@@ -755,7 +754,6 @@ def _test2():
 
 
 def _test4():
-    from numpy import sin, zeros, exp
     # check vectorization evaluation:
     g = UniformBoxGrid(min=(0, 0), max=(1, 1), division=(3, 3))
     try:
@@ -764,14 +762,14 @@ def _test4():
         # fine, expect to arrive here
         print('*** Expected error in this test:', msg)
     try:
-        g.vectorized_eval(lambda x, y: zeros((2, 2)) + 2)
+        g.vectorized_eval(lambda x, y: np.zeros((2, 2)) + 2)
     except IndexError as msg:
         # fine, expect to arrive here
         print('*** Expected error in this test:', msg)
 
-    a = g.vectorized_eval(lambda x, y: sin(x) * exp(y - x))
+    a = g.vectorized_eval(lambda x, y: np.sin(x) * np.exp(y - x))
     print(a)
-    a = g.vectorized_eval(lambda x, y: zeros(g.shape) + 2)
+    a = g.vectorized_eval(lambda x, y: np.zeros(g.shape) + 2)
     print(a)
 
 
