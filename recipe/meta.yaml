@@ -13,7 +13,9 @@ source:
 
 build:
   number: 99
-  script: $PYTHON setup.py install
+  script: python setup.py install
+  script_env:
+    - DISPLAY # for testing
 
 requirements:
   build:
@@ -38,5 +40,4 @@ test:
 about:
   home: hplgit.github.io/scitools/doc/web/index.html
   license: new BSD license
-  summary:
-    - SciTools is a Python package containing many useful tools for scientific computing in Python
+  summary: 'SciTools is a Python package containing many useful tools for scientific computing in Python'
