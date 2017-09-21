@@ -2,6 +2,7 @@
 import scitools.globaldata; scitools.globaldata.DEBUG = 1; scitools.globaldata.backend = 'vtk_new'
 from scitools.easyviz import *
 from scitools.std import *
+from numpy import linspace
 
 '''Demonstration on how to use the surf command'''
 

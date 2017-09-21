@@ -100,14 +100,16 @@ VTK_COORD_SYS = {
     6: 'VTK_USERDEFINED'
 }
 
-
 if 'qt' in VTK_BACKEND.lower():
-    from PyQt4 import QtCore, QtGui
+    from qtpy import QtCore, QtWidgets
+    if 'qt5' in VTK_BACKEND.lower():
+        from vtk.qt.QVTKRenderWindowInteractor import _qt_key_to_key_sym, _keysyms, QVTKRenderWindowInteractor
 
-    from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-    from vtk.qt.QVTKRenderWindowInteractor import _qt_key_to_key_sym, _keysyms
+    elif 'qt4' in VTK_BACKEND.lower():
+        from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+        from vtk.qt.QVTKRenderWindowInteractor import _qt_key_to_key_sym, _keysyms
 
-    class _QVTKRenderWindowInteractor(vtk.qt4.QVTKRenderWindowInteractor.QVTKRenderWindowInteractor):
+    class _QVTKRenderWindowInteractor(QVTKRenderWindowInteractor):
 
         def keyPressEvent(self, e, filtered=False):
             ctrl, shift = self._GetCtrlShift(e)
@@ -160,12 +162,12 @@ class _vtkFigure:
             self.frame = tkinter.Frame(self.root)  # relief='sunken', bd=2
             self.frame.pack(side='top', fill='both', expand='true')
         else:
-            self.root = QtGui.QMainWindow()
+            self.root = QtWidgets.QMainWindow()
             self.root.setWindowTitle(title)
             self.root.closeEvent = lambda e: self.exit()
             self.root.resize(self.width, self.height)
-            self.frame = QtGui.QFrame()
-            self.vl = QtGui.QVBoxLayout()
+            self.frame = QtWidgets.QFrame()
+            self.vl = QtWidgets.QVBoxLayout()
         self._init()
 
     def _init(self):
@@ -176,6 +178,7 @@ class _vtkFigure:
             else:
                 self.vtkWidget = _QVTKRenderWindowInteractor(self.frame)  # this object inherits from QWidget
                 self.vl.addWidget(self.vtkWidget)
+                print('widget created')
 
             self.renwin = self.vtkWidget.GetRenderWindow()
             self.renwin.SetSize(self.width, self.height)
@@ -594,7 +597,7 @@ class vtkBackend(BaseClass):
             self._master = tkinter.Tk()
             self._master.withdraw()
         else:
-            self._master = QtGui.QApplication([])
+            self._master = QtWidgets.QApplication([])
 
         self.figure(self.getp('curfig'))
 
@@ -2636,6 +2639,7 @@ class vtkBackend(BaseClass):
             self.setp(**kwargs)
             self.all_show()
 
+            # here is the real call to app.exec_() for Qt
             self._master.mainloop() if 'tk' in VTK_BACKEND.lower() else self._master.exec_()
 
     def all_show(self):
@@ -2966,6 +2970,7 @@ class vtkBackend(BaseClass):
                     if m2.__doc__ is None:
                         m2.__doc__ = ''
                     m2.__doc__ = m1.__doc__ + m2.__doc__
+
 
 plt = vtkBackend()   # create backend instance
 use(plt, globals())  # export public namespace of plt to globals()
